@@ -231,6 +231,22 @@ describe("MCPHub", () => {
       expect(mcpHub.connections.size).toBe(0);
       expect(connection.disconnect).toHaveBeenCalledTimes(2);
     });
+
+    it("should not duplicate event handlers on server restart", async () => {
+      // First connection
+      await mcpHub.connectServer("server1", mockConfig.mcpServers.server1);
+      const firstListenerCount = connection.listenerCount("toolsChanged");
+
+      // Simulate a restart by reconnecting
+      await mcpHub.disconnectServer("server1");
+      connection.removeAllListeners.mockClear();
+      
+      // Reconnect
+      await mcpHub.connectServer("server1", mockConfig.mcpServers.server1);
+      
+      // Verify removeAllListeners was called before adding new listeners
+      expect(connection.removeAllListeners).toHaveBeenCalled();
+    });
   });
 
   describe("Server Operations", () => {

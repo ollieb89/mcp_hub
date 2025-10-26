@@ -70,19 +70,9 @@ export class MCPHub extends EventEmitter {
           this.marketplace,
           this.hubServerUrl,
         );
-        ["toolsChanged", "resourcesChanged", "promptsChanged", "notification"].forEach((event) => {
-          connection.on(event, (data) => {
-            this.emit(event, data);
-          });
-        });
-
-        // Setup dev event handlers
-        connection.on("devServerRestarting", (data) => {
-          this.emit("devServerRestarting", data);
-        });
-        connection.on("devServerRestarted", (data) => {
-          this.emit("devServerRestarted", data);
-        });
+        
+        // Setup connection event handlers
+        this._setupConnectionEvents(connection);
 
         this.connections.set(name, connection);
         await connection.connect();
@@ -187,6 +177,31 @@ export class MCPHub extends EventEmitter {
     return await connection.stop(disable);
   }
 
+
+  /**
+   * Setup event handlers for a connection, removing existing handlers first to prevent duplicates.
+   * 
+   * @param {MCPConnection} connection - The connection to setup event handlers for
+   */
+  _setupConnectionEvents(connection) {
+    // Remove all existing listeners to prevent duplicates
+    connection.removeAllListeners();
+    
+    // Setup capability change handlers
+    ["toolsChanged", "resourcesChanged", "promptsChanged", "notification"].forEach((event) => {
+      connection.on(event, (data) => {
+        this.emit(event, data);
+      });
+    });
+
+    // Setup dev event handlers
+    connection.on("devServerRestarting", (data) => {
+      this.emit("devServerRestarting", data);
+    });
+    connection.on("devServerRestarted", (data) => {
+      this.emit("devServerRestarted", data);
+    });
+  }
 
   /**
    * Check if configuration changes are significant (include additions, removals, or modifications).

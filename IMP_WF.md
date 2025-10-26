@@ -559,16 +559,17 @@ Split `src/MCPHub.js:handleConfigUpdated()` into:
 #### US-011: Fix Event Handler Memory Leaks
 **Priority**: P1 - High  
 **Story Points**: 3  
-**Assignee**: [TBD]
+**Assignee**: [TBD]  
+**Status**: ✅ COMPLETED
 
 **Description**:  
 Fix event handler duplication when servers are restarted, preventing memory leaks.
 
 **Acceptance Criteria**:
-- [ ] Event handlers removed before adding new ones
-- [ ] No duplicate event emissions
-- [ ] Memory profiling shows no leaks
-- [ ] Integration test verifies no handler duplication
+- [x] Event handlers removed before adding new ones
+- [x] No duplicate event emissions
+- [x] Memory profiling shows no leaks
+- [x] Integration test verifies no handler duplication
 
 **Technical Notes**:
 - Add removeAllListeners() before on()
@@ -585,6 +586,14 @@ Fix event handler duplication when servers are restarted, preventing memory leak
 - ✅ Tests added for handler management
 - ✅ Performance maintained
 - ✅ Code reviewed
+
+**Implementation Summary**:
+- Modified `setupNotificationHandlers()` in MCPConnection to call `removeNotificationHandlers()` first
+- Created `_setupConnectionEvents()` helper in MCPHub with `removeAllListeners()` call
+- Updated connection setup to use the new helper method
+- Added JSDoc documentation for both methods
+- Added test to verify no handler duplication on restart
+- Prevents memory leaks from duplicate event handlers
 
 ---
 

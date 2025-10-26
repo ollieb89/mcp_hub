@@ -302,41 +302,50 @@ export class MCPConnection extends EventEmitter {
     this.client.setNotificationHandler(LoggingMessageNotificationSchema, nothing)
   }
 
+  /**
+   * Setup notification handlers for this connection.
+   * Automatically removes existing handlers before adding new ones to prevent duplicates.
+   */
   setupNotificationHandlers() {
-    if (!this.client) return
+    if (!this.client) return;
+
+    // Remove existing handlers first to prevent duplicates
+    this.removeNotificationHandlers();
 
     // Handle general logging messages
     this.client.setNotificationHandler(
       LoggingMessageNotificationSchema,
       (notification) => {
-        let params = notification.params || {}
-        let data = params.data || {}
-        let level = params.level || "debug"
+        let params = notification.params || {};
+        let data = params.data || {};
+        let level = params.level || "debug";
         logger.debug(`["${this.name}" server ${level} log]: ${JSON.stringify(data, null, 2)}`);
       }
     );
+
     const map = {
       "tools": ToolListChangedNotificationSchema,
       "resources": ResourceListChangedNotificationSchema,
       "prompts": PromptListChangedNotificationSchema,
-    }
-    // Handle tool list changes
+    };
+
+    // Handle capability change notifications
     Object.keys(map).forEach(type => {
       this.client.setNotificationHandler(map[type], async () => {
-        logger.debug(`Received ${type}Changed notification`)
+        logger.debug(`Received ${type}Changed notification`);
         await this.updateCapabilities(type === "resources" ? ["resources", "resourceTemplates"] : [type]);
         const updatedData = type === "resources" ? {
           resources: this.resources,
           resourceTemplates: this.resourceTemplates,
         } : {
           [type]: this[type],
-        }
+        };
         this.emit(`${type}Changed`, {
           server: this.name,
           ...updatedData,
-        })
-      })
-    })
+        });
+      });
+    });
   }
 
 
