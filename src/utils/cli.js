@@ -26,7 +26,13 @@ function loadEnvFile() {
         const [, key, value] = match;
         // Don't override existing environment variables
         if (!process.env[key]) {
-          process.env[key] = value.trim();
+          // Remove surrounding quotes if present
+          let cleanValue = value.trim();
+          if ((cleanValue.startsWith('"') && cleanValue.endsWith('"')) || 
+              (cleanValue.startsWith("'") && cleanValue.endsWith("'"))) {
+            cleanValue = cleanValue.slice(1, -1);
+          }
+          process.env[key] = cleanValue;
         }
       }
     }

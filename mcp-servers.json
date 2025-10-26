@@ -18,7 +18,7 @@
       "args": ["-y", "@jpisnice/shadcn-ui-mcp-server"],
       "cwd": ".",
       "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
       },
       "disabled": false
     },
@@ -26,8 +26,20 @@
       "command": "npx",
       "args": ["-y", "gemini-mcp-tool"],
       "cwd": ".",
-      "env": {},
+      "env": {
+        "GOOGLE_API_KEY": "${GEMINI_API_KEY}"
+      },
       "disabled": false
+    },
+    "docker-hub": {
+      "command": "node",
+      "args": ["/PATH/TO/docker-hub-mcp-server/dist/index.js", "--transport", "stdio", "--username", "${DOCKER_HUB_USERNAME}"],
+      "cwd": ".",
+      "env": {
+        "HUB_PAT_TOKEN": "${DOCKER_HUB_PAT}"
+      },
+      "disabled": true,
+      "note": "Requires local installation. See: https://github.com/docker/hub-mcp"
     }
   }
 }
