@@ -138,6 +138,49 @@ describe("MCPHub", () => {
       });
     });
 
+    it("should handle multiple server failures gracefully", async () => {
+      // Mock config with multiple servers
+      const multiServerConfig = {
+        mcpServers: {
+          server1: { host: "localhost", port: 3000 },
+          server3: { host: "localhost", port: 3002 },
+        }
+      };
+      mcpHub.configManager.getConfig.mockReturnValue(multiServerConfig);
+      
+      // Make server1 succeed but server3 fail
+      connection.connect
+        .mockResolvedValueOnce(undefined) // server1 succeeds
+        .mockRejectedValueOnce(new Error("Connection failed")); // server3 fails
+
+      await mcpHub.initialize();
+
+      // Should complete without throwing, logging summary
+      expect(logger.info).toHaveBeenCalledWith(
+        expect.stringContaining("servers started successfully"),
+        expect.objectContaining({
+          total: 2,
+          successful: 1,
+          failed: 1,
+        })
+      );
+    });
+
+    it("should continue startup when some servers fail", async () => {
+      // Mock error for one server
+      connection.connect.mockRejectedValueOnce(new Error("Startup failed"));
+
+      await mcpHub.initialize();
+
+      // Verify error was logged
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining("Startup failed"),
+        expect.any(Object),
+        false
+      );
+    });
+
     it("should handle server connection errors", async () => {
       const error = new Error("Connection failed");
       connection.connect.mockRejectedValueOnce(error);

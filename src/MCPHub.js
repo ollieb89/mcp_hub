@@ -94,7 +94,11 @@ export class MCPHub extends EventEmitter {
         };
       } catch (error) {
         const e = wrapError(error);
-        logger.error(e.code || "SERVER_START_ERROR", e.message, e.data, false);
+        logger.error(e.code || "SERVER_START_ERROR", e.message, {
+          ...e.data,
+          server: name,
+          error: error.message,
+        }, false);
 
         return {
           name,
@@ -106,7 +110,28 @@ export class MCPHub extends EventEmitter {
     });
 
     // Wait for all servers to start and log summary
-    const results = await Promise.all(startPromises);
+    // Use allSettled to ensure all promises complete even if some fail
+    const settledResults = await Promise.allSettled(startPromises);
+    
+    // Extract the results - all should be fulfilled due to try-catch above
+    const results = settledResults.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      } else {
+        // This should not happen due to try-catch, but handle it gracefully
+        const serverName = servers[index]?.[0] || 'unknown';
+        logger.error('UNEXPECTED_ERROR', 
+          `Unexpected server startup failure: ${result.reason}`, 
+          { server: serverName, error: result.reason }, 
+          false
+        );
+        return {
+          name: serverName,
+          status: 'error',
+          error: result.reason?.message || String(result.reason),
+        };
+      }
+    });
 
     const successful = results.filter((r) => r.status === "success");
     const failed = results.filter((r) => r.status === "error");

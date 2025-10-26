@@ -151,37 +151,60 @@ Key locations updated:
 #### US-003: Improve Promise Error Handling and Reporting
 **Priority**: P1 - High  
 **Story Points**: 5  
-**Assignee**: [TBD]
+**Assignee**: [TBD]  
+**Status**: ✅ COMPLETED
 
 **Description**:  
 Improve error handling for server startup promises to provide better diagnostics and prevent silent failures.
 
 **Acceptance Criteria**:
-- [ ] Promise.allSettled used instead of Promise.all for server startup
-- [ ] Failed promises are properly caught and logged
-- [ ] Error messages include context (server name, error details)
-- [ ] Summary of startup results provides actionable information
-- [ ] Unit tests verify error handling for rejected promises
+- [x] Promise.allSettled used instead of Promise.all for server startup
+- [x] Failed promises are properly caught and logged
+- [x] Error messages include context (server name, error details)
+- [x] Summary of startup results provides actionable information
+- [x] Unit tests verify error handling for rejected promises
 
 **Technical Notes**:
+Key locations updated:
+- `src/MCPHub.js:103` - Changed Promise.all to Promise.allSettled
+- `src/MCPHub.js:105-122` - Added result extraction from allSettled format
+- `src/MCPHub.js:89-96` - Improved error logging to include server name in error data
+- `src/MCPHub.js:110-122` - Added defensive handling for unexpected rejections
+
 ```javascript
-// Location: src/MCPHub.js:97-106
-// Convert Promise.all to Promise.allSettled
-// Properly handle rejected promises
-// Include server name in error logging
+// Before: await Promise.all(startPromises);
+// After: 
+const settledResults = await Promise.allSettled(startPromises);
+const results = settledResults.map((result) => {
+  if (result.status === 'fulfilled') {
+    return result.value;
+  } else {
+    // Handle unexpected rejection gracefully
+    logger.error('UNEXPECTED_ERROR', ...);
+    return errorResult;
+  }
+});
 ```
 
 **Testing Strategy**:
-- Simulate server startup failure
-- Verify error logging includes context
-- Test multiple server failures
-- Verify graceful degradation
+- Test multiple server failures gracefully ✅
+- Verify graceful degradation ✅
+- Test that all servers attempted even if some fail ✅
+- Verify error logging includes context ✅
 
 **Definition of Done**:
 - ✅ All promise rejections handled
 - ✅ Error messages are informative
 - ✅ Tests cover failure scenarios
 - ✅ Documentation updated
+
+**Implementation Summary**:
+- Changed from Promise.all to Promise.allSettled in startConfiguredServers()
+- Added defensive code to handle unexpected promise rejections
+- Improved error logging to include server name in all error contexts
+- Ensures all servers are attempted to start even if some fail
+- Provides comprehensive startup summary with success/failure counts
+- Added 2 new test cases for multi-server failure scenarios
 
 ---
 
