@@ -39,7 +39,30 @@ import { CONNECTION_STATUS, TIMEOUTS } from "./utils/constants.js";
 const ConnectionStatus = CONNECTION_STATUS;
 
 
+/**
+ * MCPConnection manages a single MCP server connection, handling transport setup,
+ * capability discovery, tool execution, resource access, and OAuth authentication.
+ * 
+ * @class MCPConnection
+ * @extends {EventEmitter}
+ * 
+ * @emits {toolsChanged} When tools list changes
+ * @emits {resourcesChanged} When resources list changes
+ * @emits {promptsChanged} When prompts list changes
+ * @emits {notification} When server sends a notification
+ * @emits {devServerRestarting} When dev mode server is restarting
+ * @emits {devServerRestarted} When dev mode server has restarted
+ * @emits {hubStateChanged} When hub state changes
+ */
 export class MCPConnection extends EventEmitter {
+  /**
+   * Create a new MCPConnection instance.
+   * 
+   * @param {string} name - Server identifier (MCP ID)
+   * @param {Object} config - Server configuration (command, args, env, url, headers, etc.)
+   * @param {Object} marketplace - Marketplace instance for server metadata
+   * @param {string} hubServerUrl - Hub server URL for OAuth callbacks
+   */
   constructor(name, config, marketplace, hubServerUrl) {
     super();
     this.name = name; // Keep as mcpId
@@ -93,6 +116,13 @@ export class MCPConnection extends EventEmitter {
     }
   }
 
+  /**
+   * Start the MCP server connection. If the server is disabled, it will be enabled.
+   * If already connected, returns current server information.
+   * 
+   * @returns {Promise<Object>} Server information object
+   * @throws {ConnectionError} If connection fails
+   */
   async start() {
     // If disabled, enable it
     if (this.disabled) {
@@ -110,6 +140,12 @@ export class MCPConnection extends EventEmitter {
     return this.getServerInfo();
   }
 
+  /**
+   * Stop the MCP server connection. Optionally disable the server to prevent reconnection.
+   * 
+   * @param {boolean} [disable=false] - If true, disable the server after stopping
+   * @returns {Promise<Object>} Server information object
+   */
   async stop(disable = false) {
     if (disable) {
       this.disabled = true;
@@ -124,7 +160,12 @@ export class MCPConnection extends EventEmitter {
     return this.getServerInfo();
   }
 
-  // Calculate uptime in seconds
+  /**
+   * Calculate the server uptime in seconds since the last successful connection.
+   * Returns 0 if the server has never been connected or is not currently running.
+   * 
+   * @returns {number} Uptime in seconds (0 if disconnected)
+   */
   getUptime() {
     if (!this.startTime || ![ConnectionStatus.CONNECTED, ConnectionStatus.DISABLED].includes(this.status)) {
       return 0;
@@ -132,6 +173,17 @@ export class MCPConnection extends EventEmitter {
     return Math.floor((Date.now() - this.startTime) / 1000);
   }
 
+  /**
+   * Connect to the MCP server using the configured transport type (stdio, SSE, or HTTP).
+   * Establishes transport connection, fetches server capabilities, and sets up event handlers.
+   * 
+   * @param {Object} [config] - Optional updated configuration to use
+   * @returns {Promise<void>}
+   * @throws {ConnectionError} If connection fails
+   * @emits {toolsChanged} When tools are discovered
+   * @emits {resourcesChanged} When resources are discovered
+   * @emits {promptsChanged} When prompts are discovered
+   */
   async connect(config) {
     try {
       if (config) {
@@ -375,6 +427,20 @@ export class MCPConnection extends EventEmitter {
   }
 
 
+  /**
+   * Get a prompt from the MCP server.
+   * 
+   * @param {string} promptName - Name of the prompt to retrieve
+   * @param {Object|Array|null} [args] - Prompt arguments (object, array, or null)
+   * @param {Object} [request_options] - Additional request options
+   * @returns {Promise<Object>} Prompt content
+   * @throws {ToolError} If prompt retrieval fails or prompt not found
+   * @throws {ConnectionError} If server not connected
+   * 
+   * @example
+   * // Get a prompt with arguments
+   * const prompt = await connection.getPrompt('summarize', { text: 'Long text...' });
+   */
   async getPrompt(promptName, args, request_options) {
     if (!this.client) {
       throw new ToolError("Server not initialized", {
@@ -434,6 +500,20 @@ export class MCPConnection extends EventEmitter {
     | Binary Resource     | `{ "content": [{ "type": "resource", "resource": { "uri": "image.jpg", "blob": "base64data...", "mimeType": "image/jpeg" } }], "isError": false }` |
     | Error Case          | `{ "content": [], "isError": true }` (Note: Error details might be in JSON-RPC level) |
     */
+  /**
+   * Execute a tool on the MCP server.
+   * 
+   * @param {string} toolName - Name of the tool to execute
+   * @param {Object|Array|null} [args] - Tool arguments (object, array, or null)
+   * @param {Object} [request_options] - Additional request options
+   * @returns {Promise<Object>} Tool execution result
+   * @throws {ToolError} If tool execution fails or tool not found
+   * @throws {ConnectionError} If server not connected
+   * 
+   * @example
+   * // Execute a tool with arguments
+   * const result = await connection.callTool('readFile', { path: '/tmp/file.txt' });
+   */
   async callTool(toolName, args, request_options) {
     if (!this.client) {
       throw new ToolError("Server not initialized", {
@@ -499,6 +579,19 @@ export class MCPConnection extends EventEmitter {
     | No Resources (empty)         | `{ "contents": [] }`                                                             |
   */
 
+  /**
+   * Read a resource from the MCP server.
+   * 
+   * @param {string} uri - Resource URI to read
+   * @param {Object} [request_options] - Additional request options
+   * @returns {Promise<Object>} Resource content
+   * @throws {ResourceError} If resource read fails or resource not found
+   * @throws {ConnectionError} If server not connected
+   * 
+   * @example
+   * // Read a text resource
+   * const resource = await connection.readResource('file:///tmp/file.txt');
+   */
   async readResource(uri, request_options) {
     if (!this.client) {
       throw new ResourceError("Server not initialized", {
@@ -623,6 +716,12 @@ export class MCPConnection extends EventEmitter {
     this.serverInfo = null;
   }
 
+  /**
+   * Disconnect from the MCP server and clean up all resources.
+   * 
+   * @param {string} [error] - Optional error message to store in state
+   * @returns {Promise<void>}
+   */
   async disconnect(error) {
     // Use centralized cleanup method
     await this.cleanup(error);
@@ -637,6 +736,18 @@ export class MCPConnection extends EventEmitter {
     })
   }
 
+  /**
+   * Initiate OAuth authorization flow by opening the authorization URL in the default browser.
+   * 
+   * @returns {Promise<Object>} Object containing the authorization URL
+   * @returns {string} returns.authorizationUrl - The OAuth authorization URL
+   * @throws {Error} If no authorization URL is available
+   * 
+   * @example
+   * // Start OAuth flow
+   * const { authorizationUrl } = await connection.authorize();
+   * // Browser opens automatically for user to authorize
+   */
   async authorize() {
     if (!this.authorizationUrl) {
       throw new Error(`No authorization URL available for server '${this.name}'`);
@@ -653,6 +764,16 @@ export class MCPConnection extends EventEmitter {
     }
   }
 
+  /**
+   * Reconnect to the MCP server. First disconnects any existing connection, then establishes a new one.
+   * 
+   * @returns {Promise<void>}
+   * @throws {ConnectionError} If reconnection fails
+   * 
+   * @example
+   * // Reconnect after connection loss
+   * await connection.reconnect();
+   */
   async reconnect() {
     if (this.client) {
       try {
@@ -667,7 +788,15 @@ export class MCPConnection extends EventEmitter {
     await this.connect();
   }
 
-
+  /**
+   * Handle OAuth callback with authorization code exchange.
+   * Called after user completes authorization in the browser.
+   * 
+   * @param {string} code - Authorization code from OAuth provider
+   * @returns {Promise<void>}
+   * @throws {Error} If transport not available or authorization fails
+   * @emits {hubStateChanged} When hub state changes after authorization
+   */
   async handleAuthCallback(code) {
     if (!this.transport) {
       throw new Error(`No transport available for server '${this.name}'`);
@@ -679,6 +808,23 @@ export class MCPConnection extends EventEmitter {
     await this.connect()
   }
 
+  /**
+   * Get comprehensive server information including status, capabilities, and metadata.
+   * 
+   * @returns {Object} Server information object with:
+   * @returns {string} returns.name - Server identifier (MCP ID)
+   * @returns {string} returns.displayName - Friendly display name from marketplace
+   * @returns {string} returns.description - Server description
+   * @returns {string} returns.transportType - Transport type ('stdio', 'sse', or 'streamable-http')
+   * @returns {string} returns.status - Connection status ('connected', 'connecting', 'disconnected', etc.)
+   * @returns {string|null} returns.error - Error message if connection failed
+   * @returns {Object} returns.capabilities - Server capabilities (tools, resources, prompts, etc.)
+   * @returns {number} returns.uptime - Server uptime in seconds
+   * @returns {string|null} returns.lastStarted - ISO timestamp of last connection attempt
+   * @returns {string|null} returns.authorizationUrl - OAuth authorization URL if needed
+   * @returns {Object|null} returns.serverInfo - Server-reported metadata (name, version)
+   * @returns {string} returns.config_source - Source config file path
+   */
   getServerInfo() {
     return {
       name: this.name, // Original mcpId
