@@ -332,7 +332,7 @@ export class Marketplace {
    * @returns {Promise<string|null>} The README content as a string, or null if not found/failed.
    */
   async #fetchReadmeContent(repoUrl) {
-    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
     if (!match) {
       logger.debug(`URL is not a GitHub repository: ${repoUrl}`);
       return null;

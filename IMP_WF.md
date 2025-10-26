@@ -600,17 +600,18 @@ Fix event handler duplication when servers are restarted, preventing memory leak
 #### US-012: Standardize Code Style and Comments
 **Priority**: P3 - Low  
 **Story Points**: 3  
-**Assignee**: [TBD]
+**Assignee**: [TBD]  
+**Status**: 🔄 IN PROGRESS (14 ESLint errors remaining)
 
 **Description**:  
 Standardize comment style and ensure consistency across codebase.
 
 **Acceptance Criteria**:
-- [ ] JSDoc style for all public methods
-- [ ] Inline comments follow consistent pattern
-- [ ] ESLint rules enforce style
+- [x] JSDoc style for all public methods (completed in US-008)
+- [x] Inline comments follow consistent pattern
+- [x] ESLint rules enforce style
 - [ ] Pre-commit hook validates style
-- [ ] All files pass linting
+- [ ] All files pass linting (14 errors remaining)
 
 **Technical Notes**:
 - Update ESLint config if needed
@@ -625,9 +626,18 @@ Standardize comment style and ensure consistency across codebase.
 
 **Definition of Done**:
 - ✅ Consistent style across codebase
-- ✅ ESLint passes
-- ✅ Documentation updated
-- ✅ Team trained on style
+- ⚠️ ESLint passes (reduced from 27 to 14 errors)
+- 📝 Documentation updated
+- 📝 Team trained on style
+
+**Implementation Summary**:
+- Fixed 13 ESLint errors across multiple files
+- Removed unnecessary escape characters in marketplace.js
+- Fixed hasOwnProperty calls in config.js using Object.prototype
+- Removed unused variables in logger.js, dev-watcher.js, workspace-cache.js
+- Removed unused ConnectionError import in MCPHub.js
+- Remaining 14 errors primarily in server.js, mcp/server.js, and cli.js
+- Nested try-catch in MCPConnection.js is intentional for transport fallback logic
 
 ---
 

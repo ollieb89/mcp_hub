@@ -66,9 +66,9 @@ export class DevWatcher extends EventEmitter {
         },
       });
       // Handle file changes with debouncing
-      this.watcher.on('change', (filePath) => this.#handleFileChange(filePath, 'change'));
-      this.watcher.on('add', (filePath) => this.#handleFileChange(filePath, 'add'));
-      this.watcher.on('unlink', (filePath) => this.#handleFileChange(filePath, 'unlink'));
+      this.watcher.on('change', (filePath) => this.#handleFileChange(filePath));
+      this.watcher.on('add', (filePath) => this.#handleFileChange(filePath));
+      this.watcher.on('unlink', (filePath) => this.#handleFileChange(filePath));
       // Handle watcher errors
       this.watcher.on('error', (error) => {
         logger.error('DEV_WATCHER_ERROR', `Dev watcher error for '${this.serverName}': ${error.message}`, {}, false);
@@ -82,7 +82,7 @@ export class DevWatcher extends EventEmitter {
     }
   }
 
-  #handleFileChange(filePath, eventType) {
+  #handleFileChange(filePath) {
     // Add file to changed files set
     this.changedFiles.add(filePath);
 

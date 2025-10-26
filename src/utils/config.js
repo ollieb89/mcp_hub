@@ -82,10 +82,10 @@ export class ConfigManager extends EventEmitter {
       } else {
         // Check each key field for changes
         const modifiedFields = this.#KEY_FIELDS.filter(field => {
-          if (!oldServers[name].hasOwnProperty(field) && !newConfig.hasOwnProperty(field)) {
+          if (!Object.prototype.hasOwnProperty.call(oldServers[name], field) && !Object.prototype.hasOwnProperty.call(newConfig, field)) {
             return false;
           }
-          if (!oldServers[name].hasOwnProperty(field) || !newConfig.hasOwnProperty(field)) {
+          if (!Object.prototype.hasOwnProperty.call(oldServers[name], field) || !Object.prototype.hasOwnProperty.call(newConfig, field)) {
             return true;
           }
           if (field === 'args' || field === 'env' || field === 'headers' || field === 'dev') {

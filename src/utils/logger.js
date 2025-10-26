@@ -71,7 +71,7 @@ class Logger {
    * Core logging method that all other methods use
    */
   log(type, message, data = {}, code = null, options = {}) {
-    const { exit = false, exitCode = 1, level = type } = options;
+    const { exit = false, level = type } = options;
 
     if (this.LOG_LEVELS[this.logLevel] < this.LOG_LEVELS[level]) return;
 
@@ -99,11 +99,10 @@ class Logger {
     if (exit) {
       //sigterm
       process.emit('SIGTERM');
-      // process.exit(exitCode);
     }
   }
 
-  file(message, data = {}) {
+  file(message) {
     // File output
     if (this.enableFileLogging) {
       try {
@@ -159,8 +158,8 @@ class Logger {
   /**
    * Log error message
    */
-  error(code, message, data = {}, exit = true, exitCode = 1) {
-    this.log('error', message, data, code, { exit, exitCode });
+  error(code, message, data = {}, exit = true) {
+    this.log('error', message, data, code, { exit });
   }
 
   /**

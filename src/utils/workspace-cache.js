@@ -381,7 +381,7 @@ export class WorkspaceCacheManager extends EventEmitter {
                     // Always clean up the lock file
                     try {
                         await fs.unlink(this.lockFilePath);
-                    } catch (unlinkError) {
+                    } catch {
                         // Ignore unlink errors as they're not critical
                     }
                 }
@@ -430,7 +430,7 @@ export class WorkspaceCacheManager extends EventEmitter {
             // Sending signal 0 checks if process exists without actually sending a signal
             process.kill(pid, 0);
             return true;
-        } catch (error) {
+        } catch {
             return false;
         }
     }

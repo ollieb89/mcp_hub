@@ -373,7 +373,7 @@ export class MCPConnection extends EventEmitter {
       try {
         const response = await this.client.request({ method }, schema);
         return response;
-      } catch (error) {
+      } catch {
         // logger.debug( `Server '${this.name}' does not support capability '${method}'`);
         return null;
       }

@@ -3,7 +3,6 @@ import { ConfigManager } from "./utils/config.js";
 import { MCPConnection } from "./MCPConnection.js";
 import {
   ServerError,
-  ConnectionError,
   ConfigError,
   wrapError,
 } from "./utils/errors.js";
