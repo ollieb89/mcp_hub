@@ -1,11 +1,32 @@
 {
   "mcpServers": {
-    "test-sse-server": {
+    "serena": {
+      "command": "uv",
+      "args": ["run", "--directory", "/home/ob/Development/Tools/mcps/serena", "serena-mcp-server"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false
+    },
+    "vercel": {
       "type": "sse",
-      "url": "http://localhost:8080/sse",
-      "headers": {
-        "Authorization": "Bearer test-token"
+      "url": "https://mcp.vercel.com",
+      "headers": {},
+      "disabled": true
+    },
+    "shadcn-ui": {
+      "command": "npx",
+      "args": ["-y", "@jpisnice/shadcn-ui-mcp-server"],
+      "cwd": ".",
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
       },
+      "disabled": false
+    },
+    "gemini": {
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"],
+      "cwd": ".",
+      "env": {},
       "disabled": false
     }
   }

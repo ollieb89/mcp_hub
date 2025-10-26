@@ -165,6 +165,28 @@ Options:
 
 MCP Hub uses JSON configuration files to define managed servers with **universal `${}` placeholder syntax** for environment variables and command execution.
 
+### OAuth Configuration for Remote Services
+
+When connecting to remote MCP servers that require OAuth authentication (like Vercel), you may need to configure a public URL for OAuth redirect callbacks:
+
+```bash
+# Set the public URL that Vercel can reach for OAuth callbacks
+export MCP_HUB_PUBLIC_URL="https://your-public-domain.com"
+npm start
+```
+
+For local development, you can use tunneling services like ngrok:
+
+```bash
+# Start ngrok tunnel (in separate terminal)
+ngrok http 7000
+
+# Get the public URL from ngrok output (e.g., https://abc123.ngrok.io)
+# Set environment variable and start MCP Hub
+export MCP_HUB_PUBLIC_URL="https://abc123.ngrok.io"
+npm start
+```
+
 ## VS Code Configuration Compatibility
 
 MCP Hub provides seamless compatibility with VS Code's `.vscode/mcp.json` configuration format, enabling you to use the same configuration files across both VS Code and MCP Hub.

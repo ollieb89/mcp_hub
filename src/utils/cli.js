@@ -4,10 +4,38 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { startServer } from "../server.js";
 import logger from "./logger.js";
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import "./errors.js";
 import { fileURLToPath } from "url";
 import { join } from "path";
+
+// Load .env file if it exists
+function loadEnvFile() {
+  const envPath = join(process.cwd(), '.env');
+  if (existsSync(envPath)) {
+    const envContent = readFileSync(envPath, 'utf8');
+    const lines = envContent.split('\n');
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      // Skip empty lines and comments
+      if (!trimmedLine || trimmedLine.startsWith('#')) continue;
+      
+      const match = trimmedLine.match(/^([^=:#]+)=(.*)$/);
+      if (match) {
+        const [, key, value] = match;
+        // Don't override existing environment variables
+        if (!process.env[key]) {
+          process.env[key] = value.trim();
+        }
+      }
+    }
+    logger.debug(`Loaded environment variables from ${envPath}`);
+  }
+}
+
+// Load .env file early, before any other processing
+loadEnvFile();
 
 // Read version from package.json while in dev mode to get the latest version
 // We can't do this production, due to issues when installed as global package on "bun"

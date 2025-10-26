@@ -28,7 +28,7 @@
     "mcp-hub": "dist/cli.js"
   },
   "scripts": {
-    "start": "node ./src/utils/cli.js --port 3000 --config ~/mcp-hub/mcp-servers.json",
+    "start": "node ./src/utils/cli.js --port 7000 --config ./mcp-servers.json",
     "clean": "rm -rf dist",
     "prebuild": "npm run clean",
     "build": "node scripts/build.js",

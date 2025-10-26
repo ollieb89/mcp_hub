@@ -230,7 +230,8 @@ export class MCPConnection extends EventEmitter {
               //catches 401 error from http transport
               if (this._isAuthError(httpError)) {
                 logger.debug(`'${this.name}' streamable-http transport needs authorization: ${httpError.message}`);
-                return this._handleUnauthorizedConnection()
+                await this._handleUnauthorizedConnection()
+                return
               } else {
                 logger.debug(`'${this.name}' streamable-http error: ${httpError.message}. Falling back to SSE transport`);
                 this.authProvider = this._createOAuthProvider()
@@ -245,7 +246,8 @@ export class MCPConnection extends EventEmitter {
               //catches 401 error from sse transport
               if (this._isAuthError(sseError)) {
                 logger.debug(`'${this.name}' SSE transport needs authorization: ${sseError.message}`);
-                return this._handleUnauthorizedConnection()
+                await this._handleUnauthorizedConnection()
+                return
               } else {
                 logger.debug(`'${this.name}' failed to start connection with http and sse transports: ${sseError.message}`);
                 throw sseError
@@ -963,13 +965,27 @@ export class MCPConnection extends EventEmitter {
     return error.code === 401 || error instanceof UnauthorizedError
   }
 
-  _handleUnauthorizedConnection() {
+  async _handleUnauthorizedConnection() {
     logger.warn(`Server '${this.name}' requires authorization`);
     this.status = ConnectionStatus.UNAUTHORIZED;
     //our custom oauth provider stores auth url generated from redirecthandler rather than opening url  right away
     this.authorizationUrl = this.authProvider.generatedAuthUrl;
     if (!this.authorizationUrl) {
       logger.warn(`No authorization URL available for server '${this.name}'`);
+      return;
+    }
+    
+    // Automatically open authorization URL in browser
+    try {
+      logger.info(`Opening authorization URL for server '${this.name}': ${this.authorizationUrl.toString()}`);
+      await open(this.authorizationUrl.toString());
+      logger.info(`Authorization browser opened for server '${this.name}'`);
+    } catch (error) {
+      logger.error('AUTO_AUTH_ERROR', `Failed to open authorization URL for server '${this.name}': ${error.message}`, {
+        server: this.name,
+        authorizationUrl: this.authorizationUrl,
+      }, false);
+      // Still allow manual authorization via the API
     }
   }
 

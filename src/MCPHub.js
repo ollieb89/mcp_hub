@@ -13,7 +13,12 @@ export class MCPHub extends EventEmitter {
     super();
     this.connections = new Map();
     this.port = port;
-    this.hubServerUrl = `http://localhost:${port}`;
+    // Allow override via environment variable for OAuth redirect URLs (needed for public servers)
+    const publicHubUrl = process.env.MCP_HUB_PUBLIC_URL;
+    this.hubServerUrl = publicHubUrl || `http://localhost:${port}`;
+    if (publicHubUrl) {
+      logger.info(`Using public hub URL for OAuth callbacks: ${this.hubServerUrl}`);
+    }
     this.configManager = new ConfigManager(configPathOrObject);
     this.shouldWatchConfig = watch && (typeof configPathOrObject === "string" || Array.isArray(configPathOrObject));
     this.marketplace = marketplace;
