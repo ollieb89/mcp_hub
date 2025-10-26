@@ -35,6 +35,7 @@ vi.mock("../src/utils/logger.js", () => ({
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
@@ -150,6 +151,41 @@ describe("MCPConnection", () => {
       expect(connection.status).toBe("disconnected");
       expect(connection.client).toBeNull();
       expect(connection.transport).toBeNull();
+    });
+
+    it("should handle terminateSession gracefully when transport has sessionId", async () => {
+      // Mock transport with sessionId
+      const mockTransport = {
+        sessionId: "test-session-123",
+        terminateSession: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+
+      await connection.connect();
+      connection.transport = mockTransport;
+
+      await connection.disconnect();
+
+      // Verify terminateSession was called on this.transport, not undefined 'transport'
+      expect(mockTransport.terminateSession).toHaveBeenCalled();
+      expect(mockTransport.close).toHaveBeenCalled();
+      expect(connection.status).toBe("disconnected");
+    });
+
+    it("should handle disconnect when transport has no sessionId", async () => {
+      const mockTransport = {
+        terminateSession: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn().mockResolvedValue(undefined),
+      };
+
+      await connection.connect();
+      connection.transport = mockTransport;
+
+      await connection.disconnect();
+
+      // terminateSession should not be called when sessionId is undefined
+      expect(mockTransport.terminateSession).not.toHaveBeenCalled();
+      expect(mockTransport.close).toHaveBeenCalled();
     });
   });
 

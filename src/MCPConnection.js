@@ -587,7 +587,7 @@ export class MCPConnection extends EventEmitter {
       if (this.transport.sessionId) {
         try {
           logger.debug(`'${this.name}': Terminating session before exit...`);
-          await transport.terminateSession();
+          await this.transport.terminateSession();
         }
         catch (error) {
           logger.debug(`'${this.name}': Error terminating session: ${error.message}`)
