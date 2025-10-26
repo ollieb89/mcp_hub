@@ -380,4 +380,210 @@ describe("MCPConnection Integration Tests", () => {
       );
     });
   });
+
+  describe("Connection Failure Scenarios", () => {
+    it("should handle connection timeout", async () => {
+      const config = {
+        url: "https://api.example.com",
+        headers: {},
+        type: "sse"
+      };
+
+      // Mock client connect to timeout
+      mockClient.connect.mockImplementation(() => {
+        return new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Connection timeout")), 100);
+        });
+      });
+
+      connection = new MCPConnection("test-server", config);
+
+      await expect(connection.connect()).rejects.toThrow(
+        'Failed to connect to "test-server" MCP server: Connection timeout'
+      );
+
+      expect(connection.status).toBe("disconnected");
+    });
+
+    it("should handle network connection failures", async () => {
+      const config = {
+        url: "https://unreachable.example.com/mcp",
+        headers: {},
+        type: "sse"
+      };
+
+      // Mock network error
+      mockClient.connect.mockRejectedValueOnce(new Error("Network unreachable"));
+
+      connection = new MCPConnection("test-server", config);
+
+      await expect(connection.connect()).rejects.toThrow(
+        'Failed to connect to "test-server" MCP server: Network unreachable'
+      );
+
+      expect(connection.status).toBe("disconnected");
+    });
+
+    it("should clean up resources after connection failure", async () => {
+      const config = {
+        url: "https://api.example.com",
+        headers: {},
+        type: "sse"
+      };
+
+      // Mock client connect to fail
+      mockClient.connect.mockRejectedValueOnce(new Error("Connection failed"));
+
+      connection = new MCPConnection("test-server", config);
+
+      await expect(connection.connect()).rejects.toThrow();
+
+      // Verify resources are cleaned up
+      expect(connection.client).toBeNull();
+      expect(connection.transport).toBeNull();
+      expect(connection.status).toBe("disconnected");
+    });
+
+    it("should handle SSL/TLS certificate errors", async () => {
+      const config = {
+        url: "https://self-signed.example.com/mcp",
+        headers: {},
+        type: "sse"
+      };
+
+      // Mock SSL certificate error
+      mockClient.connect.mockRejectedValueOnce(new Error("certificate has expired"));
+
+      connection = new MCPConnection("test-server", config);
+
+      await expect(connection.connect()).rejects.toThrow(
+        /Failed to connect to "test-server" MCP server: certificate has expired/
+      );
+
+      expect(connection.status).toBe("disconnected");
+    });
+  });
+
+  describe("Server Restart Scenarios", () => {
+    it("should handle normal disconnect and reconnect", async () => {
+      const config = {
+        command: "test-server",
+        args: [],
+        env: {},
+        type: "stdio"
+      };
+
+      connection = new MCPConnection("test-server", config);
+
+      // Mock successful connect
+      mockClient.request.mockResolvedValue({ tools: [], resources: [], resourceTemplates: [], prompts: [] });
+      await connection.connect();
+
+      expect(connection.status).toBe("connected");
+
+      // Disconnect
+      await connection.disconnect();
+      expect(connection.status).toBe("disconnected");
+
+      // Reconnect
+      mockClient.request.mockResolvedValue({ tools: [], resources: [], resourceTemplates: [], prompts: [] });
+      await connection.connect();
+      expect(connection.status).toBe("connected");
+    });
+
+    it("should handle reconnection after error", async () => {
+      const config = {
+        url: "https://api.example.com",
+        headers: {},
+        type: "sse"
+      };
+
+      connection = new MCPConnection("test-server", config);
+
+      // First connection fails
+      mockClient.connect.mockRejectedValueOnce(new Error("Initial connection failed"));
+      await expect(connection.connect()).rejects.toThrow();
+
+      expect(connection.status).toBe("disconnected");
+
+      // Reconnection succeeds
+      mockClient.connect.mockResolvedValueOnce(undefined);
+      mockClient.request.mockResolvedValue({ tools: [], resources: [], resourceTemplates: [], prompts: [] });
+      
+      await connection.connect();
+      expect(connection.status).toBe("connected");
+    });
+
+    it("should force disconnect during active operation", async () => {
+      const config = {
+        command: "test-server",
+        args: [],
+        env: {},
+        type: "stdio"
+      };
+
+      connection = new MCPConnection("test-server", config);
+
+      // Connect
+      mockClient.request.mockResolvedValue({ tools: [], resources: [], resourceTemplates: [], prompts: [] });
+      await connection.connect();
+
+      expect(connection.status).toBe("connected");
+
+      // Force disconnect by simulating error during operation
+      const error = new Error("Operation failed");
+      mockClient.close.mockRejectedValueOnce(error);
+
+      await expect(connection.disconnect()).resolves.toBeUndefined();
+      expect(connection.status).toBe("disconnected");
+    });
+  });
+
+  describe("Resource Cleanup on Failure", () => {
+    it("should cleanup on disconnect failure", async () => {
+      const config = {
+        command: "test-server",
+        args: [],
+        env: {},
+        type: "stdio"
+      };
+
+      connection = new MCPConnection("test-server", config);
+
+      // Connect
+      mockClient.request.mockResolvedValue({ tools: [], resources: [], resourceTemplates: [], prompts: [] });
+      await connection.connect();
+
+      // Mock transport close failure
+      mockTransport.close.mockRejectedValueOnce(new Error("Close failed"));
+
+      // Should still disconnect gracefully
+      await connection.disconnect();
+      expect(connection.status).toBe("disconnected");
+    });
+
+    it("should cleanup event handlers on disconnect", async () => {
+      const config = {
+        command: "test-server",
+        args: [],
+        env: {},
+        type: "stdio"
+      };
+
+      connection = new MCPConnection("test-server", config);
+
+      // Connect
+      mockClient.request.mockResolvedValue({ tools: [], resources: [], resourceTemplates: [], prompts: [] });
+      await connection.connect();
+
+      // Verify event handlers were set
+      expect(mockClient.setNotificationHandler).toHaveBeenCalled();
+
+      // Disconnect
+      await connection.disconnect();
+
+      // After disconnect, event handlers should be cleared
+      expect(connection.client).toBeNull();
+    });
+  });
 });
