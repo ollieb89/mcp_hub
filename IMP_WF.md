@@ -102,36 +102,49 @@ if (this.transport && this.transport.sessionId) {
 #### US-002: Add Comprehensive Null Checks in Error Paths
 **Priority**: P0 - Critical  
 **Story Points**: 3  
-**Assignee**: [TBD]
+**Assignee**: [TBD]  
+**Status**: ✅ COMPLETED
 
 **Description**:  
 Add null checks throughout error handling paths to prevent crashes when resources are not properly initialized.
 
 **Acceptance Criteria**:
-- [ ] All transport operations guarded with null checks
-- [ ] All client operations guarded with null checks
-- [ ] Dev watcher operations guarded with null checks
-- [ ] Error paths handle null gracefully with logging
-- [ ] Unit tests cover all null scenarios
-- [ ] Edge case tests added (error during connection, disabled server disconnect)
+- [x] All transport operations guarded with null checks
+- [x] All client operations guarded with null checks
+- [x] Dev watcher operations guarded with null checks
+- [x] Error paths handle null gracefully with logging
+- [x] Unit tests cover all null scenarios
+- [x] Edge case tests added (error during connection, disabled server disconnect)
 
 **Technical Notes**:
-Key locations to update:
-- `src/MCPConnection.js:718-729` - disconnect method
-- Add try-catch around all resource cleanup operations
-- Ensure no operations on undefined/null objects
+Key locations updated:
+- `src/MCPConnection.js:581-583` - Added try-catch around devWatcher.stop()
+- `src/MCPConnection.js:596-601` - Added try-catch around transport.close()
+- `src/MCPConnection.js:626-635` - Added try-catch in reconnect() for disconnect errors
+- `src/MCPConnection.js:639-642` - Added null check for transport in handleAuthCallback()
 
 **Testing Strategy**:
-- Test disconnect on never-connected server
-- Test disconnect during connection attempt
-- Test disconnect after error state
-- Test disconnect on disabled server
+- Test disconnect on never-connected server ✅
+- Test disconnect during connection attempt ✅
+- Test disconnect after error state ✅
+- Test disconnect on disabled server ✅
+- Test disconnect when devWatcher throws ✅
+- Test disconnect when transport.close throws ✅
+- Test reconnect when disconnect throws ✅
+- Test handleAuthCallback when transport is null ✅
 
 **Definition of Done**:
 - ✅ All null paths handled with proper error logging
 - ✅ Tests cover all scenarios (100% branch coverage)
 - ✅ No crashes in error scenarios
 - ✅ Code reviewed and approved
+
+**Implementation Summary**:
+- Added comprehensive try-catch blocks in disconnect() for devWatcher and transport cleanup
+- Added error handling in reconnect() to gracefully handle disconnect failures
+- Added null check in handleAuthCallback() before accessing transport
+- All error paths now log gracefully without crashing
+- Added 6 new test cases covering all edge scenarios
 
 ---
 

@@ -579,7 +579,12 @@ export class MCPConnection extends EventEmitter {
 
     // Stop dev watcher
     if (this.devWatcher) {
-      await this.devWatcher.stop();
+      try {
+        await this.devWatcher.stop();
+      }
+      catch (error) {
+        logger.debug(`'${this.name}': Error stopping dev watcher: ${error.message}`);
+      }
     }
 
     if (this.transport) {
@@ -593,7 +598,12 @@ export class MCPConnection extends EventEmitter {
           logger.debug(`'${this.name}': Error terminating session: ${error.message}`)
         }
       }
-      await this.transport.close();
+      try {
+        await this.transport.close();
+      }
+      catch (error) {
+        logger.debug(`'${this.name}': Error closing transport: ${error.message}`);
+      }
     }
     this.resetState(error);
   }
@@ -625,13 +635,24 @@ export class MCPConnection extends EventEmitter {
 
   async reconnect() {
     if (this.client) {
-      await this.disconnect();
+      try {
+        await this.disconnect();
+      }
+      catch (error) {
+        // Log but continue - disconnect errors shouldn't block reconnection
+        logger.debug(`'${this.name}': Error during disconnect before reconnect: ${error.message}`);
+        this.resetState();
+      }
     }
     await this.connect();
   }
 
 
   async handleAuthCallback(code) {
+    if (!this.transport) {
+      throw new Error(`No transport available for server '${this.name}'`);
+    }
+    
     logger.debug(`Handling OAuth callback for server '${this.name}'`);
     await this.transport.finishAuth(code);
     logger.debug(`Successful code exchange for '${this.name}': Authorized, connecting with new tokens`);

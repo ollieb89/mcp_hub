@@ -187,6 +187,80 @@ describe("MCPConnection", () => {
       expect(mockTransport.terminateSession).not.toHaveBeenCalled();
       expect(mockTransport.close).toHaveBeenCalled();
     });
+
+    it("should handle disconnect gracefully when devWatcher throws error", async () => {
+      const mockDevWatcher = {
+        stop: vi.fn().mockRejectedValue(new Error("Dev watcher error")),
+      };
+
+      await connection.connect();
+      connection.devWatcher = mockDevWatcher;
+
+      // Should not throw
+      await expect(connection.disconnect()).resolves.toBeUndefined();
+      expect(mockDevWatcher.stop).toHaveBeenCalled();
+      expect(connection.status).toBe("disconnected");
+    });
+
+    it("should handle disconnect gracefully when transport.close throws error", async () => {
+      const mockTransport = {
+        close: vi.fn().mockRejectedValue(new Error("Close error")),
+      };
+
+      await connection.connect();
+      connection.transport = mockTransport;
+
+      // Should not throw
+      await expect(connection.disconnect()).resolves.toBeUndefined();
+      expect(mockTransport.close).toHaveBeenCalled();
+      expect(connection.status).toBe("disconnected");
+    });
+
+    it("should handle disconnect when never connected", async () => {
+      // Never call connect, all resources are null
+      await expect(connection.disconnect()).resolves.toBeUndefined();
+      expect(connection.status).toBe("disconnected");
+    });
+
+    it("should handle disconnect during error state", async () => {
+      // Simulate error state
+      connection.status = "error";
+      connection.error = "Some error";
+
+      await expect(connection.disconnect()).resolves.toBeUndefined();
+      expect(connection.status).toBe("disconnected");
+    });
+
+    it("should handle reconnect when client exists but disconnect throws", async () => {
+      await connection.connect();
+      
+      // Mock disconnect to throw
+      const originalDisconnect = connection.disconnect;
+      connection.disconnect = vi.fn().mockRejectedValue(new Error("Disconnect error"));
+
+      // reconnect should handle the error gracefully
+      await expect(connection.reconnect()).resolves.toBeUndefined();
+      
+      // Restore original
+      connection.disconnect = originalDisconnect;
+    });
+
+    it("should handle handleAuthCallback when transport is null", async () => {
+      connection.transport = null;
+      
+      await expect(
+        connection.handleAuthCallback("test-code")
+      ).rejects.toThrow();
+    });
+
+    it("should handle handleAuthCallback when transport.finishAuth throws", async () => {
+      await connection.connect();
+      connection.transport.finishAuth = vi.fn().mockRejectedValue(new Error("Auth failed"));
+      
+      await expect(
+        connection.handleAuthCallback("test-code")
+      ).rejects.toThrow("Auth failed");
+    });
   });
 
   describe("Capability Discovery", () => {
