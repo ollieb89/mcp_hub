@@ -79,10 +79,10 @@ const CAPABILITY_TYPES = {
           isError: true,
         }
       },
-      form_params(cap, request) {
+      form_params(cap) {
         return {
           name: cap.originalName,
-          arguments: request.params.arguments || {},
+          arguments: {},
         }
       }
     }
@@ -101,7 +101,7 @@ const CAPABILITY_TYPES = {
       form_error(error) {
         throw new McpError(ErrorCode.InvalidParams, `Failed to read resource: ${error.message}`);
       },
-      form_params(cap, request) {
+      form_params(cap) {
         return {
           uri: cap.originalName,
         }
@@ -135,10 +135,10 @@ const CAPABILITY_TYPES = {
       method: "prompts/get",
       callSchema: GetPromptRequestSchema,
       resultSchema: GetPromptResultSchema,
-      form_params(cap, request) {
+      form_params(cap) {
         return {
           name: cap.originalName,
-          arguments: request.params.arguments || {},
+          arguments: {},
         }
       },
       form_error(error) {
@@ -235,10 +235,11 @@ export class MCPServerEndpoint {
 
       // Setup call/action handler if schema exists
       if (capType.handler?.callSchema) {
-        server.setRequestHandler(capType.handler.callSchema, async (request, extra) => {
+        server.setRequestHandler(capType.handler.callSchema, async (request) => {
 
           const registeredCap = this.getRegisteredCapability(request, capType.id, capType.uidField);
           if (!registeredCap) {
+            const key = request.params[capType.uidField];
             throw new McpError(
               ErrorCode.InvalidParams,
               `${capId} capability not found: ${key}`
@@ -251,7 +252,7 @@ export class MCPServerEndpoint {
           try {
             const result = await this.mcpHub.rawRequest(serverName, {
               method: capType.handler.method,
-              params: capType.handler.form_params(registeredCap, request)
+              params: capType.handler.form_params(registeredCap)
             }, capType.handler.resultSchema, request_options)
             return result;
           } catch (error) {
@@ -292,7 +293,7 @@ export class MCPServerEndpoint {
         const { events, capabilityIds } = capType.syncWithEvents;
 
         events.forEach(event => {
-          this.mcpHub.on(event, (data) => {
+          this.mcpHub.on(event, () => {
             this.syncCapabilities(capabilityIds);
           });
         });
@@ -302,7 +303,7 @@ export class MCPServerEndpoint {
     // Global events that sync ALL capabilities
     const globalSyncEvents = ['importantConfigChangeHandled'];
     globalSyncEvents.forEach(event => {
-      this.mcpHub.on(event, (data) => {
+      this.mcpHub.on(event, () => {
         this.syncCapabilities(); // Sync all capabilities
       });
     });

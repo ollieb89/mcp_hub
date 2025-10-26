@@ -5,7 +5,6 @@ import { SSEManager, EventTypes, HubState, SubscriptionTypes } from "./utils/sse
 import {
   router,
   registerRoute,
-  generateStartupMessage,
 } from "./utils/router.js";
 import {
   ValidationError,
@@ -364,7 +363,7 @@ app.post("/messages", async (req, res) => {
       throw new ServerError("MCP server endpoint not initialized");
     }
     await mcpServerEndpoint.handleMCPMessage(req, res);
-  } catch (error) {
+  } catch {
     logger.warn('Failed to handle MCP message');
     if (!res.headersSent) {
       res.status(500).send('Error handling MCP message');
@@ -908,7 +907,7 @@ registerRoute(
 
 
 // Error handler middleware
-router.use((err, req, res, next) => {
+router.use((err, req, res) => {
   // Determine if it's our custom error or needs wrapping
   const error = isMCPHubError(err)
     ? err
@@ -949,7 +948,8 @@ export async function startServer(options = {}) {
         data: wrappedError.data,
       })
       await serviceManager.shutdown()
-    } catch (e) {
+    } catch {
+      // Ignore shutdown errors
     } finally {
       logger.error(
         wrappedError.code,

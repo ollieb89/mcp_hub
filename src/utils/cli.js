@@ -5,15 +5,9 @@ import { hideBin } from "yargs/helpers";
 import { startServer } from "../server.js";
 import logger from "./logger.js";
 import { readFileSync } from 'fs';
-import {
-  isMCPHubError,
-} from "./errors.js";
+import "./errors.js";
 import { fileURLToPath } from "url";
 import { join } from "path";
-
-// VERSION will be injected from package.json during build
-/* global process.env.VERSION */
-
 
 // Read version from package.json while in dev mode to get the latest version
 // We can't do this production, due to issues when installed as global package on "bun"
@@ -93,7 +87,7 @@ async function run() {
       autoShutdown: argv["auto-shutdown"],
       shutdownDelay: argv["shutdown-delay"],
     });
-  } catch (error) {
+  } catch {
     process.exit(1)
   }
 }
