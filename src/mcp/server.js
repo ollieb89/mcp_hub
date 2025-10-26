@@ -46,13 +46,12 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { HubState } from "../utils/sse-manager.js";
 import logger from "../utils/logger.js";
+import { HUB_INTERNAL_SERVER_NAME, CAPABILITY_DELIMITER, TIMEOUTS } from "../utils/constants.js";
 
-// Unique server name to identify our internal MCP endpoint
-const HUB_INTERNAL_SERVER_NAME = "mcp-hub-internal-endpoint";
-
-// Delimiter for namespacing
-const DELIMITER = '__';
-const MCP_REQUEST_TIMEOUT = 5 * 60 * 1000 //Default to 5 minutes
+// Delimiter for namespacing (backward compatibility alias)
+const DELIMITER = CAPABILITY_DELIMITER;
+// MCP request timeout (backward compatibility alias)
+const MCP_REQUEST_TIMEOUT = TIMEOUTS.MCP_REQUEST;
 
 // Comprehensive capability configuration
 const CAPABILITY_TYPES = {

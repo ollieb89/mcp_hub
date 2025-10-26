@@ -3,6 +3,7 @@ import { promisify } from 'util';
 import os from 'os';
 import path from 'path';
 import logger from './logger.js';
+import { TIMEOUTS, MAX_RESOLUTION_DEPTH } from './constants.js';
 
 const execPromise = promisify(exec);
 
@@ -15,8 +16,8 @@ const execPromise = promisify(exec);
  */
 export class EnvResolver {
   constructor(options = {}) {
-    this.maxPasses = options.maxPasses || 10;
-    this.commandTimeout = options.commandTimeout || 30000;
+    this.maxPasses = options.maxPasses || MAX_RESOLUTION_DEPTH;
+    this.commandTimeout = options.commandTimeout || TIMEOUTS.COMMAND_EXECUTION;
     this.strict = options.strict !== false; // Default to strict mode
   }
 

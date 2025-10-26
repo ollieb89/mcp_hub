@@ -33,17 +33,10 @@ import {
 } from "./utils/errors.js";
 import { DevWatcher } from "./utils/dev-watcher.js";
 import { envResolver } from "./utils/env-resolver.js";
+import { CONNECTION_STATUS, TIMEOUTS } from "./utils/constants.js";
 
-const ConnectionStatus = {
-  CONNECTED: "connected",
-  CONNECTING: "connecting",
-  DISCONNECTED: "disconnected",
-  UNAUTHORIZED: "unauthorized", // New status for OAuth flow
-  DISABLED: "disabled"
-};
-
-//When a server is being installed for the first time, it might takes some time to install the dependencies
-const CLIENT_CONNECT_TIMEOUT = 5 * 60000 //5 minutes
+// Alias for backward compatibility
+const ConnectionStatus = CONNECTION_STATUS;
 
 
 export class MCPConnection extends EventEmitter {
@@ -169,7 +162,7 @@ export class MCPConnection extends EventEmitter {
           this.transport = await this._createStdioTransport(resolvedConfig);
           this.client = this._createClient();
           await this.client.connect(this.transport, {
-            timeout: CLIENT_CONNECT_TIMEOUT
+            timeout: TIMEOUTS.CLIENT_CONNECT
           });
         } else {
           //First try the new http transport with fallback to deprecated sse transport
@@ -178,7 +171,7 @@ export class MCPConnection extends EventEmitter {
             this.transport = await this._createStreambleHTTPTransport(this.authProvider, resolvedConfig)
             this.client = this._createClient();
             await this.client.connect(this.transport, {
-              timeout: CLIENT_CONNECT_TIMEOUT
+              timeout: TIMEOUTS.CLIENT_CONNECT
             });
           } catch (httpError) {
             try {
@@ -192,7 +185,7 @@ export class MCPConnection extends EventEmitter {
                 this.transport = await this._createSSETransport(this.authProvider, resolvedConfig);
                 this.client = this._createClient();
                 await this.client.connect(this.transport, {
-                  timeout: CLIENT_CONNECT_TIMEOUT
+                  timeout: TIMEOUTS.CLIENT_CONNECT
                 });
               }
             } catch (sseError) {
