@@ -201,39 +201,40 @@ export class MCPConnection extends EventEmitter {
             }
           }
         }
-      } catch (error) {
-        logger.debug(`'${this.name}' failed to start connection: ${error.message}`);
-        throw error
-      }
 
-      // Fetch server info and initial capabilities before marking as connected
-      await this.fetchServerInfo();
-      await this.updateCapabilities();
+        // Fetch server info and initial capabilities before marking as connected
+        await this.fetchServerInfo();
+        await this.updateCapabilities();
 
-      // Set up notification handlers
-      this.setupNotificationHandlers();
+        // Set up notification handlers
+        this.setupNotificationHandlers();
 
-      // Only mark as connected after capabilities are fetched
-      this.status = ConnectionStatus.CONNECTED;
-      this.startTime = Date.now();
-      this.error = null;
+        // Only mark as connected after capabilities are fetched
+        this.status = ConnectionStatus.CONNECTED;
+        this.startTime = Date.now();
+        this.error = null;
 
-      // Start dev watcher if configured
-      if (this.devWatcher) {
-        await this.devWatcher.start(this.config.dev);
-      }
-
-      logger.info(`'${this.name}' MCP server connected`);
-    } catch (error) {
-      // Ensure proper cleanup on error
-      await this.disconnect(error.message);
-      throw new ConnectionError(
-        `Failed to connect to "${this.name}" MCP server: ${error.message}`,
-        {
-          server: this.name,
-          error: error.message,
+        // Start dev watcher if configured
+        if (this.devWatcher) {
+          await this.devWatcher.start(this.config.dev);
         }
-      );
+
+        logger.info(`'${this.name}' MCP server connected`);
+      } catch (error) {
+        // Ensure proper cleanup on error using finally-like pattern
+        await this.cleanup(error.message);
+        throw new ConnectionError(
+          `Failed to connect to "${this.name}" MCP server: ${error.message}`,
+          {
+            server: this.name,
+            error: error.message,
+          }
+        );
+      }
+    } catch (error) {
+      // Outer catch for any errors during connection process
+      // Cleanup has already been handled above
+      throw error;
     }
   }
 
@@ -550,6 +551,61 @@ export class MCPConnection extends EventEmitter {
 
 
 
+  /**
+   * Centralized cleanup method that is idempotent and safe to call multiple times.
+   * Cleans up all resources: transport, client, devWatcher, event handlers, and state.
+   * @param {Error} error - Optional error to store in state after cleanup
+   */
+  async cleanup(error) {
+    // Remove event handlers to prevent memory leaks
+    this.removeNotificationHandlers();
+
+    // Stop dev watcher if exists
+    if (this.devWatcher) {
+      try {
+        await this.devWatcher.stop();
+      } catch (err) {
+        logger.debug(`'${this.name}': Error stopping dev watcher: ${err.message}`);
+      }
+      this.devWatcher = null;
+    }
+
+    // Close transport if exists
+    if (this.transport) {
+      // First try to terminate the session gracefully
+      if (this.transport.sessionId) {
+        try {
+          logger.debug(`'${this.name}': Terminating session before exit...`);
+          await this.transport.terminateSession();
+        } catch (err) {
+          logger.debug(`'${this.name}': Error terminating session: ${err.message}`);
+        }
+      }
+      try {
+        await this.transport.close();
+      } catch (err) {
+        logger.debug(`'${this.name}': Error closing transport: ${err.message}`);
+      }
+      this.transport = null;
+    }
+
+    // Close client if exists
+    if (this.client) {
+      try {
+        await this.client.close();
+      } catch (err) {
+        logger.debug(`'${this.name}': Error closing client: ${err.message}`);
+      }
+      this.client = null;
+    }
+
+    // Reset OAuth provider
+    this.authProvider = null;
+
+    // Reset state variables
+    this.resetState(error);
+  }
+
   async resetState(error) {
     this.client = null;
     this.transport = null;
@@ -568,37 +624,8 @@ export class MCPConnection extends EventEmitter {
   }
 
   async disconnect(error) {
-    this.removeNotificationHandlers();
-
-    // Stop dev watcher
-    if (this.devWatcher) {
-      try {
-        await this.devWatcher.stop();
-      }
-      catch (error) {
-        logger.debug(`'${this.name}': Error stopping dev watcher: ${error.message}`);
-      }
-    }
-
-    if (this.transport) {
-      // First try to terminate the session gracefully
-      if (this.transport.sessionId) {
-        try {
-          logger.debug(`'${this.name}': Terminating session before exit...`);
-          await this.transport.terminateSession();
-        }
-        catch (error) {
-          logger.debug(`'${this.name}': Error terminating session: ${error.message}`)
-        }
-      }
-      try {
-        await this.transport.close();
-      }
-      catch (error) {
-        logger.debug(`'${this.name}': Error closing transport: ${error.message}`);
-      }
-    }
-    this.resetState(error);
+    // Use centralized cleanup method
+    await this.cleanup(error);
   }
 
   // Create OAuth provider with proper metadata and storage

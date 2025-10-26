@@ -231,6 +231,36 @@ describe("MCPConnection", () => {
       expect(connection.status).toBe("disconnected");
     });
 
+    it("should cleanup is idempotent (safe to call multiple times)", async () => {
+      await connection.connect();
+
+      // First cleanup
+      await connection.cleanup();
+      expect(connection.client).toBeNull();
+      expect(connection.transport).toBeNull();
+      const firstStatus = connection.status;
+
+      // Second cleanup should not throw
+      await expect(connection.cleanup()).resolves.toBeUndefined();
+      
+      // Status should remain unchanged
+      expect(connection.status).toBe(firstStatus);
+      expect(connection.client).toBeNull();
+      expect(connection.transport).toBeNull();
+    });
+
+    it("should cleanup all resources on error during connection", async () => {
+      // Mock client.connect to throw
+      client.connect.mockRejectedValueOnce(new Error("Connection failed"));
+
+      await expect(connection.connect()).rejects.toThrow();
+
+      // Verify cleanup was called
+      expect(connection.client).toBeNull();
+      expect(connection.transport).toBeNull();
+      expect(connection.status).toBe("disconnected");
+    });
+
     it("should handle reconnect when client exists but disconnect throws", async () => {
       await connection.connect();
       
