@@ -1442,12 +1442,41 @@ MCP Hub maintains high code quality standards through comprehensive testing, doc
 - **Event-Driven Architecture**: Clean separation of concerns with EventEmitter pattern
 - **Error Classes**: Custom error types for different failure scenarios
 
-### Testing Strategy
+### Testing
 
-- **Unit Tests**: Vitest framework, 80%+ coverage target
-- **Integration Tests**: 9+ scenarios covering connection failures, restarts, and cleanup
-- **Error Path Testing**: Comprehensive coverage of failure scenarios
-- **Memory Leak Detection**: Automated testing for resource cleanup
+MCP Hub employs a strategic two-tier coverage approach:
+
+- **Critical Components**: 70-80%+ coverage (MCPConnection, MCPHub, core utilities)
+- **Global Baseline**: 50-70% (infrastructure files require integration tests)
+- **Current Metrics**: 308 tests passing, 82.94% branches coverage
+
+#### Run Tests
+```bash
+npm test                    # Run all 308 tests
+npm run test:watch          # Watch mode for development
+npm run test:coverage       # Generate coverage report
+npm run test:coverage:ui    # Open HTML coverage report
+```
+
+#### Coverage Strategy
+The project focuses on testing observable outcomes ("exit doors"):
+- API response correctness and schema validation
+- State changes (database/cache mutations)
+- External service call validation
+- Message queue interactions
+- Observability (logging, error handling, metrics)
+
+Coverage thresholds are strategically configured per-file rather than globally, following Vitest best practices for infrastructure-heavy projects. See `vitest.config.js` for details.
+
+#### Test Organization
+- `tests/*.test.js` - Unit tests for core components
+- `tests/*.integration.test.js` - Integration tests for transports and connections
+- `tests/helpers/` - Shared test utilities and patterns
+
+#### Behavior-Driven Testing
+Tests follow the AAA (Arrange-Act-Assert) pattern with explicit comments for clarity. All tests validate observable behavior rather than implementation details, ensuring tests remain valuable as code evolves.
+
+For detailed testing guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md#testing-guidelines).
 
 ### Code Quality Improvements
 

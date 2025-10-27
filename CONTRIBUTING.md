@@ -19,6 +19,87 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 5. Make sure your code lints.
 6. Issue that pull request!
 
+## Testing Guidelines
+
+### Coverage Expectations
+
+MCP Hub uses per-file coverage thresholds configured in `vitest.config.js`:
+
+- **Core Business Logic**: Aim for 70-80%+ coverage
+  - `MCPConnection.js`, `MCPHub.js`: Strict thresholds enforced
+  - New core components should include comprehensive test coverage
+
+- **Utilities**: Aim for 60-80%+ coverage
+  - `env-resolver.js`, `errors.js`, `config.js`: High value per line
+  - Focus on edge cases and error handling
+
+- **Infrastructure**: Integration test coverage preferred
+  - `server.js`, `sse-manager.js`, `router.js`: E2E tests more valuable than mocking
+  - May have lower unit test coverage by design
+
+### Writing Effective Tests
+
+Follow the AAA (Arrange-Act-Assert) pattern with explicit comments:
+```javascript
+it('should handle connection timeout gracefully', async () => {
+  // ARRANGE: Set up test conditions
+  const connection = new MCPConnection(config);
+  const timeout = 1000;
+
+  // ACT: Execute the operation
+  const result = await connection.connect({ timeout });
+
+  // ASSERT: Verify expected outcomes
+  expect(result.status).toBe('timeout');
+  expect(result.error).toMatch(/timeout/i);
+});
+```
+
+### Testing the Five "Exit Doors"
+
+Focus on observable outcomes rather than implementation details:
+
+1. **Response**: HTTP status codes, response schemas, headers
+2. **State**: Database changes, cache updates, file system modifications
+3. **External Calls**: API requests to third-party services
+4. **Queues**: Message publishing and consumption
+5. **Observability**: Logging, metrics, error handling
+
+### Test Helpers
+
+Reusable helpers are available in `tests/helpers/`:
+- `testHelpers.js` - Generic test utilities
+- `serverHelpers.js` - MCP server setup/teardown
+- `mockFactories.js` - Mock object creation
+
+### Running Tests
+
+```bash
+# Development workflow
+npm run test:watch         # Interactive watch mode
+
+# Before committing
+npm test                   # Full test suite (must pass)
+npm run test:coverage      # Verify coverage thresholds
+
+# CI validation
+npm test                   # Same as local, runs in GitHub Actions
+```
+
+### Test File Naming
+
+- Unit tests: `*.test.js`
+- Integration tests: `*.integration.test.js`
+- Place tests in `tests/` directory, mirroring `src/` structure
+
+### Pull Request Testing Requirements
+
+- [ ] All existing tests pass (308/308)
+- [ ] New features include tests
+- [ ] Coverage thresholds maintained
+- [ ] No skipped tests (.skip or .todo) without justification
+- [ ] Tests follow AAA pattern with explicit comments
+
 ## Pull Request Process
 
 1. Update the README.md with details of changes to the interface, if applicable.
