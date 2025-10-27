@@ -224,14 +224,22 @@
         "GRAFANA_URL": "${GRAFANA_URL}",
         "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_SERVICE_ACCOUNT_TOKEN}"
       },
-      "disabled": true,
-      "note": "Official Grafana MCP Server for monitoring, observability, and analytics. Requires GRAFANA_URL and GRAFANA_SERVICE_ACCOUNT_TOKEN in .env. Get token from Grafana → Administration → Service Accounts. See https://github.com/grafana/mcp-grafana"
+      "disabled": false,
+      "note": "Official Grafana MCP Server for monitoring, observability, and analytics. Configured with GRAFANA_URL and GRAFANA_SERVICE_ACCOUNT_TOKEN from .env"
     },
     "hf-transformers": {
       "type": "streamable-http",
       "url": "https://huggingface.co/mcp",
       "disabled": false,
       "note": "Hugging Face MCP Server via streamable-http. OAuth flow will open browser when needed. Supports model inference, datasets, and more."
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Microsoft Playwright MCP server for browser automation. Provides 40+ tools for web page interaction, screenshots, PDF generation, form filling, and E2E testing. Automatically installs browsers when needed."
     }
   }
 }
