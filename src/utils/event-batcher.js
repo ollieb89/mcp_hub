@@ -11,8 +11,10 @@ export const DEFAULT_BATCH_CONFIG = {
 
 /**
  * Event types that should never be batched (critical events)
+ * Note: 'log' events must bypass batching to prevent infinite recursion
+ * (logger → SSE → EventBatcher → logger)
  */
-const CRITICAL_EVENTS = new Set(['hub_state', 'error']);
+const CRITICAL_EVENTS = new Set(['hub_state', 'error', 'log']);
 
 /**
  * EventBatcher - Batches multiple SSE events into single notifications
@@ -48,10 +50,7 @@ export class EventBatcher extends EventEmitter {
     // Map<eventType, NodeJS.Timeout>
     this.timers = new Map();
 
-    logger.debug('EventBatcher initialized', {
-      batchWindow: this.batchWindow,
-      maxBatchSize: this.maxBatchSize,
-    });
+    // NOTE: No logging in constructor to prevent recursion during initialization
   }
 
   /**
@@ -61,8 +60,8 @@ export class EventBatcher extends EventEmitter {
    */
   enqueue(eventType, eventData) {
     // Critical events bypass batching
+    // NOTE: Do NOT log here to prevent infinite recursion (log → SSE → EventBatcher → log)
     if (this._isCriticalEvent(eventType)) {
-      logger.debug(`Critical event ${eventType} bypassing batch`, { eventType });
       this.emit('flush', {
         type: eventType,
         batch: [eventData],
@@ -82,7 +81,7 @@ export class EventBatcher extends EventEmitter {
     // Deduplicate within batch
     const isDuplicate = this._isDuplicate(batch, eventData);
     if (isDuplicate) {
-      logger.debug(`Duplicate event detected in batch`, { eventType, eventData });
+      // NOTE: No logging here to prevent recursion
       return;
     }
 
@@ -92,15 +91,11 @@ export class EventBatcher extends EventEmitter {
       timestamp: Date.now(),
     });
 
-    logger.debug(`Event enqueued`, {
-      eventType,
-      batchSize: batch.length,
-      maxBatchSize: this.maxBatchSize,
-    });
+    // NOTE: No logging here to prevent recursion with log events
 
     // Flush if batch size limit reached
     if (batch.length >= this.maxBatchSize) {
-      logger.debug(`Batch size limit reached`, { eventType, batchSize: batch.length });
+      // NOTE: No logging here to prevent recursion
       this._flushBatch(eventType, 'size_limit');
       return;
     }
@@ -112,10 +107,7 @@ export class EventBatcher extends EventEmitter {
       }, this.batchWindow);
 
       this.timers.set(eventType, timer);
-      logger.debug(`Batch timer scheduled`, {
-        eventType,
-        window: this.batchWindow,
-      });
+      // NOTE: No logging here to prevent recursion
     }
   }
 
@@ -145,11 +137,7 @@ export class EventBatcher extends EventEmitter {
         timestamp: Date.now(),
       };
 
-      logger.debug(`Flushing batch`, {
-        eventType,
-        batchSize: batch.length,
-        reason,
-      });
+      // NOTE: No logging here to prevent recursion
 
       this.emit('flush', batchData);
 
@@ -162,9 +150,7 @@ export class EventBatcher extends EventEmitter {
    * Flush all pending batches immediately
    */
   flushAll() {
-    logger.debug('Flushing all pending batches', {
-      pendingBatches: this.batches.size,
-    });
+    // NOTE: No logging here to prevent recursion
 
     for (const eventType of this.batches.keys()) {
       this._flushBatch(eventType, 'manual');
@@ -225,10 +211,7 @@ export class EventBatcher extends EventEmitter {
    * Cleanup on shutdown
    */
   destroy() {
-    logger.debug('EventBatcher destroying', {
-      pendingBatches: this.batches.size,
-      activeTimers: this.timers.size,
-    });
+    // NOTE: No logging here to prevent recursion during shutdown
 
     // Flush all pending batches before cleanup
     this.flushAll();
@@ -241,6 +224,6 @@ export class EventBatcher extends EventEmitter {
     this.timers.clear();
     this.batches.clear();
 
-    logger.debug('EventBatcher destroyed');
+    // NOTE: No logging here to prevent recursion during shutdown
   }
 }

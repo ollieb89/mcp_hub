@@ -331,16 +331,20 @@ mcp-hub --port 3000 --config ~/.config/mcphub/global.json --config ./.mcphub/pro
 #### Remote Server with Custom HTTP Connection Pool
 ```json
 {
+  "connectionPool": {
+    "maxConnections": 50,
+    "keepAliveTimeout": 60000
+  },
   "mcpServers": {
     "high-traffic-server": {
       "url": "https://api.example.com/mcp",
       "headers": {
         "Authorization": "Bearer ${API_TOKEN}"
       },
-      "httpPool": {
-        "maxSockets": 100,
-        "maxFreeSockets": 20,
-        "keepAliveMsecs": 30000
+      "connectionPool": {
+        "maxConnections": 100,
+        "maxFreeConnections": 20,
+        "keepAliveTimeout": 30000
       }
     },
     "default-pool-server": {
@@ -348,7 +352,14 @@ mcp-hub --port 3000 --config ~/.config/mcphub/global.json --config ./.mcphub/pro
       "headers": {
         "X-API-Key": "${API_KEY}"
       }
-      // Uses default HTTP pooling settings (optimal for most cases)
+      // Uses global connectionPool settings (50 connections, 60s keep-alive)
+    },
+    "disabled-pool-server": {
+      "url": "https://legacy-api.com/mcp",
+      "connectionPool": {
+        "enabled": false
+      }
+      // Disables connection pooling for this specific server
     }
   }
 }
@@ -388,19 +399,21 @@ For connecting to remote MCP servers:
 
 - **url**: Server endpoint URL (supports `${VARIABLE}` and `${cmd: command}` placeholders)
 - **headers**: Authentication headers (supports `${VARIABLE}` and `${cmd: command}` placeholders)
-- **httpPool**: HTTP connection pool configuration (optional, applies to SSE and streamable-http transports)
-  - **keepAlive**: Enable HTTP keep-alive (default: `true`)
-  - **keepAliveMsecs**: Keep-alive timeout in milliseconds (default: `60000` - 60 seconds)
-  - **maxSockets**: Maximum concurrent connections per host (default: `50`)
-  - **maxFreeSockets**: Maximum idle connections to maintain per host (default: `10`)
+- **connectionPool**: HTTP connection pool configuration (optional, applies to SSE and streamable-http transports)
+  - **enabled**: Enable connection pooling (default: `true`)
+  - **keepAliveTimeout**: Keep-alive timeout in milliseconds (default: `60000` - 60 seconds)
+  - **keepAliveMaxTimeout**: Maximum socket lifetime in milliseconds (default: `600000` - 10 minutes)
+  - **maxConnections**: Maximum connections per host (default: `50`)
+  - **maxFreeConnections**: Maximum idle connections per host (default: `10`)
   - **timeout**: Socket timeout in milliseconds (default: `30000` - 30 seconds)
-  - **scheduling**: Socket scheduling strategy (default: `'lifo'` - Last In First Out for better connection reuse)
+  - **pipelining**: Number of pipelined requests (default: `0` - disabled for MCP request-response pattern)
 
 **HTTP Connection Pooling Benefits:**
 - Reduces TLS handshake overhead through persistent connections
 - Improves latency by 10-30% for remote MCP servers
 - Optimizes resource usage with configurable connection limits
-- Automatic connection reuse with LIFO scheduling
+- Automatic connection reuse with undici Agent
+- Can be configured globally or per-server with precedence rules
 
 #### Server Type Detection
 

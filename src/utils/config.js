@@ -5,10 +5,11 @@ import path from "path";
 import JSON5 from "json5";
 import logger from "./logger.js";
 import { ConfigError, wrapError } from "./errors.js";
+import { validatePoolConfig } from "./http-pool.js";
 import deepEqual from "fast-deep-equal";
 export class ConfigManager extends EventEmitter {
   // Key fields to compare for server config changes
-  #KEY_FIELDS = ['command', 'args', 'env', 'disabled', 'url', 'headers', 'dev', 'name', 'cwd', 'config_source'];
+  #KEY_FIELDS = ['command', 'args', 'env', 'disabled', 'url', 'headers', 'dev', 'connectionPool', 'name', 'cwd', 'config_source'];
   #previousConfig = null;
   #watcher = null;
 
@@ -273,7 +274,28 @@ export class ConfigManager extends EventEmitter {
           // Validate dev configuration
           this.#validateDevConfig(name, server.dev);
         }
+
+        // Validate connectionPool field (only for remote servers: SSE/streamable-http)
+        if (server.connectionPool !== undefined) {
+          if (hasStdioFields) {
+            throw new ConfigError(
+              `Server '${name}' connectionPool field is only supported for remote servers (SSE/streamable-http)`,
+              {
+                server: name,
+                config: server,
+              }
+            );
+          }
+          // Validate connectionPool configuration
+          this.#validateConnectionPoolConfig(name, server.connectionPool);
+        }
       }
+
+      // Validate toolFiltering configuration (Sprint 1)
+      if (newConfig.toolFiltering) {
+        this.#validateToolFilteringConfig(newConfig.toolFiltering);
+      }
+
       // Calculate changes from previous config
       const changes = this.#diffConfigs(this.#previousConfig?.mcpServers, newConfig.mcpServers);
 
@@ -409,6 +431,131 @@ export class ConfigManager extends EventEmitter {
 
     if (!devConfig.cwd || typeof devConfig.cwd !== "string" || !path.isAbsolute(devConfig.cwd)) {
       throw new ConfigError(`Server '${serverName}' dev.cwd must be an absolute path`);
+    }
+  }
+
+  /**
+   * Validate connectionPool configuration using http-pool validator
+   * @param {string} serverName - Name of the server being validated
+   * @param {Object} poolConfig - Connection pool configuration
+   * @throws {ConfigError} If validation fails
+   */
+  #validateConnectionPoolConfig(serverName, poolConfig = {}) {
+    const result = validatePoolConfig(poolConfig);
+
+    if (!result.valid) {
+      throw new ConfigError(
+        `Server '${serverName}' has invalid connectionPool configuration: ${result.errors.join(', ')}`,
+        {
+          server: serverName,
+          poolConfig,
+          errors: result.errors,
+        }
+      );
+    }
+  }
+
+  /**
+   * Validate toolFiltering configuration (Sprint 1)
+   * @param {Object} filteringConfig - Tool filtering configuration
+   * @throws {ConfigError} If validation fails
+   */
+  #validateToolFilteringConfig(filteringConfig = {}) {
+    // Validate mode
+    const validModes = ['server-allowlist', 'category', 'hybrid'];
+    if (filteringConfig.mode && !validModes.includes(filteringConfig.mode)) {
+      throw new ConfigError(
+        `Invalid toolFiltering.mode: ${filteringConfig.mode}. Must be one of: ${validModes.join(', ')}`,
+        {
+          mode: filteringConfig.mode,
+          validModes,
+        }
+      );
+    }
+
+    // Validate serverFilter
+    if (filteringConfig.serverFilter) {
+      const validFilterModes = ['allowlist', 'denylist'];
+      if (!validFilterModes.includes(filteringConfig.serverFilter.mode)) {
+        throw new ConfigError(
+          `Invalid toolFiltering.serverFilter.mode: ${filteringConfig.serverFilter.mode}. Must be one of: ${validFilterModes.join(', ')}`,
+          {
+            mode: filteringConfig.serverFilter.mode,
+            validModes: validFilterModes,
+          }
+        );
+      }
+
+      if (!Array.isArray(filteringConfig.serverFilter.servers)) {
+        throw new ConfigError(
+          'toolFiltering.serverFilter.servers must be an array',
+          {
+            servers: filteringConfig.serverFilter.servers,
+          }
+        );
+      }
+    }
+
+    // Validate categoryFilter
+    if (filteringConfig.categoryFilter) {
+      if (!Array.isArray(filteringConfig.categoryFilter.categories)) {
+        throw new ConfigError(
+          'toolFiltering.categoryFilter.categories must be an array',
+          {
+            categories: filteringConfig.categoryFilter.categories,
+          }
+        );
+      }
+
+      if (filteringConfig.categoryFilter.customMappings !== undefined) {
+        if (typeof filteringConfig.categoryFilter.customMappings !== 'object' ||
+            Array.isArray(filteringConfig.categoryFilter.customMappings)) {
+          throw new ConfigError(
+            'toolFiltering.categoryFilter.customMappings must be an object',
+            {
+              customMappings: filteringConfig.categoryFilter.customMappings,
+            }
+          );
+        }
+      }
+    }
+
+    // Validate LLM categorization
+    if (filteringConfig.llmCategorization) {
+      if (filteringConfig.llmCategorization.enabled) {
+        if (!filteringConfig.llmCategorization.apiKey) {
+          throw new ConfigError(
+            'toolFiltering.llmCategorization.apiKey is required when enabled',
+            {
+              enabled: filteringConfig.llmCategorization.enabled,
+            }
+          );
+        }
+
+        const validProviders = ['openai', 'anthropic'];
+        if (!validProviders.includes(filteringConfig.llmCategorization.provider)) {
+          throw new ConfigError(
+            `Invalid LLM provider: ${filteringConfig.llmCategorization.provider}. Must be one of: ${validProviders.join(', ')}`,
+            {
+              provider: filteringConfig.llmCategorization.provider,
+              validProviders,
+            }
+          );
+        }
+      }
+    }
+
+    // Validate autoEnableThreshold
+    if (filteringConfig.autoEnableThreshold !== undefined) {
+      if (typeof filteringConfig.autoEnableThreshold !== 'number' ||
+          filteringConfig.autoEnableThreshold < 1) {
+        throw new ConfigError(
+          'toolFiltering.autoEnableThreshold must be a positive number',
+          {
+            autoEnableThreshold: filteringConfig.autoEnableThreshold,
+          }
+        );
+      }
     }
   }
 }

@@ -421,4 +421,444 @@ describe("ConfigManager", () => {
       configManager.stopWatching();
     });
   });
+
+  describe("toolFiltering validation (Sprint 1)", () => {
+    describe("valid configurations", () => {
+      it("should accept valid server-allowlist mode config", async () => {
+        const validFilteringConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "server-allowlist",
+            serverFilter: {
+              mode: "allowlist",
+              servers: ["test"]
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(validFilteringConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await configManager.loadConfig();
+
+        expect(configManager.getConfig().toolFiltering).toEqual(validFilteringConfig.toolFiltering);
+      });
+
+      it("should accept valid category mode config", async () => {
+        const validFilteringConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations", "web_search"],
+              customMappings: {
+                "test__custom_tool": "file_operations"
+              }
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(validFilteringConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await configManager.loadConfig();
+
+        expect(configManager.getConfig().toolFiltering).toEqual(validFilteringConfig.toolFiltering);
+      });
+
+      it("should accept valid hybrid mode config", async () => {
+        const validFilteringConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "hybrid",
+            serverFilter: {
+              mode: "denylist",
+              servers: ["untrusted"]
+            },
+            categoryFilter: {
+              categories: ["file_operations"]
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(validFilteringConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await configManager.loadConfig();
+
+        expect(configManager.getConfig().toolFiltering).toEqual(validFilteringConfig.toolFiltering);
+      });
+
+      it("should accept valid LLM categorization config", async () => {
+        const validFilteringConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"]
+            },
+            llmCategorization: {
+              enabled: true,
+              provider: "openai",
+              apiKey: "test-api-key"
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(validFilteringConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await configManager.loadConfig();
+
+        expect(configManager.getConfig().toolFiltering.llmCategorization).toEqual(
+          validFilteringConfig.toolFiltering.llmCategorization
+        );
+      });
+
+      it("should accept valid autoEnableThreshold", async () => {
+        const validFilteringConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"]
+            },
+            autoEnableThreshold: 50
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(validFilteringConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await configManager.loadConfig();
+
+        expect(configManager.getConfig().toolFiltering.autoEnableThreshold).toBe(50);
+      });
+    });
+
+    describe("mode validation", () => {
+      it("should throw error for invalid mode", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "invalid-mode"
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "Invalid toolFiltering.mode: invalid-mode. Must be one of: server-allowlist, category, hybrid"
+        );
+      });
+    });
+
+    describe("serverFilter validation", () => {
+      it("should throw error for invalid serverFilter mode", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "server-allowlist",
+            serverFilter: {
+              mode: "invalid-filter-mode",
+              servers: ["test"]
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "Invalid toolFiltering.serverFilter.mode: invalid-filter-mode. Must be one of: allowlist, denylist"
+        );
+      });
+
+      it("should throw error for non-array servers", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "server-allowlist",
+            serverFilter: {
+              mode: "allowlist",
+              servers: "not-an-array"
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "toolFiltering.serverFilter.servers must be an array"
+        );
+      });
+    });
+
+    describe("categoryFilter validation", () => {
+      it("should throw error for non-array categories", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: "not-an-array"
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "toolFiltering.categoryFilter.categories must be an array"
+        );
+      });
+
+      it("should throw error for non-object customMappings", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"],
+              customMappings: ["not", "an", "object"]
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "toolFiltering.categoryFilter.customMappings must be an object"
+        );
+      });
+
+      it("should throw error for array customMappings", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"],
+              customMappings: []
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "toolFiltering.categoryFilter.customMappings must be an object"
+        );
+      });
+    });
+
+    describe("llmCategorization validation", () => {
+      it("should throw error for missing apiKey when enabled", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"]
+            },
+            llmCategorization: {
+              enabled: true,
+              provider: "openai"
+              // missing apiKey
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "toolFiltering.llmCategorization.apiKey is required when enabled"
+        );
+      });
+
+      it("should throw error for invalid provider", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"]
+            },
+            llmCategorization: {
+              enabled: true,
+              provider: "invalid-provider",
+              apiKey: "test-key"
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "Invalid LLM provider: invalid-provider. Must be one of: openai, anthropic"
+        );
+      });
+
+      it("should accept disabled LLM without apiKey", async () => {
+        const validConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"]
+            },
+            llmCategorization: {
+              enabled: false,
+              provider: "openai"
+              // no apiKey required when disabled
+            }
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(validConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await configManager.loadConfig();
+
+        expect(configManager.getConfig().toolFiltering.llmCategorization.enabled).toBe(false);
+      });
+    });
+
+    describe("autoEnableThreshold validation", () => {
+      it("should throw error for non-number threshold", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"]
+            },
+            autoEnableThreshold: "50"
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "toolFiltering.autoEnableThreshold must be a positive number"
+        );
+      });
+
+      it("should throw error for negative threshold", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"]
+            },
+            autoEnableThreshold: -1
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "toolFiltering.autoEnableThreshold must be a positive number"
+        );
+      });
+
+      it("should throw error for zero threshold", async () => {
+        const invalidConfig = {
+          mcpServers: {
+            test: {
+              command: "node",
+              args: ["server.js"]
+            }
+          },
+          toolFiltering: {
+            mode: "category",
+            categoryFilter: {
+              categories: ["file_operations"]
+            },
+            autoEnableThreshold: 0
+          }
+        };
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+
+        configManager = new ConfigManager("/path/to/config.json");
+        await expect(configManager.loadConfig()).rejects.toThrow(
+          "toolFiltering.autoEnableThreshold must be a positive number"
+        );
+      });
+    });
+  });
 });

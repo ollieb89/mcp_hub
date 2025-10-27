@@ -24,7 +24,7 @@ import {
 import EventEmitter from "events";
 import logger from "./utils/logger.js";
 import open from "open";
-import { createHTTPAgent, destroyAgents, getAgentForURL } from "./utils/http-pool.js";
+import { createHTTPAgent, createPooledFetch, destroyAgent, mergePoolConfig } from "./utils/http-pool.js";
 import {
   ConnectionError,
   ToolError,
@@ -58,13 +58,14 @@ const ConnectionStatus = CONNECTION_STATUS;
 export class MCPConnection extends EventEmitter {
   /**
    * Create a new MCPConnection instance.
-   * 
+   *
    * @param {string} name - Server identifier (MCP ID)
    * @param {Object} config - Server configuration (command, args, env, url, headers, etc.)
    * @param {Object} marketplace - Marketplace instance for server metadata
    * @param {string} hubServerUrl - Hub server URL for OAuth callbacks
+   * @param {Object} [globalConfig] - Global hub configuration (for connectionPool defaults)
    */
-  constructor(name, config, marketplace, hubServerUrl) {
+  constructor(name, config, marketplace, hubServerUrl, globalConfig = {}) {
     super();
     this.name = name; // Keep as mcpId
 
@@ -112,12 +113,35 @@ export class MCPConnection extends EventEmitter {
 
     // Initialize HTTP connection pooling for remote servers
     // STDIO servers don't use HTTP, so only create agents for SSE/streamable-http
+    this.httpAgent = null;
+    this.pooledFetch = null;
     if (this.transportType === 'sse' || this.transportType === 'streamable-http') {
-      this.httpAgents = createHTTPAgent(config.httpPool || {});
-      logger.debug(`Created HTTP connection pool for server '${name}'`, {
-        type: this.transportType,
-        config: config.httpPool || 'default',
-      });
+      try {
+        // Merge global and per-server pool configuration
+        const poolConfig = mergePoolConfig(
+          globalConfig.connectionPool,
+          config.connectionPool
+        );
+
+        // Only create Agent if pooling is enabled
+        if (poolConfig.enabled !== false) {
+          this.httpAgent = createHTTPAgent(poolConfig);
+          this.pooledFetch = createPooledFetch(this.httpAgent);
+          logger.debug(`Created HTTP connection pool for server '${name}'`, {
+            type: this.transportType,
+            config: poolConfig,
+          });
+        } else {
+          logger.debug(`HTTP connection pooling disabled for server '${name}'`, {
+            type: this.transportType,
+          });
+        }
+      } catch (error) {
+        // Log error but don't fail connection - fall back to default fetch
+        logger.warn(`Failed to create HTTP connection pool for server '${name}', using default fetch`, {
+          error: error.message,
+        });
+      }
     }
 
     // Initialize dev watcher for stdio servers with dev config
@@ -739,15 +763,16 @@ export class MCPConnection extends EventEmitter {
     // Reset OAuth provider
     this.authProvider = null;
 
-    // Destroy HTTP agents to close idle connections
-    if (this.httpAgents) {
+    // Destroy HTTP agent to close idle connections
+    if (this.httpAgent) {
       try {
-        destroyAgents(this.httpAgents);
+        destroyAgent(this.httpAgent);
         logger.debug(`'${this.name}': Destroyed HTTP connection pool`);
       } catch (err) {
-        logger.debug(`'${this.name}': Error destroying HTTP agents: ${err.message}`);
+        logger.debug(`'${this.name}': Error destroying HTTP agent: ${err.message}`);
       }
-      this.httpAgents = null;
+      this.httpAgent = null;
+      this.pooledFetch = null;
     }
 
     // Reset state variables
@@ -934,22 +959,20 @@ export class MCPConnection extends EventEmitter {
   async _createStreambleHTTPTransport(authProvider, resolvedConfig) {
     const url = new URL(resolvedConfig.url);
 
-    // Get HTTP agent for connection pooling
-    const agent = this.httpAgents ? getAgentForURL(this.httpAgents, url) : undefined;
-
     const options = {
       authProvider,
       requestInit: {
         headers: resolvedConfig.headers, // Already resolved with commands support
-        agent, // Add HTTP agent for connection pooling
       },
+      // Add pooled fetch if connection pooling is enabled
+      ...(this.pooledFetch && { fetch: this.pooledFetch }),
       // reconnectionOptions?: StreamableHTTPReconnectionOptions
       // sessionId?: string;
     }
 
     const transport = new StreamableHTTPClientTransport(url, options);
 
-    if (agent) {
+    if (this.pooledFetch) {
       logger.debug(`Streamable HTTP transport using connection pool for '${this.name}'`);
     }
 
@@ -958,9 +981,6 @@ export class MCPConnection extends EventEmitter {
 
   async _createSSETransport(authProvider, resolvedConfig) {
     const url = new URL(resolvedConfig.url);
-
-    // Get HTTP agent for connection pooling
-    const agent = this.httpAgents ? getAgentForURL(this.httpAgents, url) : undefined;
 
     // SSE transport setup with reconnection support
     const reconnectingEventSourceOptions = {
@@ -982,14 +1002,15 @@ export class MCPConnection extends EventEmitter {
     const transport = new SSEClientTransport(url, {
       requestInit: {
         headers: resolvedConfig.headers, // Already resolved with commands support
-        agent, // Add HTTP agent for connection pooling
       },
       authProvider,
+      // Add pooled fetch if connection pooling is enabled
+      ...(this.pooledFetch && { fetch: this.pooledFetch }),
       // INFO:: giving eventSourceInit leading to infinite loop, not needed anymore with global ReconnectingES
       // eventSourceInit: reconnectingEventSourceOptions
     });
 
-    if (agent) {
+    if (this.pooledFetch) {
       logger.debug(`SSE transport using HTTP connection pool for '${this.name}'`);
     }
 

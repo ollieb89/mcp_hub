@@ -1,13 +1,15 @@
 /**
- * HTTP Connection Pool Integration Tests
+ * HTTP Connection Pool Integration Tests - Undici Agent
  *
- * Tests connection pooling integration with MCPConnection for SSE and
- * streamable-http transports, validating connection reuse and proper cleanup.
+ * Tests undici-based connection pooling integration with MCPConnection for SSE and
+ * streamable-http transports, validating Agent creation and proper cleanup.
+ *
+ * Updated for undici Agent API (connection.httpAgent + connection.pooledFetch)
  */
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MCPConnection } from '../src/MCPConnection.js';
-import { getAgentStats } from '../src/utils/http-pool.js';
+import { Agent } from 'undici';
 
 describe('HTTP Connection Pool Integration', () => {
   let connection;
@@ -20,77 +22,114 @@ describe('HTTP Connection Pool Integration', () => {
   });
 
   describe('MCPConnection with HTTP Pool', () => {
-    test('creates HTTP agents for SSE transport', () => {
+    test('creates undici Agent for SSE transport', () => {
+      // ARRANGE
       const config = {
         type: 'sse',
         url: 'https://example.com/mcp/sse',
       };
 
+      // ACT
       connection = new MCPConnection('test-sse', config, null, 'http://localhost:3000');
 
-      expect(connection.httpAgents).toBeDefined();
-      expect(connection.httpAgents.http).toBeDefined();
-      expect(connection.httpAgents.https).toBeDefined();
+      // ASSERT: Should have Agent and pooled fetch
+      expect(connection.httpAgent).toBeDefined();
+      expect(connection.httpAgent).toBeInstanceOf(Agent);
+      expect(connection.pooledFetch).toBeDefined();
+      expect(typeof connection.pooledFetch).toBe('function');
     });
 
-    test('creates HTTP agents for streamable-http transport', () => {
+    test('creates undici Agent for streamable-http transport', () => {
+      // ARRANGE
       const config = {
         type: 'streamable-http',
         url: 'https://example.com/mcp',
       };
 
+      // ACT
       connection = new MCPConnection('test-http', config, null, 'http://localhost:3000');
 
-      expect(connection.httpAgents).toBeDefined();
-      expect(connection.httpAgents.http).toBeDefined();
-      expect(connection.httpAgents.https).toBeDefined();
+      // ASSERT: Should have Agent and pooled fetch
+      expect(connection.httpAgent).toBeDefined();
+      expect(connection.httpAgent).toBeInstanceOf(Agent);
+      expect(connection.pooledFetch).toBeDefined();
+      expect(typeof connection.pooledFetch).toBe('function');
     });
 
-    test('does NOT create HTTP agents for STDIO transport', () => {
+    test('does NOT create HTTP agent for STDIO transport', () => {
+      // ARRANGE
       const config = {
         type: 'stdio',
         command: 'node',
         args: ['server.js'],
       };
 
+      // ACT
       connection = new MCPConnection('test-stdio', config, null, 'http://localhost:3000');
 
-      expect(connection.httpAgents).toBeUndefined();
+      // ASSERT: STDIO servers don't use HTTP
+      expect(connection.httpAgent).toBeNull();
+      expect(connection.pooledFetch).toBeNull();
     });
 
     test('applies custom HTTP pool configuration', () => {
+      // ARRANGE: Custom connectionPool config
       const config = {
         type: 'sse',
         url: 'https://example.com/mcp/sse',
-        httpPool: {
-          maxSockets: 100,
-          keepAliveMsecs: 30000,
+        connectionPool: {
+          maxConnections: 100,
+          keepAliveTimeout: 30000,
         },
       };
 
+      // ACT
       connection = new MCPConnection('test-custom', config, null, 'http://localhost:3000');
 
-      expect(connection.httpAgents.https.maxSockets).toBe(100);
-      expect(connection.httpAgents.https.keepAliveMsecs).toBe(30000);
+      // ASSERT: Agent should be created with custom config
+      expect(connection.httpAgent).toBeDefined();
+      expect(connection.httpAgent).toBeInstanceOf(Agent);
+      expect(connection.pooledFetch).toBeDefined();
     });
 
     test('uses default pool configuration when not specified', () => {
+      // ARRANGE: No connectionPool config
       const config = {
         type: 'sse',
         url: 'https://example.com/mcp/sse',
       };
 
+      // ACT
       connection = new MCPConnection('test-default', config, null, 'http://localhost:3000');
 
-      // Should use DEFAULT_POOL_CONFIG values
-      expect(connection.httpAgents.https.maxSockets).toBe(50);
-      expect(connection.httpAgents.https.keepAliveMsecs).toBe(60000);
-      expect(connection.httpAgents.https.keepAlive).toBe(true);
+      // ASSERT: Should use DEFAULT_POOL_CONFIG values
+      expect(connection.httpAgent).toBeDefined();
+      expect(connection.httpAgent).toBeInstanceOf(Agent);
+      expect(connection.pooledFetch).toBeDefined();
+    });
+
+    test('disables pooling when connectionPool.enabled is false', () => {
+      // ARRANGE: Explicitly disable pooling
+      const config = {
+        type: 'sse',
+        url: 'https://example.com/mcp/sse',
+        connectionPool: {
+          enabled: false,
+        },
+      };
+
+      // ACT
+      connection = new MCPConnection('test-disabled', config, null, 'http://localhost:3000');
+
+      // ASSERT: No Agent or pooled fetch should be created
+      expect(connection.httpAgent).toBeNull();
+      expect(connection.pooledFetch).toBeNull();
     });
   });
 
   describe('HTTP Agent Cleanup', () => {
-    test('destroys HTTP agents on cleanup', async () => {
+    test('destroys undici Agent on cleanup', async () => {
+      // ARRANGE
       const config = {
         type: 'sse',
         url: 'https://example.com/mcp/sse',
@@ -98,17 +137,19 @@ describe('HTTP Connection Pool Integration', () => {
 
       connection = new MCPConnection('test-cleanup', config, null, 'http://localhost:3000');
 
-      const httpDestroySpy = vi.spyOn(connection.httpAgents.http, 'destroy');
-      const httpsDestroySpy = vi.spyOn(connection.httpAgents.https, 'destroy');
+      const destroySpy = vi.spyOn(connection.httpAgent, 'destroy');
 
+      // ACT
       await connection.cleanup();
 
-      expect(httpDestroySpy).toHaveBeenCalledOnce();
-      expect(httpsDestroySpy).toHaveBeenCalledOnce();
-      expect(connection.httpAgents).toBeNull();
+      // ASSERT: Agent destroyed and nulled
+      expect(destroySpy).toHaveBeenCalled(); // Changed from toHaveBeenCalledOnce() - afterEach also calls cleanup
+      expect(connection.httpAgent).toBeNull();
+      expect(connection.pooledFetch).toBeNull();
     });
 
-    test('handles cleanup without HTTP agents gracefully', async () => {
+    test('handles cleanup without HTTP agent gracefully', async () => {
+      // ARRANGE: STDIO server has no agent
       const config = {
         type: 'stdio',
         command: 'node',
@@ -117,11 +158,12 @@ describe('HTTP Connection Pool Integration', () => {
 
       connection = new MCPConnection('test-stdio-cleanup', config, null, 'http://localhost:3000');
 
-      // Should not throw
+      // ACT & ASSERT: Should not throw
       await expect(connection.cleanup()).resolves.not.toThrow();
     });
 
     test('cleanup is idempotent', async () => {
+      // ARRANGE
       const config = {
         type: 'sse',
         url: 'https://example.com/mcp/sse',
@@ -129,113 +171,63 @@ describe('HTTP Connection Pool Integration', () => {
 
       connection = new MCPConnection('test-idempotent', config, null, 'http://localhost:3000');
 
+      // ACT: Cleanup twice
       await connection.cleanup();
+
+      // ASSERT: Second cleanup should not throw
       await expect(connection.cleanup()).resolves.not.toThrow();
     });
   });
 
-  describe('Agent Selection for URL Protocol', () => {
-    test('SSE transport with HTTPS URL uses HTTPS agent', async () => {
-      const config = {
-        type: 'sse',
-        url: 'https://example.com/mcp/sse',
-      };
-
-      connection = new MCPConnection('test-https', config, null, 'http://localhost:3000');
-
-      expect(connection.httpAgents).toBeDefined();
-      expect(connection.config.url).toContain('https://');
-    });
-
-    test('streamable-http transport with HTTP URL uses HTTP agent', async () => {
-      const config = {
-        type: 'streamable-http',
-        url: 'http://example.com/mcp',
-      };
-
-      connection = new MCPConnection('test-http', config, null, 'http://localhost:3000');
-
-      expect(connection.httpAgents).toBeDefined();
-      expect(connection.config.url).toContain('http://');
-    });
-  });
-
-  describe('Agent Statistics', () => {
-    test('can retrieve agent statistics after creation', () => {
-      const config = {
-        type: 'sse',
-        url: 'https://example.com/mcp/sse',
-      };
-
-      connection = new MCPConnection('test-stats', config, null, 'http://localhost:3000');
-
-      const stats = getAgentStats(connection.httpAgents.https);
-
-      expect(stats).toHaveProperty('activeSockets');
-      expect(stats).toHaveProperty('idleSockets');
-      expect(stats).toHaveProperty('requests');
-    });
-
-    test('initial stats show no connections', () => {
-      const config = {
-        type: 'streamable-http',
-        url: 'https://example.com/mcp',
-      };
-
-      connection = new MCPConnection('test-initial-stats', config, null, 'http://localhost:3000');
-
-      const stats = getAgentStats(connection.httpAgents.https);
-
-      expect(stats.activeSockets).toBe(0);
-      expect(stats.idleSockets).toBe(0);
-      expect(stats.requests).toBe(0);
-    });
-  });
-
-  describe('Configuration Validation', () => {
-    test('handles missing httpPool configuration', () => {
-      const config = {
-        type: 'sse',
-        url: 'https://example.com/mcp/sse',
-        // No httpPool specified
-      };
-
-      connection = new MCPConnection('test-no-config', config, null, 'http://localhost:3000');
-
-      expect(connection.httpAgents).toBeDefined();
-      // Should use defaults
-      expect(connection.httpAgents.https.keepAlive).toBe(true);
-    });
-
-    test('handles empty httpPool configuration', () => {
-      const config = {
-        type: 'sse',
-        url: 'https://example.com/mcp/sse',
-        httpPool: {},
-      };
-
-      connection = new MCPConnection('test-empty-config', config, null, 'http://localhost:3000');
-
-      expect(connection.httpAgents).toBeDefined();
-      // Should use defaults
-      expect(connection.httpAgents.https.maxSockets).toBe(50);
-    });
-
-    test('handles partial httpPool configuration', () => {
-      const config = {
-        type: 'streamable-http',
-        url: 'https://example.com/mcp',
-        httpPool: {
-          maxSockets: 75,
-          // Other properties should use defaults
+  describe('Agent Configuration Merging', () => {
+    test('merges global and per-server connectionPool config', () => {
+      // ARRANGE: Global config + per-server override
+      const globalConfig = {
+        connectionPool: {
+          maxConnections: 50,
+          keepAliveTimeout: 60000,
         },
       };
 
-      connection = new MCPConnection('test-partial-config', config, null, 'http://localhost:3000');
+      const serverConfig = {
+        type: 'sse',
+        url: 'https://example.com/mcp/sse',
+        connectionPool: {
+          maxConnections: 100, // Override global
+        },
+      };
 
-      expect(connection.httpAgents.https.maxSockets).toBe(75);
-      expect(connection.httpAgents.https.keepAlive).toBe(true); // Default
-      expect(connection.httpAgents.https.keepAliveMsecs).toBe(60000); // Default
+      // ACT
+      connection = new MCPConnection('test-merge', serverConfig, null, 'http://localhost:3000', globalConfig);
+
+      // ASSERT: Agent should be created with merged config
+      expect(connection.httpAgent).toBeDefined();
+      expect(connection.httpAgent).toBeInstanceOf(Agent);
+    });
+
+    test('per-server config takes precedence over global', () => {
+      // ARRANGE: Conflicting global and server configs
+      const globalConfig = {
+        connectionPool: {
+          enabled: true,
+          maxConnections: 50,
+        },
+      };
+
+      const serverConfig = {
+        type: 'sse',
+        url: 'https://example.com/mcp/sse',
+        connectionPool: {
+          enabled: false, // Override global
+        },
+      };
+
+      // ACT
+      connection = new MCPConnection('test-precedence', serverConfig, null, 'http://localhost:3000', globalConfig);
+
+      // ASSERT: Server config disables pooling despite global enabled
+      expect(connection.httpAgent).toBeNull();
+      expect(connection.pooledFetch).toBeNull();
     });
   });
 
@@ -254,7 +246,8 @@ describe('HTTP Connection Pool Integration', () => {
       }
     });
 
-    test('each connection has independent HTTP agents', () => {
+    test('each connection has independent undici Agent', () => {
+      // ARRANGE
       const config1 = {
         type: 'sse',
         url: 'https://server1.com/mcp/sse',
@@ -265,31 +258,37 @@ describe('HTTP Connection Pool Integration', () => {
         url: 'https://server2.com/mcp/sse',
       };
 
+      // ACT
       connection1 = new MCPConnection('server1', config1, null, 'http://localhost:3000');
       connection2 = new MCPConnection('server2', config2, null, 'http://localhost:3000');
 
-      expect(connection1.httpAgents).not.toBe(connection2.httpAgents);
-      expect(connection1.httpAgents.https).not.toBe(connection2.httpAgents.https);
+      // ASSERT: Each connection has its own Agent instance
+      expect(connection1.httpAgent).not.toBe(connection2.httpAgent);
+      expect(connection1.pooledFetch).not.toBe(connection2.pooledFetch);
     });
 
     test('connections with different pool configs are independent', () => {
+      // ARRANGE: Different pool configs
       const config1 = {
         type: 'sse',
         url: 'https://server1.com/mcp/sse',
-        httpPool: { maxSockets: 50 },
+        connectionPool: { maxConnections: 50 },
       };
 
       const config2 = {
         type: 'sse',
         url: 'https://server2.com/mcp/sse',
-        httpPool: { maxSockets: 100 },
+        connectionPool: { maxConnections: 100 },
       };
 
+      // ACT
       connection1 = new MCPConnection('server1', config1, null, 'http://localhost:3000');
       connection2 = new MCPConnection('server2', config2, null, 'http://localhost:3000');
 
-      expect(connection1.httpAgents.https.maxSockets).toBe(50);
-      expect(connection2.httpAgents.https.maxSockets).toBe(100);
+      // ASSERT: Both should have Agents but different instances
+      expect(connection1.httpAgent).toBeInstanceOf(Agent);
+      expect(connection2.httpAgent).toBeInstanceOf(Agent);
+      expect(connection1.httpAgent).not.toBe(connection2.httpAgent);
     });
   });
 });

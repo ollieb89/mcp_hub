@@ -47,6 +47,7 @@ import {
 import { HubState } from "../utils/sse-manager.js";
 import logger from "../utils/logger.js";
 import { HUB_INTERNAL_SERVER_NAME, CAPABILITY_DELIMITER, TIMEOUTS } from "../utils/constants.js";
+import ToolFilteringService from "../utils/tool-filtering-service.js";
 
 // Delimiter for namespacing (backward compatibility alias)
 const DELIMITER = CAPABILITY_DELIMITER;
@@ -163,6 +164,10 @@ export class MCPServerEndpoint {
     Object.values(CAPABILITY_TYPES).forEach(capType => {
       this.registeredCapabilities[capType.id] = new Map(); // namespacedName -> { serverName, originalName, definition }
     });
+
+    // Initialize tool filtering service (Sprint 2)
+    const config = this.mcpHub.configManager?.getConfig() || {};
+    this.filteringService = new ToolFilteringService(config, this.mcpHub);
 
     // Setup capability synchronization once
     this.setupCapabilitySync();
@@ -322,6 +327,7 @@ export class MCPServerEndpoint {
   /**
    * Synchronize capabilities from connected servers
    * @param {string[]} capabilityIds - Specific capability IDs to sync, defaults to all
+   * Includes auto-enable logic for tool filtering (Sprint 2)
    */
   syncCapabilities(capabilityIds = null, affectedServers = null) {
     // Default to all capability IDs if none specified
@@ -333,6 +339,20 @@ export class MCPServerEndpoint {
       this.syncServersMapPartial(affectedServers);
     } else {
       this.syncServersMap();
+    }
+
+    // Auto-enable filtering if threshold is exceeded (Sprint 2)
+    if (this.filteringService && idsToSync.includes('tools')) {
+      // Calculate total tool count before filtering
+      let totalToolCount = 0;
+      for (const connection of this.serversMap.values()) {
+        if (connection.status === "connected" && !connection.disabled && connection.tools) {
+          totalToolCount += connection.tools.length;
+        }
+      }
+
+      // Check if auto-enable should trigger
+      this.filteringService.autoEnableIfNeeded(totalToolCount);
     }
 
     // Track which capabilities actually changed
@@ -495,6 +515,7 @@ export class MCPServerEndpoint {
   /**
    * Register capabilities from a server connection for a specific capability type
    * Creates namespaced capability names to avoid conflicts between servers
+   * Applies tool filtering for tools capability type (Sprint 2)
    */
   registerServerCapabilities(connection, { capabilityId, serverId }) {
     const serverName = connection.name;
@@ -506,9 +527,25 @@ export class MCPServerEndpoint {
 
     // Find the capability type configuration and get server's capabilities
     const capType = Object.values(CAPABILITY_TYPES).find(cap => cap.id === capabilityId);
-    const capabilities = connection[capabilityId];
+    let capabilities = connection[capabilityId];
     if (!capabilities || !Array.isArray(capabilities)) {
       return; // No capabilities of this type
+    }
+
+    // Apply tool filtering for tools capability type (Sprint 2)
+    if (capabilityId === 'tools' && this.filteringService) {
+      const originalCount = capabilities.length;
+
+      // Filter tools using shouldIncludeTool method
+      capabilities = capabilities.filter(tool =>
+        this.filteringService.shouldIncludeTool(tool.name, serverName, tool)
+      );
+
+      // Log filtering results
+      const filteredCount = capabilities.length;
+      if (filteredCount < originalCount) {
+        logger.info(`Tool filtering: ${serverName} reduced from ${originalCount} to ${filteredCount} tools`);
+      }
     }
 
     const capabilityMap = this.registeredCapabilities[capabilityId];

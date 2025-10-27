@@ -1,137 +1,257 @@
 /**
- * HTTP Connection Pool Manager
+ * HTTP Connection Pool Management
  *
- * Provides optimized HTTP/HTTPS agents with connection pooling for persistent
- * connections to remote MCP servers. Reduces TLS handshake overhead and
- * connection establishment latency through keep-alive connections.
+ * Provides optimized HTTP connection pooling for remote MCP servers using undici's Agent.
+ * Reduces latency by reusing persistent connections and avoiding TLS handshake overhead.
  *
- * @module utils/http-pool
+ * This module is specifically designed for MCP SDK transports (SSEClientTransport and
+ * StreamableHTTPClientTransport), which use undici's fetch() internally.
+ *
+ * @module http-pool
  */
 
-import http from 'http';
-import https from 'https';
+import { fetch, Agent } from 'undici';
+import logger from './logger.js';
 
 /**
- * Default configuration for HTTP connection pooling
+ * Default connection pool configuration optimized for MCP Hub usage patterns.
  *
  * @constant {Object} DEFAULT_POOL_CONFIG
- * @property {boolean} keepAlive - Enable HTTP keep-alive
- * @property {number} keepAliveMsecs - How long to keep idle connections alive (60s)
- * @property {number} maxSockets - Maximum sockets per host (50)
- * @property {number} maxFreeSockets - Maximum idle sockets to maintain (10)
- * @property {number} timeout - Socket timeout in milliseconds (30s)
- * @property {string} scheduling - Socket scheduling strategy ('lifo' for better reuse)
+ * @property {boolean} enabled - Enable connection pooling (default: true)
+ * @property {number} keepAliveTimeout - Socket keep-alive timeout in milliseconds (default: 60000ms / 60s)
+ * @property {number} keepAliveMaxTimeout - Maximum socket lifetime in milliseconds (default: 600000ms / 10min)
+ * @property {number} maxConnections - Maximum connections per host (default: 50)
+ * @property {number} maxFreeConnections - Maximum idle connections per host (default: 10)
+ * @property {number} timeout - Socket timeout in milliseconds (default: 30000ms / 30s)
+ * @property {number} pipelining - Number of pipelined requests (default: 0 - disabled for MCP)
  */
 export const DEFAULT_POOL_CONFIG = {
-  keepAlive: true,
-  keepAliveMsecs: 60000,  // 60 seconds - keep idle connections alive
-  maxSockets: 50,          // Maximum concurrent connections per host
-  maxFreeSockets: 10,      // Keep up to 10 idle connections per host
-  timeout: 30000,          // 30 second socket timeout
-  scheduling: 'lifo',      // Last In First Out - better connection reuse
+  enabled: true,
+  keepAliveTimeout: 60000,        // 60 seconds - longer than default for persistent MCP servers
+  keepAliveMaxTimeout: 600000,    // 10 minutes - keep undici's default
+  maxConnections: 50,              // Per host - reasonable for concurrent operations
+  maxFreeConnections: 10,          // Keep 10 idle connections per host for reuse
+  timeout: 30000,                  // 30 second socket timeout
+  pipelining: 0                    // Disabled - MCP is request-response, not suited for pipelining
 };
 
 /**
- * Create HTTP and HTTPS agents with optimized connection pooling
+ * Creates optimized undici Agent for connection pooling.
  *
- * @param {Object} config - Custom configuration (merged with defaults)
- * @param {boolean} [config.keepAlive=true] - Enable HTTP keep-alive
- * @param {number} [config.keepAliveMsecs=60000] - Keep-alive timeout
- * @param {number} [config.maxSockets=50] - Max sockets per host
- * @param {number} [config.maxFreeSockets=10] - Max idle sockets per host
- * @param {number} [config.timeout=30000] - Socket timeout
- * @param {string} [config.scheduling='lifo'] - Scheduling strategy
- * @returns {Object} Object with http and https agents
- * @returns {http.Agent} .http - HTTP agent
- * @returns {https.Agent} .https - HTTPS agent
+ * Creates a single Agent that handles both HTTP and HTTPS protocols with optimized
+ * pooling configuration for MCP Hub's usage patterns.
+ *
+ * @param {Object} config - Connection pool configuration
+ * @param {number} [config.keepAliveTimeout=60000] - Socket keep-alive timeout in ms
+ * @param {number} [config.keepAliveMaxTimeout=600000] - Maximum socket lifetime in ms
+ * @param {number} [config.maxConnections=50] - Maximum connections per host
+ * @param {number} [config.maxFreeConnections=10] - Maximum idle connections per host
+ * @param {number} [config.timeout=30000] - Socket timeout in ms
+ * @param {number} [config.pipelining=0] - Number of pipelined requests
+ * @returns {Agent} Undici Agent instance configured for connection pooling
+ * @throws {Error} If Agent creation fails
  *
  * @example
- * const agents = createHTTPAgent({ maxSockets: 100 });
- * // Use with fetch:
- * fetch(url, { agent: agents.https });
+ * const agent = createHTTPAgent({ maxConnections: 100 });
+ * // Use with createPooledFetch()
  */
 export function createHTTPAgent(config = {}) {
   const poolConfig = { ...DEFAULT_POOL_CONFIG, ...config };
 
-  return {
-    http: new http.Agent(poolConfig),
-    https: new https.Agent(poolConfig),
+  // Remove 'enabled' property as it's not a valid Agent option
+  const { enabled, ...agentOptions } = poolConfig;
+
+  try {
+    // Create undici Agent with pooling configuration
+    // Note: undici uses 'connections' parameter instead of 'maxConnections'
+    const agentConfig = {
+      keepAliveTimeout: agentOptions.keepAliveTimeout,
+      keepAliveMaxTimeout: agentOptions.keepAliveMaxTimeout,
+      connections: agentOptions.maxConnections,  // undici's parameter name
+      maxFreeConnections: agentOptions.maxFreeConnections,
+      timeout: agentOptions.timeout,
+      pipelining: agentOptions.pipelining
+    };
+
+    logger.debug('Creating HTTP Agent with connection pooling', { config: agentConfig });
+    return new Agent(agentConfig);
+  } catch (error) {
+    logger.error('Failed to create HTTP Agent', { error: error.message, config: poolConfig });
+    throw new Error(`HTTP Agent creation failed: ${error.message}`);
+  }
+}
+
+/**
+ * Creates a fetch wrapper that uses the provided undici Agent for connection pooling.
+ *
+ * This wrapper injects the Agent as the dispatcher for all fetch calls,
+ * enabling connection reuse and keep-alive for improved performance.
+ *
+ * The wrapper preserves all fetch() API semantics while adding connection pooling.
+ *
+ * @param {Agent} agent - Undici Agent for connection pooling
+ * @returns {Function} Custom fetch function with connection pooling
+ * @throws {Error} If agent is invalid
+ *
+ * @example
+ * const agent = createHTTPAgent();
+ * const pooledFetch = createPooledFetch(agent);
+ *
+ * // Use like normal fetch, but with connection pooling
+ * const response = await pooledFetch('https://api.example.com/data', {
+ *   method: 'POST',
+ *   headers: { 'Content-Type': 'application/json' },
+ *   body: JSON.stringify({ key: 'value' })
+ * });
+ *
+ * @example
+ * // Use with MCP SDK transports
+ * const transport = new SSEClientTransport(url, {
+ *   fetch: pooledFetch,
+ *   requestInit: { headers }
+ * });
+ */
+export function createPooledFetch(agent) {
+  if (!agent || !(agent instanceof Agent)) {
+    throw new Error('Invalid agent: must be an undici Agent instance');
+  }
+
+  /**
+   * Custom fetch implementation with connection pooling.
+   *
+   * @param {string|URL|Request} input - URL or Request object
+   * @param {RequestInit} [init] - Fetch options (headers, method, body, etc.)
+   * @returns {Promise<Response>} Fetch response
+   */
+  return function pooledFetch(input, init = {}) {
+    // Inject Agent as dispatcher
+    return fetch(input, {
+      ...init,
+      dispatcher: agent
+    });
   };
 }
 
 /**
- * Select appropriate agent based on URL protocol
+ * Merges global and per-server connection pool configurations.
  *
- * @param {Object} agents - Agents object from createHTTPAgent()
- * @param {http.Agent} agents.http - HTTP agent
- * @param {https.Agent} agents.https - HTTPS agent
- * @param {URL|string} url - URL to determine protocol for
- * @returns {http.Agent|https.Agent} Appropriate agent for the URL
+ * Per-server configuration takes precedence over global configuration.
+ * If pooling is explicitly disabled (enabled: false), no merging occurs.
  *
- * @example
- * const agents = createHTTPAgent();
- * const agent = getAgentForURL(agents, 'https://example.com');
- * // Returns agents.https
- */
-export function getAgentForURL(agents, url) {
-  const urlObj = typeof url === 'string' ? new URL(url) : url;
-  return urlObj.protocol === 'https:' ? agents.https : agents.http;
-}
-
-/**
- * Get connection pool statistics for monitoring
- *
- * @param {http.Agent|https.Agent} agent - Agent to get stats for
- * @returns {Object} Connection pool statistics
- * @returns {number} .activeSockets - Currently active connections
- * @returns {number} .idleSockets - Idle connections available for reuse
- * @returns {number} .requests - Pending requests waiting for sockets
+ * @param {Object} [globalConfig] - Global connection pool configuration
+ * @param {Object} [serverConfig] - Per-server connection pool configuration
+ * @returns {Object} Merged configuration with server overrides applied
  *
  * @example
- * const stats = getAgentStats(agents.https);
- * console.log(`Active: ${stats.activeSockets}, Idle: ${stats.idleSockets}`);
+ * const global = { keepAliveTimeout: 60000, maxConnections: 50 };
+ * const server = { maxConnections: 100 };
+ * const merged = mergePoolConfig(global, server);
+ * // Result: { enabled: true, keepAliveTimeout: 60000, maxConnections: 100, ... }
+ *
+ * @example
+ * const global = { enabled: true, maxConnections: 50 };
+ * const server = { enabled: false };
+ * const merged = mergePoolConfig(global, server);
+ * // Result: { enabled: false }
  */
-export function getAgentStats(agent) {
-  const activeSockets = Object.values(agent.sockets).reduce(
-    (sum, arr) => sum + arr.length,
-    0
-  );
+export function mergePoolConfig(globalConfig = {}, serverConfig = {}) {
+  // If server explicitly disables pooling, return that
+  if (serverConfig.enabled === false) {
+    return { enabled: false };
+  }
 
-  const idleSockets = Object.values(agent.freeSockets).reduce(
-    (sum, arr) => sum + arr.length,
-    0
-  );
+  // If global explicitly disables pooling and server doesn't override, return disabled
+  if (globalConfig.enabled === false && serverConfig.enabled !== true) {
+    return { enabled: false };
+  }
 
-  const requests = Object.values(agent.requests).reduce(
-    (sum, arr) => sum + arr.length,
-    0
-  );
-
+  // Merge configurations (server overrides global, defaults applied)
   return {
-    activeSockets,
-    idleSockets,
-    requests,
+    ...DEFAULT_POOL_CONFIG,
+    ...globalConfig,
+    ...serverConfig
   };
 }
 
 /**
- * Destroy HTTP agents and close all connections
+ * Validates connection pool configuration.
+ *
+ * Ensures all configuration values are within valid ranges and types.
+ *
+ * @param {Object} config - Connection pool configuration to validate
+ * @returns {Object} Validation result with valid flag and errors array
+ * @returns {boolean} result.valid - Whether configuration is valid
+ * @returns {string[]} result.errors - Array of validation error messages
+ *
+ * @example
+ * const result = validatePoolConfig({ keepAliveTimeout: -1000 });
+ * // result.valid = false
+ * // result.errors = ['keepAliveTimeout must be between 1000 and 600000']
+ */
+export function validatePoolConfig(config) {
+  const errors = [];
+
+  if (config.enabled !== undefined && typeof config.enabled !== 'boolean') {
+    errors.push('enabled must be a boolean');
+  }
+
+  if (config.keepAliveTimeout !== undefined) {
+    if (typeof config.keepAliveTimeout !== 'number' || config.keepAliveTimeout < 1000 || config.keepAliveTimeout > 600000) {
+      errors.push('keepAliveTimeout must be a number between 1000 and 600000 (1s - 10min)');
+    }
+  }
+
+  if (config.keepAliveMaxTimeout !== undefined) {
+    if (typeof config.keepAliveMaxTimeout !== 'number' || config.keepAliveMaxTimeout < 1000 || config.keepAliveMaxTimeout > 3600000) {
+      errors.push('keepAliveMaxTimeout must be a number between 1000 and 3600000 (1s - 1h)');
+    }
+  }
+
+  if (config.maxConnections !== undefined) {
+    if (typeof config.maxConnections !== 'number' || config.maxConnections < 1 || config.maxConnections > 1000) {
+      errors.push('maxConnections must be a number between 1 and 1000');
+    }
+  }
+
+  if (config.maxFreeConnections !== undefined) {
+    if (typeof config.maxFreeConnections !== 'number' || config.maxFreeConnections < 0 || config.maxFreeConnections > 100) {
+      errors.push('maxFreeConnections must be a number between 0 and 100');
+    }
+  }
+
+  if (config.timeout !== undefined) {
+    if (typeof config.timeout !== 'number' || config.timeout < 1000 || config.timeout > 300000) {
+      errors.push('timeout must be a number between 1000 and 300000 (1s - 5min)');
+    }
+  }
+
+  if (config.pipelining !== undefined) {
+    if (typeof config.pipelining !== 'number' || config.pipelining < 0 || config.pipelining > 10) {
+      errors.push('pipelining must be a number between 0 and 10');
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Destroy undici Agent and close all connections.
  *
  * Call this during cleanup to properly close all HTTP connections
  * and free resources.
  *
- * @param {Object} agents - Agents object from createHTTPAgent()
+ * @param {Agent} agent - Undici Agent to destroy
  *
  * @example
- * const agents = createHTTPAgent();
- * // ... use agents ...
- * destroyAgents(agents);
+ * const agent = createHTTPAgent();
+ * // ... use agent ...
+ * destroyAgent(agent);
  */
-export function destroyAgents(agents) {
-  if (agents.http) {
-    agents.http.destroy();
-  }
-  if (agents.https) {
-    agents.https.destroy();
+export function destroyAgent(agent) {
+  if (agent && typeof agent.destroy === 'function') {
+    agent.destroy();
   }
 }

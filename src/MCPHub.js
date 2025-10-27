@@ -73,6 +73,7 @@ export class MCPHub extends EventEmitter {
           serverConfig,
           this.marketplace,
           this.hubServerUrl,
+          config, // Pass global config for connectionPool merging
         );
         
         // Setup connection event handlers

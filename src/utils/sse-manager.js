@@ -312,12 +312,8 @@ export class SSEManager extends EventEmitter {
       }
     }
 
-    logger.debug('Broadcast batched event', {
-      eventType,
-      batchSize,
-      sentCount,
-      reason,
-    });
+    // NOTE: No logging here to prevent infinite recursion
+    // (logger → SSE → EventBatcher → _broadcastBatch → logger)
 
     return sentCount;
   }
