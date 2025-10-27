@@ -33,13 +33,77 @@
     },
     "docker-hub": {
       "command": "node",
-      "args": ["/PATH/TO/docker-hub-mcp-server/dist/index.js", "--transport", "stdio", "--username", "${DOCKER_HUB_USERNAME}"],
+      "args": ["/home/ob/Development/Tools/mcps/hub-mcp/dist/index.js", "--transport", "stdio", "--username", "${DOCKER_HUB_USERNAME}"],
       "cwd": ".",
       "env": {
         "HUB_PAT_TOKEN": "${DOCKER_HUB_PAT}"
       },
-      "disabled": true,
+      "disabled": false,
       "note": "Requires local installation. See: https://github.com/docker/hub-mcp"
+    },
+    "docker": {
+      "command": "uvx",
+      "args": ["mcp-server-docker"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Requires Docker daemon running. Start with: sudo systemctl start docker"
+    },
+    "nanana": {
+      "command": "npx",
+      "args": ["-y", "@nanana-ai/mcp-server-nano-banana"],
+      "cwd": ".",
+      "env": {
+        "NANANA_API_TOKEN": "${NANANA_API_TOKEN}"
+      },
+      "disabled": false,
+      "note": "Requires NANANA_API_TOKEN from nanana.app. Visit https://nanana.app to get your API token"
+    },
+    "imagen3": {
+      "command": "/home/ob/bin/imagen3-mcp",
+      "args": [],
+      "cwd": ".",
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+      },
+      "disabled": false,
+      "note": "Google Imagen 3.0 image generation using Gemini API. Binary installed at /home/ob/bin/imagen3-mcp"
+    },
+    "augments": {
+      "command": "uv",
+      "args": ["run", "--directory", "/home/ob/Development/Tools/mcps/augments-mcp-server", "augments-mcp-server"],
+      "cwd": ".",
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "disabled": false,
+      "note": "Framework documentation server for React and Next.js. Provides real-time access to framework docs via MCP. Local repo at /home/ob/Development/Tools/mcps/augments-mcp-server"
+    },
+    "neon": {
+      "command": "npx",
+      "args": ["-y", "@neondatabase/mcp-server-neon", "start", "${NEON_API_KEY}"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Neon database management server with 30+ tools for project/branch management, SQL execution, migrations, and performance tuning"
+    },
+    "vertex-ai": {
+      "command": "node",
+      "args": ["/home/ob/Development/Tools/mcps/vertex-ai-mcp-server/build/index.js"],
+      "cwd": "/home/ob/Development/Tools/mcps/vertex-ai-mcp-server",
+      "env": {
+        "AI_PROVIDER": "vertex",
+        "GOOGLE_CLOUD_PROJECT": "hopeful-sound-470614-r3",
+        "GOOGLE_CLOUD_LOCATION": "us-central1",
+        "VERTEX_MODEL_ID": "gemini-2.5-pro-exp-03-25",
+        "AI_TEMPERATURE": "0.0",
+        "AI_USE_STREAMING": "true",
+        "AI_MAX_OUTPUT_TOKENS": "65536",
+        "AI_MAX_RETRIES": "3",
+        "AI_RETRY_DELAY_MS": "1000"
+      },
+      "disabled": false,
+      "note": "Vertex AI MCP server with advanced coding assistance, filesystem operations, and query answering. Running from local installation with Vertex AI provider."
     }
   }
 }
