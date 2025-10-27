@@ -7,12 +7,6 @@
       "env": {},
       "disabled": false
     },
-    "vercel": {
-      "type": "sse",
-      "url": "https://mcp.vercel.com",
-      "headers": {},
-      "disabled": true
-    },
     "shadcn-ui": {
       "command": "npx",
       "args": ["-y", "@jpisnice/shadcn-ui-mcp-server"],
@@ -174,6 +168,76 @@
       },
       "disabled": true,
       "note": "Prometheus MCP server for metrics querying and analysis. Execute PromQL queries, list metrics, and analyze monitoring data. Add PROMETHEUS_URL to .env file to enable (e.g., http://localhost:9090)"
+    },
+    "pinecone": {
+      "command": "npx",
+      "args": ["-y", "@pinecone-database/mcp"],
+      "cwd": ".",
+      "env": {
+        "PINECONE_API_KEY": "${PINECONE_API_KEY}"
+      },
+      "disabled": false,
+      "note": "Pinecone Developer MCP server for vector database operations. Search docs, manage indexes, upsert/search records, and configure integrated inference models."
+    },
+    "redis": {
+      "command": "uv",
+      "args": ["run", "--directory", "/home/ob/Development/Tools/mcps/redis-mcp-server", "src/main.py"],
+      "cwd": "/home/ob/Development/Tools/mcps/redis-mcp-server",
+      "env": {
+        "REDIS_HOST": "localhost",
+        "REDIS_PORT": "6379",
+        "REDIS_DB": "0",
+        "REDIS_USERNAME": "default"
+      },
+      "disabled": false,
+      "note": "Official Redis MCP server for natural language Redis operations. Manage and search data in Redis with AI-driven workflows. Configured for localhost:6379 by default."
+    },
+    "terraform": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "TFE_ADDRESS", "-e", "TFE_TOKEN", "-e", "TFE_ORGANIZATION", "hashicorp/terraform-mcp-server:0.3.2"],
+      "cwd": ".",
+      "env": {
+        "TFE_ADDRESS": "${TFE_ADDRESS}",
+        "TFE_TOKEN": "${TFE_TOKEN}",
+        "TFE_ORGANIZATION": "${TFE_ORGANIZATION}"
+      },
+      "disabled": false,
+      "note": "Official HashiCorp Terraform MCP Server for Infrastructure as Code automation with Terraform Cloud integration."
+    },
+    "vercel": {
+      "type": "streamable-http",
+      "url": "https://mcp.vercel.com",
+      "headers": {
+        "Authorization": "Bearer ${VERCEL_TOKEN}"
+      },
+      "env": {
+        "VERCEL_TOKEN": "${VERCEL_TOKEN}"
+      },
+      "disabled": false,
+      "note": "Official Vercel MCP Server for deployment and project management via streamable-http. Requires VERCEL_TOKEN in .env. Get token from Vercel Settings > Tokens at https://vercel.com/account/tokens"
+    },
+    "grafana": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "mcp/grafana:latest", "-t", "stdio"],
+      "cwd": ".",
+      "env": {
+        "GRAFANA_URL": "${GRAFANA_URL}",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_SERVICE_ACCOUNT_TOKEN}"
+      },
+      "disabled": true,
+      "note": "Official Grafana MCP Server for monitoring, observability, and analytics. Requires GRAFANA_URL and GRAFANA_SERVICE_ACCOUNT_TOKEN in .env. Get token from Grafana → Administration → Service Accounts. See https://github.com/grafana/mcp-grafana"
+    },
+    "hf-mcp-server": {
+      "type": "sse",
+      "url": "https://huggingface.co/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer ${HF_TOKEN}"
+      },
+      "env": {
+        "HF_TOKEN": "${HF_TOKEN}"
+      },
+      "disabled": true,
+      "note": "Hugging Face MCP Server - Currently disabled. The official endpoint URL is not yet available. Use local HF MCP servers or compatible alternatives. Get token from https://huggingface.co/settings/tokens when available."
     }
   }
 }

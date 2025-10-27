@@ -17,9 +17,9 @@ MCP Hub is running on **port 7000** and provides unified access to multiple MCP 
 
 ### Current Status
 
-- **Total Servers Configured**: 11
-- **Active Servers**: 9
-- **Total Tools Available**: 116+
+- **Total Servers Configured**: 20
+- **Active Servers**: 18
+- **Total Tools Available**: 238+
 - **Hub Endpoint**: `http://localhost:7000/mcp`
 
 ## Configured Servers
@@ -346,7 +346,327 @@ AI_MAX_OUTPUT_TOKENS=65536
 
 ---
 
-### 11. Vercel MCP Server ⚠️
+### 11. GitHub MCP Server ✅
+
+**Purpose**: GitHub repository management and operations  
+**Tools**: 46
+
+**Capabilities**:
+- **Repository Management**: Search repos, get repo info, manage forks
+- **Issue Management**: List, create, update, comment on issues
+- **Pull Request Operations**: Create, list, update, merge PRs
+- **Code Review**: Review PRs, approve/reject changes
+- **Branch Management**: Create, delete, manage branches
+- **Release Management**: Create releases, manage tags
+- **File Operations**: Read, create, update, delete files
+- **Webhook Configuration**: Manage webhooks
+- **Search**: Search code, issues, repositories
+
+**Configuration**:
+- Official GitHub MCP server
+- Binary installation at `/home/ob/Development/Tools/mcps/github-mcp-server/github-mcp-server`
+- Uses `stdio` transport mode
+
+**Environment Variables**:
+```bash
+GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+```
+
+**Key Tools**:
+- `search_repositories`: Search GitHub repositories
+- `get_repository`: Get detailed repo information
+- `list_issues`: Browse and filter issues
+- `create_pull_request`: Create pull requests
+- `merge_pull_request`: Merge PRs with various strategies
+- `get_pull_request`: Retrieve PR details
+- `list_commits`: View commit history
+- `create_release`: Publish releases
+
+**Use Cases**:
+- Repository management automation
+- Issue tracking and triage
+- Code review workflow
+- Release management
+- Branch strategy enforcement
+- Documentation updates
+
+---
+
+### 12. Notion MCP Server ✅
+
+**Purpose**: Notion workspace and database management  
+**Tools**: 19
+
+**Capabilities**:
+- **Page Management**: Read, create, update, search pages
+- **Database Operations**: Query databases, create/update records
+- **Comment Management**: Add and retrieve comments
+- **Content Access**: Search and retrieve Notion content
+- **Block Manipulation**: Manage blocks within pages
+- **Property Management**: Read and update page properties
+
+**Configuration**:
+- Official Notion MCP server
+- Install via: `npx @notionhq/notion-mcp-server`
+
+**Environment Variables**:
+```bash
+NOTION_TOKEN=${NOTION_API_KEY}
+```
+
+**Key Tools**:
+- `search_pages`: Search pages across workspace
+- `read_page`: Retrieve page content
+- `create_page`: Create new pages
+- `update_page`: Update existing pages
+- `query_database`: Query Notion databases
+- `create_database_record`: Add records to databases
+- `create_comment`: Add comments to pages
+
+**Use Cases**:
+- Content management automation
+- Database-driven workflows
+- Knowledge base integration
+- Documentation sync
+- Project management integration
+
+---
+
+### 13. Memory MCP Server ✅
+
+**Purpose**: Persistent knowledge graph management  
+**Tools**: 9
+
+**Capabilities**:
+- **Entity Management**: Create, read, update, delete entities
+- **Relation Management**: Create and delete relationships
+- **Observations**: Add observations to entities
+- **Graph Search**: Search knowledge graph
+- **Memory Persistence**: Cross-session memory storage
+
+**Configuration**:
+- Official MCP Memory server
+- Install via: `npx @modelcontextprotocol/server-memory`
+
+**Key Tools**:
+- `create_entities`: Create multiple entities in knowledge graph
+- `create_relations`: Create relationships between entities
+- `add_observations`: Add observations to existing entities
+- `read_graph`: Retrieve entire knowledge graph
+- `search_nodes`: Search for nodes based on query
+- `open_nodes`: Open specific nodes by name
+- `delete_entities`: Remove entities and relations
+- `delete_observations`: Remove specific observations
+- `delete_relations`: Remove relationships
+
+**Use Cases**:
+- Cross-chat memory
+- Knowledge graph construction
+- Entity relationship tracking
+- Long-term context preservation
+- Session continuity
+
+---
+
+### 14. Time MCP Server ✅
+
+**Purpose**: Timezone-aware time operations  
+**Tools**: 2
+
+**Capabilities**:
+- Get current time in any timezone (IANA standard)
+- Convert between timezones
+- Time arithmetic and calculations
+
+**Configuration**:
+- Official MCP Time server
+- Install via: `uvx mcp-server-time`
+
+**Key Tools**:
+- `get_current_time`: Get current time in any IANA timezone
+- `convert_timezone`: Convert times between timezones
+
+**Use Cases**:
+- Timezone conversions for deployments
+- Scheduling operations
+- International time coordination
+- Time-aware automation
+
+---
+
+### 15. Sequential Thinking MCP Server ✅
+
+**Purpose**: Structured problem-solving with dynamic reasoning  
+**Tools**: 1
+
+**Capabilities**:
+- Dynamic and reflective thinking process
+- Thought revision and branching
+- Multi-step problem decomposition
+- Hypothesis generation and verification
+
+**Configuration**:
+- Official MCP Sequential Thinking server
+- Install via: `npx @modelcontextprotocol/server-sequential-thinking`
+
+**Key Tool**:
+- `sequentialthinking`: Structured problem-solving with thought chains
+
+**Use Cases**:
+- Complex problem decomposition
+- Multi-step planning
+- Hypothesis-driven development
+- Architectural decision making
+- Code refactoring strategies
+
+---
+
+### 16. Fetch MCP Server ✅
+
+**Purpose**: Web content retrieval and conversion  
+**Tools**: 1
+
+**Capabilities**:
+- Fetch URLs and retrieve content
+- Convert HTML to markdown
+- Chunked reading with indexing
+- Web scraping and data extraction
+
+**Configuration**:
+- Official MCP Fetch server
+- Install via: `uvx mcp-server-fetch`
+
+**Key Tool**:
+- `fetch`: Fetch URLs and convert HTML to markdown
+
+**Use Cases**:
+- Documentation retrieval
+- Web scraping for data
+- Content analysis
+- Link following and verification
+- Research automation
+
+---
+
+### 17. Git MCP Server ✅
+
+**Purpose**: Repository version control operations  
+**Tools**: 12
+
+**Capabilities**:
+- **Repository Operations**: Git status, diff, log
+- **Branch Management**: List, create, switch, delete branches
+- **Commit Operations**: Stage, commit changes
+- **Remote Operations**: Fetch, pull, push
+- **File Operations**: Track untracked files
+
+**Configuration**:
+- Official MCP Git server
+- Install via: `uvx mcp-server-git`
+
+**Key Tools**:
+- `git_status`: Get working directory status
+- `git_diff`: Show changes between commits
+- `git_log`: View commit history
+- `git_branch_list`: List all branches
+- `git_branch_create`: Create new branches
+- `git_branch_switch`: Switch between branches
+- `git_commit`: Commit changes
+- `git_fetch`: Fetch from remote
+- `git_pull`: Pull latest changes
+- `git_push`: Push to remote
+
+**Use Cases**:
+- Automated version control
+- Branch management
+- Commit history analysis
+- Change tracking
+- Code review preparation
+
+---
+
+### 18. Prometheus MCP Server ⚠️
+
+**Purpose**: Prometheus metrics querying and analysis  
+**Tools**: 5
+
+**Capabilities**:
+- Execute PromQL queries
+- List and analyze metrics
+- Get metric metadata
+- Query targets information
+- Range query support
+
+**Configuration**:
+- Local installation required
+- Location: `/home/ob/Development/Tools/mcps/prometheus-mcp-server`
+- Uses `uv` to run Python server
+
+**Environment Variables**:
+```bash
+PROMETHEUS_URL=http://your-prometheus-server:9090
+```
+
+**Key Tools**:
+- `execute_query`: Execute PromQL instant queries
+- `execute_range_query`: Range queries with time steps
+- `list_metrics`: List all available metrics
+- `get_metric_metadata`: Get metric details
+- `get_targets`: Get scrape target information
+
+**Status**: Disabled (requires Prometheus URL in .env)
+
+**Use Cases**:
+- Metrics analysis and monitoring
+- Performance monitoring
+- Alert investigation
+- System health checks
+
+---
+
+### 19. Pinecone MCP Server ✅
+
+**Purpose**: Vector database operations with Pinecone  
+**Tools**: 9
+
+**Capabilities**:
+- **Documentation Search**: Search Pinecone official docs
+- **Index Management**: List, describe, create indexes
+- **Record Operations**: Upsert and search records
+- **Integrated Inference**: Embedding with integrated models
+- **Metadata Filtering**: Filter searches with metadata
+- **Reranking**: Advanced search result reranking
+
+**Configuration**:
+- Official Pinecone MCP server
+- Install via: `npx @pinecone-database/mcp`
+
+**Environment Variables**:
+```bash
+PINECONE_API_KEY=${PINECONE_API_KEY}
+```
+
+**Key Tools**:
+- `search-docs`: Search Pinecone documentation
+- `list-indexes`: List all Pinecone indexes
+- `describe-index`: Get index configuration
+- `describe-index-stats`: Get index statistics
+- `create-index-for-model`: Create indexes with integrated inference
+- `upsert-records`: Insert/update records
+- `search-records`: Search by text query
+- `rerank-documents`: Rerank search results
+- `cascading-search`: Advanced cascading search
+
+**Use Cases**:
+- Vector database management
+- Semantic search implementation
+- RAG (Retrieval Augmented Generation) workflows
+- Document indexing and retrieval
+- Product recommendation systems
+
+---
+
+### 20. Vercel MCP Server ⚠️
 
 **Purpose**: Vercel deployment management  
 **Tools**: Various
@@ -369,19 +689,36 @@ AI_MAX_OUTPUT_TOKENS=65536
 
 ### AI & ML Services
 - **Gemini**: General AI capabilities
-- **Vertex AI**: Advanced coding assistance
+- **Vertex AI**: Advanced coding assistance  
 - **Imagen3**: Image generation
 - **Nanana**: Creative AI
+- **Pinecone**: Vector database operations
+- **Memory**: Persistent knowledge graphs
+- **Sequential Thinking**: Structured problem-solving
 
 ### Development Tools
 - **Serena**: Code analysis & project management
 - **Augments**: Framework documentation
 - **Shadcn UI**: Component management
+- **Git**: Version control operations
+- **GitHub**: Repository management (46 tools)
+- **Fetch**: Web content retrieval
 
-### Infrastructure
+### Infrastructure & DevOps
 - **Docker**: Container management
 - **Docker Hub**: Image registry
 - **Neon**: Database management
+- **Prometheus**: Metrics monitoring (disabled)
+- **Time**: Timezone operations
+
+### Productivity & Collaboration
+- **Notion**: Workspace & database management
+
+### Utility Servers
+- **Time**: Timezone-aware operations
+- **Fetch**: URL fetching & conversion
+- **Memory**: Cross-session persistence
+- **Sequential Thinking**: Complex reasoning
 
 ---
 
@@ -417,7 +754,7 @@ Example client configurations available in the main README.
 All environment variables are loaded from `.env` file automatically. Required variables:
 
 ```bash
-# GitHub
+# GitHub (required for Shadcn UI, Augments, GitHub MCP)
 GITHUB_TOKEN=your_personal_access_token
 
 # Google/Gemini
@@ -432,6 +769,15 @@ NEON_API_KEY=your_neon_api_key
 
 # Nanana AI
 NANANA_API_TOKEN=your_nanana_token
+
+# Notion
+NOTION_API_KEY=your_notion_integration_token
+
+# Pinecone
+PINECONE_API_KEY=your_pinecone_api_key
+
+# Prometheus (optional, required only if Prometheus server enabled)
+PROMETHEUS_URL=http://your-prometheus:9090
 ```
 
 ---
@@ -489,18 +835,28 @@ Check `.env` file in MCP Hub root directory. Each server requires specific crede
 - **Augments**: `/home/ob/Development/Tools/mcps/augments-mcp-server`
 - **Vertex AI**: `/home/ob/Development/Tools/mcps/vertex-ai-mcp-server`
 - **Docker Hub**: `/home/ob/Development/Tools/mcps/hub-mcp`
+- **GitHub**: `/home/ob/Development/Tools/mcps/github-mcp-server`
+- **Prometheus**: `/home/ob/Development/Tools/mcps/prometheus-mcp-server`
 
 ### Binaries
 - **Imagen3**: `/home/ob/bin/imagen3-mcp`
+- **GitHub**: `/home/ob/Development/Tools/mcps/github-mcp-server/github-mcp-server`
 
 ### NPX-Based (Auto-downloaded)
 - **Shadcn UI**: `@jpisnice/shadcn-ui-mcp-server`
 - **Gemini**: `gemini-mcp-tool`
 - **Neon**: `@neondatabase/mcp-server-neon`
 - **Nanana**: `@nanana-ai/mcp-server-nano-banana`
+- **Notion**: `@notionhq/notion-mcp-server`
+- **Memory**: `@modelcontextprotocol/server-memory`
+- **Sequential Thinking**: `@modelcontextprotocol/server-sequential-thinking`
+- **Pinecone**: `@pinecone-database/mcp`
 
 ### uvx-Based
 - **Docker**: `mcp-server-docker`
+- **Time**: `mcp-server-time`
+- **Fetch**: `mcp-server-fetch`
+- **Git**: `mcp-server-git`
 
 ---
 
@@ -565,10 +921,19 @@ curl -X POST http://localhost:7000/api/servers/info \
 - **Augments**: https://github.com/augmnt/augments-mcp-server
 - **Docker**: https://github.com/ckreiling/mcp-server-docker
 - **Docker Hub**: https://github.com/docker/hub-mcp
+- **GitHub**: https://github.com/github/github-mcp-server
+- **Notion**: https://github.com/makenotion/notion-mcp-server
+- **Memory**: https://github.com/modelcontextprotocol/servers/tree/main/src/memory
+- **Time**: https://github.com/modelcontextprotocol/servers/tree/main/src/time
+- **Sequential Thinking**: https://github.com/modelcontextprotocol/servers/tree/main/src/sequential-thinking
+- **Fetch**: https://github.com/modelcontextprotocol/servers/tree/main/src/fetch
+- **Git**: https://github.com/modelcontextprotocol/servers/tree/main/src/git
+- **Prometheus**: https://github.com/pab1it0/prometheus-mcp-server
+- **Pinecone**: https://github.com/pinecone-io/pinecone-mcp
 
 ---
 
 Last Updated: 2025-10-27  
 MCP Hub Version: 4.2.1  
-Active Servers: 9/11
+Active Servers: 18/20
 
