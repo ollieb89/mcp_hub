@@ -19,6 +19,11 @@ export class EnvResolver {
     this.maxPasses = options.maxPasses || MAX_RESOLUTION_DEPTH;
     this.commandTimeout = options.commandTimeout || TIMEOUTS.COMMAND_EXECUTION;
     this.strict = options.strict !== false; // Default to strict mode
+    
+    // Performance optimization: Add caching for resolved values
+    this.resolvedCache = new Map(); // Cache for fully resolved strings
+    this.commandCache = new Map(); // Cache for command execution results
+    this.cacheEnabled = options.cacheEnabled !== false; // Default to enabled
   }
 
   /**
@@ -99,6 +104,26 @@ export class EnvResolver {
     };
 
     return resolved;
+  }
+
+  /**
+   * Clear all caches - useful when environment changes or for testing
+   */
+  clearCache() {
+    this.resolvedCache.clear();
+    this.commandCache.clear();
+    logger.debug('EnvResolver caches cleared');
+  }
+
+  /**
+   * Get cache statistics for monitoring
+   */
+  getCacheStats() {
+    return {
+      resolvedCacheSize: this.resolvedCache.size,
+      commandCacheSize: this.commandCache.size,
+      cacheEnabled: this.cacheEnabled
+    };
   }
 
 
@@ -188,6 +213,15 @@ export class EnvResolver {
       return str;
     }
 
+    // Check cache first if caching is enabled and depth is 0 (top-level call)
+    if (this.cacheEnabled && depth === 0) {
+      const cacheKey = `${str}:${JSON.stringify(context)}`;
+      if (this.resolvedCache.has(cacheKey)) {
+        logger.debug(`Using cached resolution for: ${str.substring(0, 50)}...`);
+        return this.resolvedCache.get(cacheKey);
+      }
+    }
+
     const placeholders = this._findTopLevelPlaceholders(str);
     if (placeholders.length === 0) {
       return str;
@@ -243,6 +277,12 @@ export class EnvResolver {
 
     // Append the rest of the string after the last placeholder
     result += str.substring(lastIndex);
+
+    // Cache the result if caching is enabled and depth is 0 (top-level call)
+    if (this.cacheEnabled && depth === 0) {
+      const cacheKey = `${str}:${JSON.stringify(context)}`;
+      this.resolvedCache.set(cacheKey, result);
+    }
 
     return result;
   }
@@ -314,13 +354,26 @@ export class EnvResolver {
       throw new Error(`Empty command in cmd: ${content}`);
     }
 
+    // Check cache first if caching is enabled
+    if (this.cacheEnabled && this.commandCache.has(command)) {
+      logger.debug(`Using cached command result for: ${command}`);
+      return this.commandCache.get(command);
+    }
+
     logger.debug(`Executing command: ${command}`);
     const { stdout } = await execPromise(command, {
       timeout: this.commandTimeout,
       encoding: 'utf8'
     });
 
-    return stdout.trim();
+    const result = stdout.trim();
+    
+    // Cache the result if caching is enabled
+    if (this.cacheEnabled) {
+      this.commandCache.set(command, result);
+    }
+
+    return result;
   }
 
   /**

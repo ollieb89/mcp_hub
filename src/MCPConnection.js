@@ -24,6 +24,7 @@ import {
 import EventEmitter from "events";
 import logger from "./utils/logger.js";
 import open from "open";
+import { createHTTPAgent, destroyAgents, getAgentForURL } from "./utils/http-pool.js";
 import {
   ConnectionError,
   ToolError,
@@ -108,6 +109,16 @@ export class MCPConnection extends EventEmitter {
     this.authorizationUrl = null;
     this.hubServerUrl = hubServerUrl;
     this.serverInfo = null; // Will store server's reported name/version
+
+    // Initialize HTTP connection pooling for remote servers
+    // STDIO servers don't use HTTP, so only create agents for SSE/streamable-http
+    if (this.transportType === 'sse' || this.transportType === 'streamable-http') {
+      this.httpAgents = createHTTPAgent(config.httpPool || {});
+      logger.debug(`Created HTTP connection pool for server '${name}'`, {
+        type: this.transportType,
+        config: config.httpPool || 'default',
+      });
+    }
 
     // Initialize dev watcher for stdio servers with dev config
     if (this.transportType === 'stdio' && config.dev) {
@@ -329,17 +340,27 @@ export class MCPConnection extends EventEmitter {
     Object.keys(map).forEach(type => {
       this.client.setNotificationHandler(map[type], async () => {
         logger.debug(`Received ${type}Changed notification`);
-        await this.updateCapabilities(type === "resources" ? ["resources", "resourceTemplates"] : [type]);
-        const updatedData = type === "resources" ? {
-          resources: this.resources,
-          resourceTemplates: this.resourceTemplates,
-        } : {
-          [type]: this[type],
-        };
-        this.emit(`${type}Changed`, {
-          server: this.name,
-          ...updatedData,
-        });
+        
+        // Update capabilities and get which ones actually changed
+        const changedCapabilities = await this.updateCapabilities(
+          type === "resources" ? ["resources", "resourceTemplates"] : [type]
+        );
+        
+        // Only emit events if capabilities actually changed
+        if (changedCapabilities && changedCapabilities.length > 0) {
+          const updatedData = type === "resources" ? {
+            resources: this.resources,
+            resourceTemplates: this.resourceTemplates,
+          } : {
+            [type]: this[type],
+          };
+          this.emit(`${type}Changed`, {
+            server: this.name,
+            ...updatedData,
+          });
+        } else {
+          logger.debug(`${type} capabilities unchanged, skipping event emission`);
+        }
       });
     });
   }
@@ -395,10 +416,27 @@ export class MCPConnection extends EventEmitter {
 
     try {
       const typesToFetch = capabilitiesToUpdate || Object.keys(map);
+      
+      // Store previous capabilities for comparison
+      const previousCapabilities = {};
+      typesToFetch.forEach(type => {
+        previousCapabilities[type] = this[type] ? JSON.stringify(this[type]) : null;
+      });
+      
       const fetchPromises = typesToFetch.map(async (type) => {
         this[type] = (await safeRequest(map[type].method, map[type].schema))?.[type] || [];
       });
       await Promise.all(fetchPromises);
+      
+      // Check which capabilities actually changed and only emit events for those
+      const changedCapabilities = typesToFetch.filter(type => {
+        const currentSerialized = JSON.stringify(this[type]);
+        return previousCapabilities[type] !== currentSerialized;
+      });
+      
+      // Return changed capabilities so caller can emit appropriate events
+      return changedCapabilities;
+      
       //TODO: handle pagination
     } catch (error) {
       // Only log as warning since missing capabilities are expected in some cases
@@ -406,6 +444,7 @@ export class MCPConnection extends EventEmitter {
         server: this.name,
         error: error.message,
       });
+      return [];
     }
   }
 
@@ -700,6 +739,17 @@ export class MCPConnection extends EventEmitter {
     // Reset OAuth provider
     this.authProvider = null;
 
+    // Destroy HTTP agents to close idle connections
+    if (this.httpAgents) {
+      try {
+        destroyAgents(this.httpAgents);
+        logger.debug(`'${this.name}': Destroyed HTTP connection pool`);
+      } catch (err) {
+        logger.debug(`'${this.name}': Error destroying HTTP agents: ${err.message}`);
+      }
+      this.httpAgents = null;
+    }
+
     // Reset state variables
     this.resetState(error);
   }
@@ -882,20 +932,35 @@ export class MCPConnection extends EventEmitter {
 
 
   async _createStreambleHTTPTransport(authProvider, resolvedConfig) {
+    const url = new URL(resolvedConfig.url);
+
+    // Get HTTP agent for connection pooling
+    const agent = this.httpAgents ? getAgentForURL(this.httpAgents, url) : undefined;
 
     const options = {
       authProvider,
       requestInit: {
         headers: resolvedConfig.headers, // Already resolved with commands support
+        agent, // Add HTTP agent for connection pooling
       },
       // reconnectionOptions?: StreamableHTTPReconnectionOptions
       // sessionId?: string;
     }
-    const transport = new StreamableHTTPClientTransport(new URL(resolvedConfig.url), options);
+
+    const transport = new StreamableHTTPClientTransport(url, options);
+
+    if (agent) {
+      logger.debug(`Streamable HTTP transport using connection pool for '${this.name}'`);
+    }
+
     return transport
   }
 
   async _createSSETransport(authProvider, resolvedConfig) {
+    const url = new URL(resolvedConfig.url);
+
+    // Get HTTP agent for connection pooling
+    const agent = this.httpAgents ? getAgentForURL(this.httpAgents, url) : undefined;
 
     // SSE transport setup with reconnection support
     const reconnectingEventSourceOptions = {
@@ -914,14 +979,20 @@ export class MCPConnection extends EventEmitter {
     }
     // Use ReconnectingEventSource for automatic reconnection
     global.EventSource = ReconnectingES
-    const transport = new SSEClientTransport(new URL(resolvedConfig.url), {
+    const transport = new SSEClientTransport(url, {
       requestInit: {
         headers: resolvedConfig.headers, // Already resolved with commands support
+        agent, // Add HTTP agent for connection pooling
       },
       authProvider,
       // INFO:: giving eventSourceInit leading to infinite loop, not needed anymore with global ReconnectingES
       // eventSourceInit: reconnectingEventSourceOptions
     });
+
+    if (agent) {
+      logger.debug(`SSE transport using HTTP connection pool for '${this.name}'`);
+    }
+
     return transport
   }
 
