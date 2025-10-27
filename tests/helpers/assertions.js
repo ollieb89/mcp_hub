@@ -191,3 +191,39 @@ export function expectNoActiveConnections(hub) {
   expect(hub.connections.size).toBe(0);
 }
 
+/**
+ * Assert connection is in expected state
+ * @param {Object} connection - MCPConnection instance
+ * @param {string} expectedStatus - Expected status (connected, disconnected, etc.)
+ */
+export function expectConnectionStatus(connection, expectedStatus) {
+  expect(connection.status).toBe(expectedStatus);
+}
+
+/**
+ * Assert connection has expected number of tools
+ * @param {Object} connection - MCPConnection instance
+ * @param {number} expectedCount - Expected tool count
+ */
+export function expectConnectionTools(connection, expectedCount) {
+  expect(connection.tools).toHaveLength(expectedCount);
+}
+
+/**
+ * Assert connection has expected number of resources
+ * @param {Object} connection - MCPConnection instance
+ * @param {number} expectedCount - Expected resource count
+ */
+export function expectConnectionResources(connection, expectedCount) {
+  expect(connection.resources).toHaveLength(expectedCount);
+}
+
+/**
+ * Assert connection has expected number of prompts
+ * @param {Object} connection - MCPConnection instance
+ * @param {number} expectedCount - Expected prompt count
+ */
+export function expectConnectionPrompts(connection, expectedCount) {
+  expect(connection.prompts).toHaveLength(expectedCount);
+}
+

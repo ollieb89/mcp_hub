@@ -52,8 +52,10 @@ describe("CLI", () => {
 
     expect(server.startServer).toHaveBeenCalledWith({
       port: 3000,
-      config: "./config.json",
+      config: ["./config.json"],  // CLI now passes config as array
       watch: false,
+      autoShutdown: false,  // Added in CLI implementation
+      shutdownDelay: 0,  // Added in CLI implementation
     });
   });
 
@@ -63,8 +65,10 @@ describe("CLI", () => {
 
     expect(server.startServer).toHaveBeenCalledWith({
       port: 3000,
-      config: "./config.json",
+      config: ["./config.json"],  // CLI now passes config as array
       watch: true,
+      autoShutdown: false,
+      shutdownDelay: 0,
     });
   });
 
@@ -74,8 +78,10 @@ describe("CLI", () => {
 
     expect(server.startServer).toHaveBeenCalledWith({
       port: 3000,
-      config: "./config.json",
+      config: ["./config.json"],
       watch: false,
+      autoShutdown: false,
+      shutdownDelay: 0,
     });
   });
 
@@ -85,8 +91,10 @@ describe("CLI", () => {
 
     expect(server.startServer).toHaveBeenCalledWith({
       port: 3000,
-      config: "./config.json",
+      config: ["./config.json"],
       watch: false,
+      autoShutdown: false,
+      shutdownDelay: 0,
     });
   });
 
@@ -96,8 +104,10 @@ describe("CLI", () => {
 
     expect(server.startServer).toHaveBeenCalledWith({
       port: 3000,
-      config: "./config.json",
+      config: ["./config.json"],
       watch: true,
+      autoShutdown: false,
+      shutdownDelay: 0,
     });
   });
 
@@ -120,7 +130,8 @@ describe("CLI", () => {
     setArgv(["--port", "3000", "--config", "./config.json"]);
     await import("../src/utils/cli.js");
 
-    expect(mockKill).toHaveBeenCalledWith(process.pid, "SIGINT");
+    // CLI now uses process.exit(1) instead of process.kill
+    expect(mockExit).toHaveBeenCalledWith(1);
   });
 
   it("should handle fatal errors", async () => {
@@ -130,6 +141,7 @@ describe("CLI", () => {
     setArgv(["--port", "3000", "--config", "./config.json"]);
     await import("../src/utils/cli.js");
 
-    expect(mockKill).toHaveBeenCalledWith(process.pid, "SIGINT");
+    // CLI now uses process.exit(1) instead of process.kill
+    expect(mockExit).toHaveBeenCalledWith(1);
   });
 });

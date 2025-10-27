@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+
 /**
  * Test Fixtures for Consistent Test Data
  *
@@ -197,5 +199,55 @@ export function createMultiServerConfig(servers = ['server1', 'server2']) {
  */
 export function createDisabledServerConfig(name) {
   return createServerConfig(name, { disabled: true });
+}
+
+/**
+ * Create MCPConnection configuration for testing
+ * @param {Object} overrides - Override config properties
+ * @returns {Object} Connection config
+ */
+export function createConnectionConfig(overrides = {}) {
+  return {
+    type: 'stdio',
+    command: 'node',
+    args: ['server.js'],
+    env: {},
+    ...overrides
+  };
+}
+
+/**
+ * Create mock transport object for testing
+ * @param {Object} overrides - Override transport properties
+ * @returns {Object} Mock transport
+ */
+export function createMockTransport(overrides = {}) {
+  return {
+    close: vi.fn().mockResolvedValue(undefined),
+    sessionId: null,
+    terminateSession: vi.fn().mockResolvedValue(undefined),
+    stderr: {
+      on: vi.fn()
+    },
+    onerror: null,
+    onclose: null,
+    ...overrides
+  };
+}
+
+/**
+ * Create mock client object for testing
+ * @param {Object} overrides - Override client properties
+ * @returns {Object} Mock client
+ */
+export function createMockClient(overrides = {}) {
+  return {
+    connect: vi.fn().mockResolvedValue(undefined),
+    close: vi.fn().mockResolvedValue(undefined),
+    request: vi.fn(),
+    setNotificationHandler: vi.fn(),
+    transport: null,
+    ...overrides
+  };
 }
 
