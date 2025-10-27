@@ -217,6 +217,71 @@ export function createConnectionConfig(overrides = {}) {
 }
 
 /**
+ * Create STDIO-specific server configuration for integration tests
+ * @param {string} serverName - Server identifier
+ * @param {Object} overrides - Override server config properties
+ * @returns {Object} STDIO server configuration
+ */
+export function createStdioConfig(serverName, overrides = {}) {
+  return {
+    name: serverName,
+    type: 'stdio',
+    command: 'node',
+    args: ['server.js'],
+    env: {},
+    ...overrides
+  };
+}
+
+/**
+ * Create SSE-specific server configuration for integration tests
+ * @param {string} serverName - Server identifier
+ * @param {Object} overrides - Override server config properties
+ * @returns {Object} SSE server configuration
+ */
+export function createSSEConfig(serverName, overrides = {}) {
+  return {
+    name: serverName,
+    type: 'sse',
+    url: 'http://localhost:3000/mcp',
+    headers: {},
+    ...overrides
+  };
+}
+
+/**
+ * Create streamable-http-specific server configuration for integration tests
+ * @param {string} serverName - Server identifier
+ * @param {Object} overrides - Override server config properties
+ * @returns {Object} Streamable-HTTP server configuration
+ */
+export function createHttpConfig(serverName, overrides = {}) {
+  return {
+    name: serverName,
+    type: 'streamable-http',
+    url: 'https://api.example.com/mcp',
+    headers: {},
+    ...overrides
+  };
+}
+
+/**
+ * Create environment context for integration tests
+ * Sets up test environment variables for resolution testing
+ * @param {Object} envVars - Environment variables to set
+ */
+export function createEnvContext(envVars = {}) {
+  const defaults = {
+    NODE_ENV: 'test',
+    API_KEY: 'test_api_key',
+    CUSTOM_VAR: 'test_custom_value',
+    MCP_BINARY_PATH: '/usr/local/bin'
+  };
+  
+  return { ...defaults, ...envVars };
+}
+
+/**
  * Create mock transport object for testing
  * @param {Object} overrides - Override transport properties
  * @returns {Object} Mock transport

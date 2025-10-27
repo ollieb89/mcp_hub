@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MCPConnection } from "../src/MCPConnection.js";
+import { 
+  createStdioConfig, 
+  createSSEConfig,
+  createMockClient,
+  createMockTransport,
+  createEnvContext
+} from "./helpers/fixtures.js";
 
 // Mock all external dependencies
 vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
@@ -101,14 +108,16 @@ describe("MCPConnection Integration Tests", () => {
 
   describe("Basic Connection Lifecycle", () => {
     it("should initialize in disconnected state", () => {
-      const config = {
+      // ARRANGE: Create STDIO server configuration
+      const config = createStdioConfig("test-server", {
         command: "test-server",
-        args: ["--port", "3000"],
-        type: "stdio"
-      };
+        args: ["--port", "3000"]
+      });
 
+      // ACT: Create connection instance
       connection = new MCPConnection("test-server", config);
 
+      // ASSERT: Verify initial state
       expect(connection.status).toBe("disconnected");
       expect(connection.name).toBe("test-server");
       expect(connection.transportType).toBe("stdio");
@@ -118,15 +127,17 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should handle disabled servers", () => {
-      const config = {
+      // ARRANGE: Create STDIO server configuration with disabled flag
+      const config = createStdioConfig("test-server", {
         command: "test-server",
         args: [],
-        type: "stdio",
         disabled: true
-      };
+      });
 
+      // ACT: Create connection instance
       connection = new MCPConnection("test-server", config);
 
+      // ASSERT: Verify disabled state
       expect(connection.status).toBe("disabled");
       expect(connection.disabled).toBe(true);
     });
@@ -134,15 +145,15 @@ describe("MCPConnection Integration Tests", () => {
 
   describe("Real Environment Resolution Integration", () => {
     it("should resolve stdio server config with actual envResolver", async () => {
-      const config = {
+      // ARRANGE: STDIO configuration with environment variable placeholders
+      const config = createStdioConfig("test-server", {
         command: "${MCP_BINARY_PATH}/server",
         args: ["--token", "${API_KEY}", "--custom", "${CUSTOM_VAR}"],
         env: {
           RESOLVED_VAR: "${API_KEY}",
           COMBINED_VAR: "prefix-${CUSTOM_VAR}-suffix"
-        },
-        type: "stdio"
-      };
+        }
+      });
 
       connection = new MCPConnection("test-server", config);
 
@@ -167,14 +178,14 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should resolve remote server with command execution in headers", async () => {
-      const config = {
+      // ARRANGE: SSE server configuration with command execution in headers
+      const config = createSSEConfig("test-server", {
         url: "https://${PRIVATE_DOMAIN}/mcp",
         headers: {
           "Authorization": "Bearer ${cmd: echo auth_token_123}",
           "X-Custom": "${CUSTOM_VAR}"
-        },
-        type: "sse"
-      };
+        }
+      });
 
       // Mock command execution
       mockExecPromise.mockResolvedValueOnce({ stdout: "auth_token_123\n" });
@@ -215,16 +226,16 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should resolve env field providing context for headers field", async () => {
-      const config = {
+      // ARRANGE: SSE configuration with env-based header resolution
+      const config = createSSEConfig("test-server", {
         url: "https://api.example.com",
         env: {
           SECRET_TOKEN: "${cmd: echo secret_from_env}"
         },
         headers: {
           "Authorization": "Bearer ${SECRET_TOKEN}" // Should use resolved env value
-        },
-        type: "sse"
-      };
+        }
+      });
 
       // Mock command execution
       mockExecPromise.mockResolvedValueOnce({ stdout: "secret_from_env\n" });
@@ -264,13 +275,13 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should work with remote servers having no env field (the original bug)", async () => {
-      const config = {
+      // ARRANGE: SSE configuration without env field
+      const config = createSSEConfig("test-server", {
         url: "https://api.example.com",
         headers: {
           "Authorization": "Bearer ${cmd: echo remote_token_directly}"
-        },
-        type: "sse"
-      };
+        }
+      });
 
       // Mock command execution
       mockExecPromise.mockResolvedValueOnce({ stdout: "remote_token_directly\n" });
@@ -310,14 +321,14 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should handle legacy $VAR syntax with deprecation warning", async () => {
-      const config = {
+      // ARRANGE: STDIO configuration with legacy $VAR syntax
+      const config = createStdioConfig("test-server", {
         command: "test-server",
         args: ["--token", "$API_KEY"], // Legacy syntax
         env: {
           SOME_VAR: "value"
-        },
-        type: "stdio"
-      };
+        }
+      });
 
       connection = new MCPConnection("test-server", config);
 
@@ -343,13 +354,13 @@ describe("MCPConnection Integration Tests", () => {
 
   describe("Error Handling", () => {
     it("should fail connection on command execution failures in strict mode", async () => {
-      const config = {
+      // ARRANGE: SSE configuration with failing command execution
+      const config = createSSEConfig("test-server", {
         url: "https://api.example.com",
         headers: {
           "Authorization": "Bearer ${cmd: failing-command}"
-        },
-        type: "sse"
-      };
+        }
+      });
 
       // Mock command to fail
       mockExecPromise.mockRejectedValueOnce(new Error("Command not found"));
@@ -395,11 +406,11 @@ describe("MCPConnection Integration Tests", () => {
 
   describe("Connection Failure Scenarios", () => {
     it("should handle connection timeout", async () => {
-      const config = {
+      // ARRANGE: SSE server configuration
+      const config = createSSEConfig("test-server", {
         url: "https://api.example.com",
-        headers: {},
-        type: "sse"
-      };
+        headers: {}
+      });
 
       // Mock client connect to timeout
       mockClient.connect.mockImplementation(() => {
@@ -418,11 +429,11 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should handle network connection failures", async () => {
-      const config = {
+      // ARRANGE: SSE configuration for unreachable server
+      const config = createSSEConfig("test-server", {
         url: "https://unreachable.example.com/mcp",
-        headers: {},
-        type: "sse"
-      };
+        headers: {}
+      });
 
       // Mock both HTTP and SSE transport creation to fail
       const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
@@ -448,11 +459,11 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should clean up resources after connection failure", async () => {
-      const config = {
+      // ARRANGE: SSE configuration for connection failure test
+      const config = createSSEConfig("test-server", {
         url: "https://api.example.com",
-        headers: {},
-        type: "sse"
-      };
+        headers: {}
+      });
 
       // Mock transport creation to fail
       const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
@@ -481,11 +492,11 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should handle SSL/TLS certificate errors", async () => {
-      const config = {
+      // ARRANGE: SSE configuration with SSL/TLS certificate error
+      const config = createSSEConfig("test-server", {
         url: "https://self-signed.example.com/mcp",
-        headers: {},
-        type: "sse"
-      };
+        headers: {}
+      });
 
       // Mock both HTTP and SSE transport creation to fail with SSL error
       const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
@@ -539,11 +550,11 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should handle reconnection after error", async () => {
-      const config = {
+      // ARRANGE: SSE configuration for reconnection test
+      const config = createSSEConfig("test-server", {
         url: "https://api.example.com",
-        headers: {},
-        type: "sse"
-      };
+        headers: {}
+      });
 
       connection = new MCPConnection("test-server", config);
 
