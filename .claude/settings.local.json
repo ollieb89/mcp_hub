@@ -35,7 +35,10 @@
       "Bash(npm run lint:*)",
       "Bash(npx eslint:*)",
       "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs"
+      "mcp__context7__get-library-docs",
+      "Bash(npm run test:coverage:*)",
+      "Bash(find:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

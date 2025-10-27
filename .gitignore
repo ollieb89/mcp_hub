@@ -9,3 +9,6 @@ dist/
 build/
 /result
 junk/
+
+# Test coverage reports (generated artifacts)
+coverage/
