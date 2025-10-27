@@ -1,6 +1,7 @@
 import EventEmitter from 'events';
 import logger from './logger.js';
 import { v4 as uuidv4 } from 'uuid';
+import { EventBatcher } from './event-batcher.js';
 
 const HEART_BEAT_INTERVAL = 10000;
 
@@ -55,6 +56,10 @@ export class SSEManager extends EventEmitter {
    * @param {boolean} options.autoShutdown Whether to shutdown when no clients are connected
    * @param {number} options.shutdownDelay Delay in ms before shutdown
    * @param {number} options.heartbeatInterval Interval in ms for heartbeat events
+   * @param {Object} options.batching Batching configuration
+   * @param {boolean} options.batching.enabled Whether to enable event batching (default: true)
+   * @param {number} options.batching.batchWindow Batching window in ms (default: 100)
+   * @param {number} options.batching.maxBatchSize Maximum events per batch (default: 50)
    */
   constructor(options = {}) {
     super();
@@ -66,6 +71,30 @@ export class SSEManager extends EventEmitter {
     this.heartbeatTimer = null;
     this.workspaceCache = options.workspaceCache || null;
     this.port = options.port || null;
+
+    // Initialize event batcher
+    const batchingEnabled = options.batching?.enabled ?? true;
+    this.batchingEnabled = batchingEnabled;
+
+    if (batchingEnabled) {
+      this.batcher = new EventBatcher({
+        batchWindow: options.batching?.batchWindow,
+        maxBatchSize: options.batching?.maxBatchSize,
+      });
+
+      // Listen for batch flushes
+      this.batcher.on('flush', ({ type, batch, batchSize, reason }) => {
+        this._broadcastBatch(type, batch, batchSize, reason);
+      });
+
+      logger.debug('SSEManager batching enabled', {
+        batchWindow: this.batcher.batchWindow,
+        maxBatchSize: this.batcher.maxBatchSize,
+      });
+    } else {
+      this.batcher = null;
+      logger.debug('SSEManager batching disabled');
+    }
 
     this.setupHeartbeat();
     this.setupAutoShutdown();
@@ -218,6 +247,24 @@ export class SSEManager extends EventEmitter {
    * @returns {number} Number of clients the event was sent to
    */
   broadcast(event, data) {
+    // Use batching if enabled
+    if (this.batchingEnabled && this.batcher) {
+      this.batcher.enqueue(event, data);
+      return this.connections.size; // Return potential recipients
+    }
+
+    // Fallback to direct broadcast if batching disabled
+    return this._broadcastDirect(event, data);
+  }
+
+  /**
+   * Broadcast event directly to all clients (non-batched)
+   * @param {string} event Event type
+   * @param {Object} data Event data
+   * @returns {number} Number of clients the event was sent to
+   * @private
+   */
+  _broadcastDirect(event, data) {
     let sentCount = 0;
 
     for (const [id, connection] of this.connections) {
@@ -230,6 +277,47 @@ export class SSEManager extends EventEmitter {
         this.connections.delete(id);
       }
     }
+
+    return sentCount;
+  }
+
+  /**
+   * Broadcast batched events to all clients
+   * @param {string} eventType Event type
+   * @param {Array} batch Array of events
+   * @param {number} batchSize Size of batch
+   * @param {string} reason Reason for flush
+   * @returns {number} Number of clients the batch was sent to
+   * @private
+   */
+  _broadcastBatch(eventType, batch, batchSize, reason) {
+    const batchMessage = {
+      type: `${eventType}_batch`,
+      batchSize,
+      events: batch,
+      reason,
+      timestamp: Date.now(),
+    };
+
+    let sentCount = 0;
+
+    for (const [id, connection] of this.connections) {
+      if (connection.state === ConnectionState.CONNECTED) {
+        if (connection.send(`${eventType}_batch`, batchMessage)) {
+          sentCount++;
+        }
+      } else {
+        // Clean up dead connections
+        this.connections.delete(id);
+      }
+    }
+
+    logger.debug('Broadcast batched event', {
+      eventType,
+      batchSize,
+      sentCount,
+      reason,
+    });
 
     return sentCount;
   }
@@ -270,6 +358,12 @@ export class SSEManager extends EventEmitter {
    */
   async shutdown() {
     logger.info(`Shutting down SSE manager (${this.connections.size} connections)`);
+
+    // Flush and destroy batcher
+    if (this.batcher) {
+      this.batcher.destroy();
+      this.batcher = null;
+    }
 
     // Clear timers
     if (this.heartbeatTimer) {
