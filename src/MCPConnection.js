@@ -185,110 +185,104 @@ export class MCPConnection extends EventEmitter {
    * @emits {promptsChanged} When prompts are discovered
    */
   async connect(config) {
-    try {
-      if (config) {
-        this.config = config
-      }
-      if (this.config?.name) {
-        this.displayName = this.config.name
-      }
-      if (this.disabled) {
-        this.status = ConnectionStatus.DISABLED;
-        this.startTime = Date.now(); // Track uptime even when disabled
-        this.lastStarted = new Date().toISOString();
-        return;
-      }
-
-      this.error = null;
-      this.status = ConnectionStatus.CONNECTING;
+    if (config) {
+      this.config = config
+    }
+    if (this.config?.name) {
+      this.displayName = this.config.name
+    }
+    if (this.disabled) {
+      this.status = ConnectionStatus.DISABLED;
+      this.startTime = Date.now(); // Track uptime even when disabled
       this.lastStarted = new Date().toISOString();
+      return;
+    }
 
-      // Resolve config once for all transport types
-      const resolvedConfig = await envResolver.resolveConfig(this.config, [
-        'env', 'args', 'command', 'url', 'headers', 'cwd'
-      ]);
+    this.error = null;
+    this.status = ConnectionStatus.CONNECTING;
+    this.lastStarted = new Date().toISOString();
 
-      try {
-        // Create appropriate transport based on transport type
-        if (this.transportType === 'stdio') {
-          this.transport = await this._createStdioTransport(resolvedConfig);
+    // Resolve config once for all transport types
+    const resolvedConfig = await envResolver.resolveConfig(this.config, [
+      'env', 'args', 'command', 'url', 'headers', 'cwd'
+    ]);
+
+    try {
+      // Create appropriate transport based on transport type
+      if (this.transportType === 'stdio') {
+        this.transport = await this._createStdioTransport(resolvedConfig);
+        this.client = this._createClient();
+        await this.client.connect(this.transport, {
+          timeout: TIMEOUTS.CLIENT_CONNECT
+        });
+      } else {
+        //First try the new http transport with fallback to deprecated sse transport
+        try {
+          this.authProvider = this._createOAuthProvider()
+          this.transport = await this._createStreambleHTTPTransport(this.authProvider, resolvedConfig)
           this.client = this._createClient();
           await this.client.connect(this.transport, {
             timeout: TIMEOUTS.CLIENT_CONNECT
           });
-        } else {
-          //First try the new http transport with fallback to deprecated sse transport
+        } catch (httpError) {
           try {
-            this.authProvider = this._createOAuthProvider()
-            this.transport = await this._createStreambleHTTPTransport(this.authProvider, resolvedConfig)
-            this.client = this._createClient();
-            await this.client.connect(this.transport, {
-              timeout: TIMEOUTS.CLIENT_CONNECT
-            });
-          } catch (httpError) {
-            try {
-              //catches 401 error from http transport
-              if (this._isAuthError(httpError)) {
-                logger.debug(`'${this.name}' streamable-http transport needs authorization: ${httpError.message}`);
-                await this._handleUnauthorizedConnection()
-                return
-              } else {
-                logger.debug(`'${this.name}' streamable-http error: ${httpError.message}. Falling back to SSE transport`);
-                this.authProvider = this._createOAuthProvider()
-                this.transport = await this._createSSETransport(this.authProvider, resolvedConfig);
-                this.client = this._createClient();
-                await this.client.connect(this.transport, {
-                  timeout: TIMEOUTS.CLIENT_CONNECT
-                });
-              }
-            } catch (sseError) {
+            //catches 401 error from http transport
+            if (this._isAuthError(httpError)) {
+              logger.debug(`'${this.name}' streamable-http transport needs authorization: ${httpError.message}`);
+              await this._handleUnauthorizedConnection()
+              return
+            } else {
+              logger.debug(`'${this.name}' streamable-http error: ${httpError.message}. Falling back to SSE transport`);
+              this.authProvider = this._createOAuthProvider()
+              this.transport = await this._createSSETransport(this.authProvider, resolvedConfig);
+              this.client = this._createClient();
+              await this.client.connect(this.transport, {
+                timeout: TIMEOUTS.CLIENT_CONNECT
+              });
+            }
+          } catch (sseError) {
 
-              //catches 401 error from sse transport
-              if (this._isAuthError(sseError)) {
-                logger.debug(`'${this.name}' SSE transport needs authorization: ${sseError.message}`);
-                await this._handleUnauthorizedConnection()
-                return
-              } else {
-                logger.debug(`'${this.name}' failed to start connection with http and sse transports: ${sseError.message}`);
-                throw sseError
-              }
+            //catches 401 error from sse transport
+            if (this._isAuthError(sseError)) {
+              logger.debug(`'${this.name}' SSE transport needs authorization: ${sseError.message}`);
+              await this._handleUnauthorizedConnection()
+              return
+            } else {
+              logger.debug(`'${this.name}' failed to start connection with http and sse transports: ${sseError.message}`);
+              throw sseError
             }
           }
         }
-
-        // Fetch server info and initial capabilities before marking as connected
-        await this.fetchServerInfo();
-        await this.updateCapabilities();
-
-        // Set up notification handlers
-        this.setupNotificationHandlers();
-
-        // Only mark as connected after capabilities are fetched
-        this.status = ConnectionStatus.CONNECTED;
-        this.startTime = Date.now();
-        this.error = null;
-
-        // Start dev watcher if configured
-        if (this.devWatcher) {
-          await this.devWatcher.start(this.config.dev);
-        }
-
-        logger.info(`'${this.name}' MCP server connected`);
-      } catch (error) {
-        // Ensure proper cleanup on error using finally-like pattern
-        await this.cleanup(error.message);
-        throw new ConnectionError(
-          `Failed to connect to "${this.name}" MCP server: ${error.message}`,
-          {
-            server: this.name,
-            error: error.message,
-          }
-        );
       }
+
+      // Fetch server info and initial capabilities before marking as connected
+      await this.fetchServerInfo();
+      await this.updateCapabilities();
+
+      // Set up notification handlers
+      this.setupNotificationHandlers();
+
+      // Only mark as connected after capabilities are fetched
+      this.status = ConnectionStatus.CONNECTED;
+      this.startTime = Date.now();
+      this.error = null;
+
+      // Start dev watcher if configured
+      if (this.devWatcher) {
+        await this.devWatcher.start(this.config.dev);
+      }
+
+      logger.info(`'${this.name}' MCP server connected`);
     } catch (error) {
-      // Outer catch for any errors during connection process
-      // Cleanup has already been handled above
-      throw error;
+      // Ensure proper cleanup on error using finally-like pattern
+      await this.cleanup(error.message);
+      throw new ConnectionError(
+        `Failed to connect to "${this.name}" MCP server: ${error.message}`,
+        {
+          server: this.name,
+          error: error.message,
+        }
+      );
     }
   }
 

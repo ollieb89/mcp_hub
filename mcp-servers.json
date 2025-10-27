@@ -104,6 +104,76 @@
       },
       "disabled": false,
       "note": "Vertex AI MCP server with advanced coding assistance, filesystem operations, and query answering. Running from local installation with Vertex AI provider."
+    },
+    "github": {
+      "command": "/home/ob/Development/Tools/mcps/github-mcp-server/github-mcp-server",
+      "args": ["stdio"],
+      "cwd": "/home/ob/Development/Tools/mcps/github-mcp-server",
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "disabled": false,
+      "note": "GitHub's official MCP server with 260+ tools for repository management, issues, pull requests, code review, and more. Requires GitHub Personal Access Token."
+    },
+    "notion": {
+      "command": "npx",
+      "args": ["-y", "@notionhq/notion-mcp-server"],
+      "cwd": ".",
+      "env": {
+        "NOTION_TOKEN": "${NOTION_API_KEY}"
+      },
+      "disabled": false,
+      "note": "Official Notion MCP server for page management, database operations, comments, and content access. Requires Notion integration token."
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Memory server for persistent knowledge graphs. Stores entities, relations, and observations across sessions for cross-chat memory."
+    },
+    "time": {
+      "command": "uvx",
+      "args": ["mcp-server-time"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Time server for timezone-aware time operations. Get current time in any timezone and convert between timezones using IANA timezone names."
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Sequential Thinking server for structured problem-solving. Enables dynamic and reflective thinking with thought revision and branching capabilities."
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Fetch server for web content retrieval. Fetches URLs and converts HTML to markdown. Supports chunked reading with start_index."
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Git server for repository operations. Provides tools for git status, diff, commit, branch management, and more."
+    },
+    "prometheus": {
+      "command": "uv",
+      "args": ["run", "--directory", "/home/ob/Development/Tools/mcps/prometheus-mcp-server", "prometheus-mcp-server"],
+      "cwd": "/home/ob/Development/Tools/mcps/prometheus-mcp-server",
+      "env": {
+        "PROMETHEUS_URL": "${PROMETHEUS_URL}"
+      },
+      "disabled": true,
+      "note": "Prometheus MCP server for metrics querying and analysis. Execute PromQL queries, list metrics, and analyze monitoring data. Add PROMETHEUS_URL to .env file to enable (e.g., http://localhost:9090)"
     }
   }
 }
