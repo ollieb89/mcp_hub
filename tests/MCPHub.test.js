@@ -38,6 +38,8 @@ vi.mock("../src/MCPConnection.js", () => {
 vi.mock("../src/utils/logger.js", () => ({
   default: {
     info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
     error: vi.fn(),
   },
 }));
@@ -133,7 +135,7 @@ describe("MCPHub", () => {
     it("should skip disabled servers", async () => {
       await mcpHub.initialize();
 
-      expect(logger.info).toHaveBeenCalledWith("Skipping disabled server", {
+      expect(logger.debug).toHaveBeenCalledWith("Skipping disabled MCP server 'server2'", {
         server: "server2",
       });
     });

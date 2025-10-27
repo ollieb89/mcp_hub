@@ -15,6 +15,9 @@ vi.mock("../src/server.js", () => ({
 // Mock logger
 vi.mock("../src/utils/logger.js", () => ({
   default: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
     error: vi.fn((code, message, data, exit, exitCode) => {
       if (exit) {
         process.exit(exitCode);
