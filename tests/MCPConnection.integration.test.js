@@ -3,6 +3,7 @@ import { MCPConnection } from "../src/MCPConnection.js";
 import { 
   createStdioConfig, 
   createSSEConfig,
+  createHttpConfig,
   createMockClient,
   createMockTransport,
   createEnvContext
@@ -383,12 +384,12 @@ describe("MCPConnection Integration Tests", () => {
     });
 
     it("should handle transport creation errors", async () => {
-      const config = {
+      // ARRANGE: STDIO configuration with transport creation failure
+      const config = createStdioConfig("test-server", {
         command: "${MCP_BINARY_PATH}/server",
         args: [],
-        env: {},
-        type: "stdio"
-      };
+        env: {}
+      });
 
       connection = new MCPConnection("test-server", config);
 
