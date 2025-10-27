@@ -187,6 +187,7 @@ export class EventBatcher extends EventEmitter {
     // Fallback to deep comparison for other events
     const eventStr = JSON.stringify(eventData);
     return batch.some(item => {
+      // eslint-disable-next-line no-unused-vars
       const { timestamp, ...itemWithoutTimestamp } = item;
       return JSON.stringify(itemWithoutTimestamp) === eventStr;
     });

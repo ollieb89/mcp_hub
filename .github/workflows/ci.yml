@@ -1,0 +1,259 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.x'
+  PNPM_VERSION: '8'
+
+jobs:
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm exec eslint .
+
+  test:
+    name: Test Suite
+    runs-on: ${{ matrix.os }}
+    needs: [lint]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node-version: ['18.x', '20.x', '22.x']
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests with coverage
+        run: pnpm test -- --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run npm audit
+        run: pnpm audit --prod
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  nix-build:
+    name: Nix Build
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Build with Nix
+        run: nix build .#default
+
+      - name: Upload Nix build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nix-build
+          path: result
+          retention-days: 7
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [build, nix-build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+
+      - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+        continue-on-error: true
+
+      - name: Create GitHub Release
+        uses: ncipollo/create-action@v1
+        with:
+          name: Release v${{ github.ref }}
+          tag: ${{ github.ref }}
+          artifacts: dist
