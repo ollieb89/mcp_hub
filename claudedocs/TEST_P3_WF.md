@@ -97,50 +97,34 @@ Integration tests validate **actual connection behavior** with transport-specifi
 - SSE: EventSource connections, reconnection logic, server-sent events
 - streamable-http: OAuth PKCE flow, HTTP requests, token management
 
-### Subtask 3.1.1: Analyze Integration Test Structure (30 min)
+### Subtask 3.1.1: Analyze Integration Test Structure (30 min) ✅ COMPLETE
 
 **Objective**: Understand current integration test organization and identify brittle patterns
 
-**Actions**:
-1. **Read existing test file** (10 min)
-   ```bash
-   cat tests/MCPConnection.integration.test.js | head -100
-   # Review structure, imports, setup/teardown
-   ```
+**Status**: ✅ Complete - See `claudedocs/SUBTASK_3.1.1_COMPLETE.md` for detailed analysis
 
-2. **Map tests to transport types** (10 min)
-   - Count STDIO tests: `grep -c "describe.*STDIO" tests/MCPConnection.integration.test.js`
-   - Count SSE tests: `grep -c "describe.*SSE" tests/MCPConnection.integration.test.js`
-   - Count HTTP tests: `grep -c "describe.*streamable-http\\|OAuth" tests/MCPConnection.integration.test.js`
-   - Identify shared tests (all transports)
+**Key Findings**:
+- **Total Tests**: 19 test cases across 6 categories
+- **Transport Distribution**: 9 STDIO, 9 SSE (0 explicit streamable-http)
+- **Brittle Patterns**: 11 mock implementations, heavy transport mock duplication
+- **Missing Coverage**: No OAuth tests, no dev-mode tests, no capability tests
+- **File Size**: 662 lines with extensive mock setup
 
-3. **Identify brittle patterns** (10 min)
-   ```bash
-   # Logger assertions (should be 0 after Sprint 2 learning)
-   grep -n "expect(logger" tests/MCPConnection.integration.test.js
-
-   # Hardcoded timeouts (integration brittleness indicator)
-   grep -n "setTimeout" tests/MCPConnection.integration.test.js
-
-   # Mock setup complexity (integration should use real connections where possible)
-   grep -n "mockImplementation\\|mockReturnValue" tests/MCPConnection.integration.test.js | wc -l
-   ```
-
-4. **Document transformation strategy** (10 min)
-   - Transport-specific patterns to preserve
-   - Cross-transport patterns to extract
-   - Brittle assertions to replace
-   - Async timing issues to fix
+**Actions Completed**:
+1. ✅ **Read existing test file** - Analyzed 662-line test structure with 6 test suites
+2. ✅ **Map tests to transport types** - Identified 9 STDIO and 9 SSE occurrences
+3. ✅ **Identify brittle patterns** - Found 11 mock implementations, no logger assertions, 1 hardcoded timeout
+4. ✅ **Document transformation strategy** - Created comprehensive analysis document
 
 **Deliverables**:
-- Test structure map (transport breakdown)
-- Brittle pattern list with line numbers
-- Transformation strategy document
+- ✅ Test structure map (transport breakdown) - Documented in SUBTASK_3.1.1_COMPLETE.md
+- ✅ Brittle pattern list with line numbers - Lines 386, 405, 432, 437, 462, 467, 495, 500, 554, 557
+- ✅ Transformation strategy document - 4-phase refactoring plan
 
-**Validation**:
-- All 78 tests categorized by transport and scenario
-- Brittle patterns identified for each test category
-- Clear understanding of current vs target structure
+**Validation Results**:
+- ✅ All 19 tests categorized by transport and scenario (not 78 as initially estimated)
+- ✅ Brittle patterns identified for each test category
+- ✅ Clear understanding of current vs target structure
 
 ---
 

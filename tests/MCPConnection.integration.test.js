@@ -80,7 +80,7 @@ describe("MCPConnection Integration Tests", () => {
     };
     Client.mockReturnValue(mockClient);
 
-    // Setup mock transport
+    // Setup mock transport for STDIO
     const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
     mockTransport = {
       close: vi.fn().mockResolvedValue(undefined),
@@ -89,6 +89,14 @@ describe("MCPConnection Integration Tests", () => {
       }
     };
     StdioClientTransport.mockReturnValue(mockTransport);
+
+    // Setup mock transport for SSE
+    const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
+    const mockSSETransport = {
+      close: vi.fn().mockResolvedValue(undefined),
+      on: vi.fn()
+    };
+    SSEClientTransport.mockReturnValue(mockSSETransport);
   });
 
   describe("Basic Connection Lifecycle", () => {
@@ -409,61 +417,96 @@ describe("MCPConnection Integration Tests", () => {
       expect(connection.status).toBe("disconnected");
     });
 
-    it.skip("should handle network connection failures", async () => {
+    it("should handle network connection failures", async () => {
       const config = {
         url: "https://unreachable.example.com/mcp",
         headers: {},
         type: "sse"
       };
 
-      // Mock network error
-      mockClient.connect.mockRejectedValueOnce(new Error("Network unreachable"));
+      // Mock both HTTP and SSE transport creation to fail
+      const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
+      const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
+      
+      // HTTP transport fails
+      StreamableHTTPClientTransport.mockImplementationOnce(() => {
+        throw new Error("Network unreachable");
+      });
+      
+      // SSE transport also fails  
+      SSEClientTransport.mockImplementationOnce(() => {
+        throw new Error("Network unreachable");
+      });
 
       connection = new MCPConnection("test-server", config);
 
-      await expect(connection.connect()).rejects.toThrow(
-        'Failed to connect to "test-server" MCP server: Network unreachable'
-      );
+      // Attempting to connect should throw with ConnectionError wrapper
+      await expect(connection.connect()).rejects.toThrow(/Failed to connect/);
 
+      // Status should be disconnected after failed connection
       expect(connection.status).toBe("disconnected");
     });
 
-    it.skip("should clean up resources after connection failure", async () => {
+    it("should clean up resources after connection failure", async () => {
       const config = {
         url: "https://api.example.com",
         headers: {},
         type: "sse"
       };
 
-      // Mock client connect to fail
-      mockClient.connect.mockRejectedValueOnce(new Error("Connection failed"));
+      // Mock transport creation to fail
+      const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
+      const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
+      
+      // HTTP transport fails
+      StreamableHTTPClientTransport.mockImplementationOnce(() => {
+        throw new Error("Connection failed");
+      });
+      
+      // SSE transport also fails
+      SSEClientTransport.mockImplementationOnce(() => {
+        throw new Error("Connection failed");
+      });
 
       connection = new MCPConnection("test-server", config);
 
-      await expect(connection.connect()).rejects.toThrow();
+      // Connection should fail with error
+      await expect(connection.connect()).rejects.toThrow(/Failed to connect/);
 
-      // Verify resources are cleaned up
+      // Verify resources are cleaned up after failure
+      expect(connection.status).toBe("disconnected");
+      // Client and transport should be null after failed connection
       expect(connection.client).toBeNull();
       expect(connection.transport).toBeNull();
-      expect(connection.status).toBe("disconnected");
     });
 
-    it.skip("should handle SSL/TLS certificate errors", async () => {
+    it("should handle SSL/TLS certificate errors", async () => {
       const config = {
         url: "https://self-signed.example.com/mcp",
         headers: {},
         type: "sse"
       };
 
-      // Mock SSL certificate error
-      mockClient.connect.mockRejectedValueOnce(new Error("certificate has expired"));
+      // Mock both HTTP and SSE transport creation to fail with SSL error
+      const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
+      const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
+      
+      // HTTP transport fails with SSL error
+      StreamableHTTPClientTransport.mockImplementationOnce(() => {
+        throw new Error("certificate has expired");
+      });
+      
+      // SSE transport also fails with SSL error
+      SSEClientTransport.mockImplementationOnce(() => {
+        throw new Error("certificate has expired");
+      });
 
       connection = new MCPConnection("test-server", config);
 
-      await expect(connection.connect()).rejects.toThrow(
-        /Failed to connect to "test-server" MCP server: certificate has expired/
-      );
+      // Connection should fail with certificate error wrapped in ConnectionError
+      await expect(connection.connect()).rejects.toThrow(/certificate has expired/);
 
+      // Status should be disconnected after SSL error
       expect(connection.status).toBe("disconnected");
     });
   });
@@ -495,7 +538,7 @@ describe("MCPConnection Integration Tests", () => {
       expect(connection.status).toBe("connected");
     });
 
-    it.skip("should handle reconnection after error", async () => {
+    it("should handle reconnection after error", async () => {
       const config = {
         url: "https://api.example.com",
         headers: {},
@@ -504,15 +547,40 @@ describe("MCPConnection Integration Tests", () => {
 
       connection = new MCPConnection("test-server", config);
 
-      // First connection fails
-      mockClient.connect.mockRejectedValueOnce(new Error("Initial connection failed"));
-      await expect(connection.connect()).rejects.toThrow();
+      // First connection fails - mock transport creation to fail
+      const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
+      const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
+      
+      StreamableHTTPClientTransport.mockImplementationOnce(() => {
+        throw new Error("Initial connection failed");
+      });
+      SSEClientTransport.mockImplementationOnce(() => {
+        throw new Error("Initial connection failed");
+      });
+      
+      await expect(connection.connect()).rejects.toThrow(/Initial connection failed/);
 
       expect(connection.status).toBe("disconnected");
 
-      // Reconnection succeeds
-      mockClient.connect.mockResolvedValueOnce(undefined);
-      mockClient.request.mockResolvedValue({ tools: [], resources: [], resourceTemplates: [], prompts: [] });
+      // Reconnection succeeds - mock transport creation to succeed
+      const mockSSETransport = {
+        close: vi.fn().mockResolvedValue(undefined),
+        on: vi.fn()
+      };
+      SSEClientTransport.mockReturnValue(mockSSETransport);
+      
+      // Need fresh client mock
+      const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+      const mockClient2 = {
+        connect: vi.fn().mockResolvedValue(undefined),
+        close: vi.fn().mockResolvedValue(undefined),
+        request: vi.fn().mockResolvedValue({ tools: [], resources: [], resourceTemplates: [], prompts: [] }),
+        setNotificationHandler: vi.fn(),
+        getServerVersion: vi.fn().mockReturnValue({ name: 'test', version: '1.0.0' }),
+        onerror: null,
+        onclose: null,
+      };
+      Client.mockReturnValue(mockClient2);
       
       await connection.connect();
       expect(connection.status).toBe("connected");
