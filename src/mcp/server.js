@@ -323,26 +323,38 @@ export class MCPServerEndpoint {
    * Synchronize capabilities from connected servers
    * @param {string[]} capabilityIds - Specific capability IDs to sync, defaults to all
    */
-  syncCapabilities(capabilityIds = null) {
+  syncCapabilities(capabilityIds = null, affectedServers = null) {
     // Default to all capability IDs if none specified
     const idsToSync = capabilityIds || Object.values(CAPABILITY_TYPES).map(capType => capType.id);
 
     // Update the servers map with current connection states
-    this.syncServersMap()
+    // If affectedServers is specified, only update those specific servers
+    if (affectedServers && affectedServers.length > 0) {
+      this.syncServersMapPartial(affectedServers);
+    } else {
+      this.syncServersMap();
+    }
+
+    // Track which capabilities actually changed
+    const changedCapabilities = [];
 
     // Sync each requested capability type and notify clients of changes
     idsToSync.forEach(capabilityId => {
-      const changed = this.syncCapabilityType(capabilityId);
+      const changed = this.syncCapabilityType(capabilityId, affectedServers);
       if (changed) {
-        // Send notification for this specific capability type if we have active connections
-        if (this.hasActiveConnections()) {
-          const capType = Object.values(CAPABILITY_TYPES).find(cap => cap.id === capabilityId);
-          if (capType?.syncWithEvents?.notificationMethod) {
-            this.notifyCapabilityChanges(capType.syncWithEvents.notificationMethod);
-          }
-        }
+        changedCapabilities.push(capabilityId);
       }
     });
+
+    // Batch notify clients if we have active connections and changes occurred
+    if (changedCapabilities.length > 0 && this.hasActiveConnections()) {
+      changedCapabilities.forEach(capabilityId => {
+        const capType = Object.values(CAPABILITY_TYPES).find(cap => cap.id === capabilityId);
+        if (capType?.syncWithEvents?.notificationMethod) {
+          this.notifyCapabilityChanges(capType.syncWithEvents.notificationMethod);
+        }
+      });
+    }
   }
 
   /**
@@ -371,18 +383,92 @@ export class MCPServerEndpoint {
     }
   }
 
+  syncServersMapPartial(serverNames) {
+    // Only update the specified servers instead of clearing and rebuilding everything
+    for (const serverName of serverNames) {
+      const connection = this.mcpHub.connections.get(serverName);
+      
+      if (!connection) {
+        // Server was removed, delete from map
+        for (const [id, conn] of this.serversMap.entries()) {
+          if (conn.name === serverName) {
+            this.serversMap.delete(id);
+            break;
+          }
+        }
+        continue;
+      }
+      
+      if (connection.status === "connected" && !connection.disabled) {
+        // Server added or modified, update in map
+        let id = this.createSafeServerName(serverName);
+        
+        // Find existing entry or create new one
+        let existingId = null;
+        for (const [mapId, conn] of this.serversMap.entries()) {
+          if (conn.name === serverName) {
+            existingId = mapId;
+            break;
+          }
+        }
+        
+        if (existingId) {
+          // Update existing entry
+          this.serversMap.set(existingId, connection);
+        } else {
+          // Add new entry with unique ID
+          if (this.serversMap.has(id)) {
+            let counter = 1;
+            while (this.serversMap.has(`${id}_${counter}`)) {
+              counter++;
+            }
+            id = `${id}_${counter}`;
+          }
+          this.serversMap.set(id, connection);
+        }
+      } else {
+        // Server disconnected or disabled, remove from map
+        for (const [id, conn] of this.serversMap.entries()) {
+          if (conn.name === serverName) {
+            this.serversMap.delete(id);
+            break;
+          }
+        }
+      }
+    }
+  }
+
   /**
    * Synchronize a specific capability type and detect changes
    */
-  syncCapabilityType(capabilityId) {
+  syncCapabilityType(capabilityId, affectedServers = null) {
     const capabilityMap = this.registeredCapabilities[capabilityId];
     const previousKeys = new Set(capabilityMap.keys());
 
-    // Clear and rebuild capabilities from connected servers
-    capabilityMap.clear();
-    for (const [serverId, connection] of this.serversMap) {
-      if (connection.status === "connected" && !connection.disabled) {
-        this.registerServerCapabilities(connection, { capabilityId, serverId });
+    if (affectedServers && affectedServers.length > 0) {
+      // Incremental update: only update capabilities for affected servers
+      // First, remove capabilities from affected servers
+      for (const [key, registration] of capabilityMap.entries()) {
+        if (affectedServers.includes(registration.serverName)) {
+          capabilityMap.delete(key);
+        }
+      }
+      
+      // Then, re-register capabilities for affected servers
+      for (const [serverId, connection] of this.serversMap) {
+        if (affectedServers.includes(connection.name) && 
+            connection.status === "connected" && 
+            !connection.disabled) {
+          this.registerServerCapabilities(connection, { capabilityId, serverId });
+        }
+      }
+    } else {
+      // Full rebuild: clear and rebuild capabilities from all connected servers
+      capabilityMap.clear();
+      for (const [serverId, connection] of this.serversMap) {
+        if (connection.status === "connected" && !connection.disabled) {
+          this.registerServerCapabilities(connection, { capabilityId, serverId });
+        }
       }
     }
 

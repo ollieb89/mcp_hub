@@ -340,17 +340,27 @@ export class MCPConnection extends EventEmitter {
     Object.keys(map).forEach(type => {
       this.client.setNotificationHandler(map[type], async () => {
         logger.debug(`Received ${type}Changed notification`);
-        await this.updateCapabilities(type === "resources" ? ["resources", "resourceTemplates"] : [type]);
-        const updatedData = type === "resources" ? {
-          resources: this.resources,
-          resourceTemplates: this.resourceTemplates,
-        } : {
-          [type]: this[type],
-        };
-        this.emit(`${type}Changed`, {
-          server: this.name,
-          ...updatedData,
-        });
+        
+        // Update capabilities and get which ones actually changed
+        const changedCapabilities = await this.updateCapabilities(
+          type === "resources" ? ["resources", "resourceTemplates"] : [type]
+        );
+        
+        // Only emit events if capabilities actually changed
+        if (changedCapabilities && changedCapabilities.length > 0) {
+          const updatedData = type === "resources" ? {
+            resources: this.resources,
+            resourceTemplates: this.resourceTemplates,
+          } : {
+            [type]: this[type],
+          };
+          this.emit(`${type}Changed`, {
+            server: this.name,
+            ...updatedData,
+          });
+        } else {
+          logger.debug(`${type} capabilities unchanged, skipping event emission`);
+        }
       });
     });
   }
@@ -406,10 +416,27 @@ export class MCPConnection extends EventEmitter {
 
     try {
       const typesToFetch = capabilitiesToUpdate || Object.keys(map);
+      
+      // Store previous capabilities for comparison
+      const previousCapabilities = {};
+      typesToFetch.forEach(type => {
+        previousCapabilities[type] = this[type] ? JSON.stringify(this[type]) : null;
+      });
+      
       const fetchPromises = typesToFetch.map(async (type) => {
         this[type] = (await safeRequest(map[type].method, map[type].schema))?.[type] || [];
       });
       await Promise.all(fetchPromises);
+      
+      // Check which capabilities actually changed and only emit events for those
+      const changedCapabilities = typesToFetch.filter(type => {
+        const currentSerialized = JSON.stringify(this[type]);
+        return previousCapabilities[type] !== currentSerialized;
+      });
+      
+      // Return changed capabilities so caller can emit appropriate events
+      return changedCapabilities;
+      
       //TODO: handle pagination
     } catch (error) {
       // Only log as warning since missing capabilities are expected in some cases
@@ -417,6 +444,7 @@ export class MCPConnection extends EventEmitter {
         server: this.name,
         error: error.message,
       });
+      return [];
     }
   }
 
