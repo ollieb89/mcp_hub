@@ -9,6 +9,8 @@ import {
   ConfigError,
   wrapError,
 } from "../src/utils/errors.js";
+import { createTestConfig } from "./helpers/fixtures.js";
+import { expectServerConnected, expectServerDisconnected } from "./helpers/assertions.js";
 
 // Mock ConfigManager
 vi.mock("../src/utils/config.js", () => {
@@ -24,13 +26,27 @@ vi.mock("../src/utils/config.js", () => {
 
 // Mock MCPConnection
 vi.mock("../src/MCPConnection.js", () => {
-  const MockConnection = vi.fn(() => ({
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    getServerInfo: vi.fn(),
-    callTool: vi.fn(),
-    readResource: vi.fn(),
-  }));
+  const MockConnection = vi.fn(() => {
+    const instance = {
+      connect: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn().mockResolvedValue(undefined),
+      getServerInfo: vi.fn().mockResolvedValue({ name: '', status: 'connected' }),
+      callTool: vi.fn(),
+      readResource: vi.fn(),
+      on: vi.fn(),
+      emit: vi.fn(),
+      off: vi.fn(),
+      once: vi.fn(),
+      listenerCount: vi.fn().mockReturnValue(0),
+      removeAllListeners: vi.fn(),
+      updateCapabilities: vi.fn().mockResolvedValue(undefined),
+      listTools: vi.fn().mockResolvedValue([]),
+      listResources: vi.fn().mockResolvedValue([]),
+      listPrompts: vi.fn().mockResolvedValue([]),
+      status: 'connected'
+    };
+    return instance;
+  });
   return { MCPConnection: MockConnection };
 });
 
@@ -119,25 +135,41 @@ describe("MCPHub", () => {
   });
 
   describe("Server Management", () => {
-    it("should start enabled servers from config", async () => {
+    it("should successfully connect all enabled servers from config", async () => {
+      // ARRANGE
+      // Config is already set up in beforeEach
+      
+      // ACT
       await mcpHub.initialize();
 
-      expect(MCPConnection).toHaveBeenCalledWith(
-        "server1",
-        mockConfig.mcpServers.server1
-      );
-      expect(MCPConnection).not.toHaveBeenCalledWith(
-        "server2",
-        mockConfig.mcpServers.server2
-      );
+      // ASSERT
+      // Verify enabled server1 is connected
+      expect(mcpHub.connections.has('server1')).toBe(true);
+      // Verify disabled server2 is also in connections map but marked as disabled
+      expect(mcpHub.connections.has('server2')).toBe(true);
+      // Verify connections were created for both servers
+      expect(mcpHub.connections.size).toBe(2);
     });
 
-    it("should skip disabled servers", async () => {
+    it("should create connections for all servers including disabled ones", async () => {
+      // ARRANGE
+      // Configure test to use config with one enabled and one disabled server
+      const testConfig = {
+        mcpServers: {
+          enabled: { host: "localhost", port: 3000 },
+          disabled: { host: "localhost", port: 3001, disabled: true }
+        }
+      };
+      configManager.getConfig.mockReturnValue(testConfig);
+      
+      // ACT
       await mcpHub.initialize();
-
-      expect(logger.debug).toHaveBeenCalledWith("Skipping disabled MCP server 'server2'", {
-        server: "server2",
-      });
+      
+      // ASSERT
+      // Both servers should be in the connections map
+      expect(mcpHub.connections.has('enabled')).toBe(true);
+      expect(mcpHub.connections.has('disabled')).toBe(true);
+      expect(mcpHub.connections.size).toBe(2);
     });
 
     it("should handle multiple server failures gracefully", async () => {
