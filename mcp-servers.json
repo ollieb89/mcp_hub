@@ -227,17 +227,11 @@
       "disabled": true,
       "note": "Official Grafana MCP Server for monitoring, observability, and analytics. Requires GRAFANA_URL and GRAFANA_SERVICE_ACCOUNT_TOKEN in .env. Get token from Grafana → Administration → Service Accounts. See https://github.com/grafana/mcp-grafana"
     },
-    "hf-mcp-server": {
-      "type": "sse",
-      "url": "https://huggingface.co/mcp/sse",
-      "headers": {
-        "Authorization": "Bearer ${HF_TOKEN}"
-      },
-      "env": {
-        "HF_TOKEN": "${HF_TOKEN}"
-      },
-      "disabled": true,
-      "note": "Hugging Face MCP Server - Currently disabled. The official endpoint URL is not yet available. Use local HF MCP servers or compatible alternatives. Get token from https://huggingface.co/settings/tokens when available."
+    "hf-transformers": {
+      "type": "streamable-http",
+      "url": "https://huggingface.co/mcp",
+      "disabled": false,
+      "note": "Hugging Face MCP Server via streamable-http. OAuth flow will open browser when needed. Supports model inference, datasets, and more."
     }
   }
 }
