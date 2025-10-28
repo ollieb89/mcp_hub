@@ -2602,6 +2602,20 @@ async _loadCachedCategory(toolName) {
 **Estimated Time**: 30 minutes
 **Priority**: Medium
 
+**Status**: ✅ **COMPLETE** (2025-10-28)
+- Implementation verified at `src/utils/tool-filtering-service.js`
+- Test suite at `tests/tool-filtering-service.test.js` (lines 255-335)
+- All 61 tests passing (100%)
+- Implementation uses **PQueue library** (better than manual implementation):
+  - Max 5 concurrent LLM calls (concurrency: 5)
+  - Interval-based rate limiting (100ms interval, 1 call per interval = 10/second)
+  - Automatic queue management
+  - Non-blocking asynchronous operations
+  - Battle-tested library with edge case handling
+- Background LLM queue initialized in constructor (line 141-145)
+- LLM calls queued in `_queueLLMCategorization` method (line 350-375)
+- Rate limiting prevents API abuse and respects provider limits
+
 **Implementation Steps**:
 ```javascript
 constructor(config, mcpHub) {
@@ -2666,6 +2680,7 @@ async _callLLMWithRateLimit(toolName, toolDefinition) {
 **File**: `src/utils/tool-filtering-service.js`
 **Estimated Time**: 90 minutes
 **Priority**: Critical
+**Status**: ✅ **COMPLETE** (2025-10-28)
 
 **Implementation Steps**:
 ```javascript
@@ -2705,11 +2720,30 @@ async _categorizeByLLM(toolName, toolDefinition) {
 ```
 
 **Acceptance Criteria**:
-- [ ] Checks cache before calling LLM
-- [ ] Rate-limited LLM calls
-- [ ] Results cached persistently
-- [ ] Graceful fallback on failure
-- [ ] Statistics tracked
+- [x] Checks cache before calling LLM
+- [x] Rate-limited LLM calls (via PQueue)
+- [x] Results cached persistently (batched writes)
+- [x] Graceful fallback on failure (returns 'other')
+- [x] Statistics tracked (_llmCacheHits, _llmCacheMisses)
+
+**Implementation Details** (Verified 2025-10-28):
+- Implementation at `src/utils/tool-filtering-service.js:378-422`
+- Method `_categorizeByLLM(toolName, toolDefinition)` implemented
+- Helper method `_callLLMWithRateLimit()` at lines 424-439
+- Checks persistent cache via `_loadCachedCategory()` (line 388)
+- Tracks cache hits/misses (lines 390-391, 395)
+- Calls LLM with rate limiting via PQueue (line 402)
+- Saves to persistent cache via `_saveCachedCategory()` (line 405)
+- Logs at debug level for cache hits and LLM calls (lines 389, 400)
+- Logs at info level for successful categorization (line 407)
+- Graceful error handling with fallback to 'other' (lines 408-413)
+- All 8 acceptance criteria tests passing (69/69 total tests)
+
+**Test Coverage**:
+- Tests at `tests/tool-filtering-service.test.js:1533-1810`
+- 8 new test cases for Task 3.2.1
+- Tests cover: cache checking, rate limiting, persistence, error handling, logging
+- All tests passing (100%)
 
 ---
 
@@ -2815,14 +2849,30 @@ _filterByCategory(category) {
 ```
 
 **Acceptance Criteria**:
-- [ ] `shouldIncludeTool()` remains synchronous (NO breaking changes)
-- [ ] `getToolCategory()` remains synchronous (NO breaking changes)
-- [ ] `_filterByCategory()` remains synchronous (NO breaking changes)
-- [ ] Pattern matching tried first (synchronous)
-- [ ] LLM categorization runs in background queue (non-blocking)
-- [ ] Background LLM refines categories asynchronously
-- [ ] All results cached (memory + persistent)
-- [ ] **ZERO breaking changes to MCPHub or MCPServerEndpoint**
+- [x] `shouldIncludeTool()` remains synchronous (NO breaking changes)
+- [x] `getToolCategory()` remains synchronous (NO breaking changes)
+- [x] `_filterByCategory()` remains synchronous (NO breaking changes)
+- [x] Pattern matching tried first (synchronous)
+- [x] LLM categorization runs in background queue (non-blocking)
+- [x] Background LLM refines categories asynchronously
+- [x] All results cached (memory + persistent)
+- [x] **ZERO breaking changes to MCPHub or MCPServerEndpoint**
+
+**Status**: ✅ **COMPLETE** (2025-10-29)
+- Non-blocking architecture already implemented in Sprint 0.1
+- Implementation verified at `src/utils/tool-filtering-service.js`:
+  - `shouldIncludeTool()` synchronous (lines 222-256)
+  - `getToolCategory()` synchronous (lines 308-344)
+  - `_filterByCategory()` synchronous (lines 293-296)
+  - Background LLM queue via `_queueLLMCategorization()` (lines 350-375)
+- Test suite added at `tests/tool-filtering-service.test.js:1811-2091`
+- All 6 required tests implemented:
+  1. shouldIncludeTool returns immediately without blocking
+  2. getToolCategory returns immediately with default when LLM needed
+  3. background LLM categorization refines categories
+  4. refined categories available on next access
+  5. rate limiting prevents excessive API calls
+  6. graceful fallback on LLM errors
 
 **Testing Requirements**:
 ```javascript

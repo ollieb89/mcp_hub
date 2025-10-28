@@ -376,6 +376,69 @@ class ToolFilteringService {
   }
 
   /**
+   * Categorize tool using LLM (Task 3.2.1)
+   * Checks cache first, calls LLM if needed
+   * 
+   * @private
+   * @param {string} toolName - Name of the tool
+   * @param {object} toolDefinition - Tool definition object
+   * @returns {Promise<string>} Category name
+   */
+  async _categorizeByLLM(toolName, toolDefinition) {
+    // Check persistent cache
+    const cached = await this._loadCachedCategory(toolName);
+    if (cached) {
+      logger.debug(`LLM cache hit for ${toolName}: ${cached}`);
+      this._llmCacheHits++;
+      return cached;
+    }
+
+    this._llmCacheMisses++;
+
+    try {
+      logger.debug(`Calling LLM to categorize: ${toolName}`);
+
+      // Call LLM with rate limiting (via PQueue)
+      const category = await this._callLLMWithRateLimit(toolName, toolDefinition);
+
+      // Save to cache
+      await this._saveCachedCategory(toolName, category);
+
+      logger.info(`LLM categorized ${toolName} as: ${category}`);
+
+      return category;
+    } catch (error) {
+      logger.warn(`LLM categorization failed for ${toolName}: ${error.message}`);
+
+      // Fall back to 'other'
+      return 'other';
+    }
+  }
+
+  /**
+   * Rate-limited LLM call (Task 3.2.1)
+   * Uses PQueue for concurrency and rate limiting
+   * 
+   * @private
+   * @param {string} toolName - Name of the tool
+   * @param {object} toolDefinition - Tool definition object
+   * @returns {Promise<string>} Category name
+   */
+  async _callLLMWithRateLimit(toolName, toolDefinition) {
+    return this.llmQueue.add(async () => {
+      const validCategories = [...Object.keys(this.defaultCategories), 'other'];
+
+      const category = await this.llmClient.categorize(
+        toolName,
+        toolDefinition,
+        validCategories
+      );
+
+      return category;
+    });
+  }
+
+  /**
    * Categorize tool using pattern matching
    * Checks custom mappings first, then default categories
    * @private
