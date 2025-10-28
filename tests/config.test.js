@@ -808,11 +808,11 @@ describe("ConfigManager", () => {
 
         configManager = new ConfigManager("/path/to/config.json");
         await expect(configManager.loadConfig()).rejects.toThrow(
-          "toolFiltering.autoEnableThreshold must be a positive number"
+          "toolFiltering.autoEnableThreshold must be a non-negative number"
         );
       });
 
-      it("should throw error for negative threshold", async () => {
+      it("should accept zero threshold", async () => {
         const invalidConfig = {
           mcpServers: {
             test: {
@@ -832,12 +832,12 @@ describe("ConfigManager", () => {
 
         configManager = new ConfigManager("/path/to/config.json");
         await expect(configManager.loadConfig()).rejects.toThrow(
-          "toolFiltering.autoEnableThreshold must be a positive number"
+          "toolFiltering.autoEnableThreshold must be a non-negative number"
         );
       });
 
-      it("should throw error for zero threshold", async () => {
-        const invalidConfig = {
+      it("should accept zero threshold", async () => {
+        const validConfig = {
           mcpServers: {
             test: {
               command: "node",
@@ -852,12 +852,10 @@ describe("ConfigManager", () => {
             autoEnableThreshold: 0
           }
         };
-        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(invalidConfig));
+        vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(validConfig));
 
         configManager = new ConfigManager("/path/to/config.json");
-        await expect(configManager.loadConfig()).rejects.toThrow(
-          "toolFiltering.autoEnableThreshold must be a positive number"
-        );
+        await expect(configManager.loadConfig()).resolves.not.toThrow();
       });
     });
   });

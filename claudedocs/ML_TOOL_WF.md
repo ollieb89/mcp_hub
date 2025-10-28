@@ -2361,6 +2361,20 @@ describe('MCPServerEndpoint with Category Filtering', () => {
 **Estimated Time**: 60 minutes
 **Priority**: High
 
+**Status**: ✅ **COMPLETE** (2025-10-28)
+- Implementation verified at `src/utils/llm-provider.js:1-237`
+- Test suite at `tests/llm-provider.test.js:1-396`
+- All 24 tests passing (100%)
+- Implementation includes:
+  - Abstract `LLMProvider` base class
+  - `OpenAIProvider` implementation with gpt-4o-mini default
+  - `AnthropicProvider` implementation with claude-3-haiku default
+  - `createLLMProvider` factory function
+  - Prompt building logic for tool categorization
+  - Response validation against valid categories
+  - Comprehensive error handling for API failures
+  - Support for custom baseURL and model configuration
+
 **Implementation Steps**:
 ```javascript
 /**
@@ -2464,12 +2478,14 @@ export function createLLMProvider(config) {
 ```
 
 **Acceptance Criteria**:
-- [ ] Abstract LLMProvider base class
-- [ ] OpenAI provider implementation
-- [ ] Factory function for provider creation
-- [ ] Prompt building logic
-- [ ] Response validation
-- [ ] Error handling for API failures
+- [x] Abstract LLMProvider base class
+- [x] OpenAI provider implementation
+- [x] Anthropic provider implementation (bonus)
+- [x] Factory function for provider creation
+- [x] Prompt building logic
+- [x] Response validation
+- [x] Error handling for API failures
+- [x] Comprehensive test coverage (24 tests)
 
 ---
 
