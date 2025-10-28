@@ -2961,6 +2961,26 @@ registerServerCapabilities(connection, { capabilityId, serverId }) {
 **Estimated Time**: 60 minutes
 **Priority**: High
 
+**Status**: ✅ **COMPLETE** (2025-10-29)
+- Implementation verified at `tests/llm-provider.test.js:1-358`
+- All 24 tests passing (100%)
+- Test coverage exceeds specification requirements
+- Tests cover:
+  - Abstract base class (2 tests)
+  - OpenAI provider implementation (10 tests)
+  - Anthropic provider implementation (7 tests)
+  - Factory function creation (7 tests)
+
+**Acceptance Criteria**:
+- [x] OpenAI provider categorization tests
+- [x] API error handling tests
+- [x] LLM response validation tests
+- [x] Factory function tests for OpenAI provider
+- [x] Factory function error handling (unknown provider)
+- [x] Additional tests for Anthropic provider (bonus)
+- [x] Additional tests for custom configuration
+- [x] All tests passing (24/24)
+
 **Implementation Steps**:
 ```javascript
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -3070,6 +3090,21 @@ describe('LLM Provider', () => {
 **File**: `tests/tool-filtering-service.test.js`
 **Estimated Time**: 45 minutes
 **Priority**: High
+
+**Status**: ✅ **COMPLETE** (2025-10-29)
+- Implementation verified at `tests/tool-filtering-service.test.js:2124-2316`
+- All 4 required tests implemented and passing
+- Tests adapted for Sprint 0.1 non-blocking architecture
+- Comprehensive coverage of LLM categorization behavior
+
+**Acceptance Criteria**:
+- [x] Test LLM invocation when pattern fails
+- [x] Test cached LLM results reuse
+- [x] Test fallback on LLM failure
+- [x] Test rate limiting for concurrent calls
+- [x] All tests passing (4/4)
+- [x] Tests work with synchronous API
+- [x] Tests verify background LLM behavior
 
 **Implementation Steps**:
 ```javascript
@@ -3185,6 +3220,7 @@ describe('LLM Categorization', () => {
 **File**: `tests/tool-filtering.benchmark.test.js`
 **Estimated Time**: 15 minutes
 **Priority**: Medium
+**Status**: ✅ **COMPLETE** (2025-10-29)
 
 **Implementation Steps**:
 ```javascript

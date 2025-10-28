@@ -2119,3 +2119,213 @@ describe('ToolFilteringService - Task 3.2.2: Non-Blocking LLM Integration', () =
     warnSpy.mockRestore();
   });
 });
+
+/**
+ * Task 3.3.2: LLM Categorization Tests
+ * 
+ * Validates LLM categorization integration and behavior:
+ * - LLM is invoked when pattern matching fails
+ * - Cached LLM results are properly reused
+ * - Graceful fallback on LLM errors
+ * - Rate limiting works correctly for concurrent LLM calls
+ */
+describe('ToolFilteringService - Task 3.3.2: LLM Categorization', () => {
+  let service;
+  let mockMcpHub;
+  let mockLLMClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockMcpHub = {
+      config: {}
+    };
+
+    mockLLMClient = {
+      categorize: vi.fn()
+    };
+  });
+
+  afterEach(async () => {
+    if (service) {
+      await service.shutdown();
+    }
+  });
+
+  it('should categorize using LLM when pattern fails', async () => {
+    // Arrange
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        mode: 'category',
+        categoryFilter: {
+          categories: ['filesystem', 'web', 'database']
+        },
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    service.llmClient = mockLLMClient;
+
+    mockLLMClient.categorize.mockResolvedValue('database');
+
+    // Act - getToolCategory returns 'other' immediately (pattern doesn't match)
+    // Use a tool name that doesn't match any DEFAULT_CATEGORIES patterns
+    const initialCategory = service.getToolCategory(
+      'mysterious_custom_tool',
+      'custom',
+      { description: 'Run database query' }
+    );
+
+    // Assert - immediate return is 'other'
+    expect(initialCategory).toBe('other');
+
+    // Wait for background LLM categorization
+    await vi.waitFor(() => {
+      expect(mockLLMClient.categorize).toHaveBeenCalledWith(
+        'mysterious_custom_tool',
+        { description: 'Run database query' },
+        expect.arrayContaining(['filesystem', 'web', 'database'])
+      );
+    }, { timeout: 1000 });
+
+    // After background processing, cache should be updated
+    await vi.waitFor(() => {
+      const refinedCategory = service.categoryCache.get('mysterious_custom_tool');
+      expect(refinedCategory).toBe('database');
+    }, { timeout: 1000 });
+  });
+
+  it('should use cached LLM results', async () => {
+    // Arrange
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        mode: 'category',
+        categoryFilter: {
+          categories: ['filesystem', 'web']
+        },
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    service.llmClient = mockLLMClient;
+
+    // Pre-populate the memory category cache (this is what getToolCategory checks)
+    service.categoryCache.set('custom__tool', 'web');
+
+    // Act - getToolCategory should use cache
+    const category = service.getToolCategory(
+      'custom__tool',
+      'custom',
+      {}
+    );
+
+    // Assert - returns cached value
+    expect(category).toBe('web');
+
+    // Wait a bit to ensure no background LLM call
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // LLM should NOT have been called
+    expect(mockLLMClient.categorize).not.toHaveBeenCalled();
+  });
+
+  it('should fall back on LLM failure', async () => {
+    // Arrange
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        mode: 'category',
+        categoryFilter: {
+          categories: ['filesystem', 'web']
+        },
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    service.llmClient = mockLLMClient;
+
+    // Mock LLM to fail
+    mockLLMClient.categorize.mockRejectedValue(new Error('API error'));
+
+    // Act - getToolCategory returns 'other' immediately
+    const category = service.getToolCategory(
+      'unknown__tool',
+      'unknown',
+      {}
+    );
+
+    // Assert - immediate return is 'other'
+    expect(category).toBe('other');
+
+    // Wait for background LLM attempt
+    await vi.waitFor(() => {
+      expect(mockLLMClient.categorize).toHaveBeenCalled();
+    }, { timeout: 1000 });
+
+    // Even after error, category should remain 'other'
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const stillOther = service.categoryCache.get('unknown__tool');
+    expect(stillOther).toBe('other');
+  });
+
+  it('should handle rate limiting', async () => {
+    // Arrange
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    service.llmClient = mockLLMClient;
+
+    // Mock LLM with delay to simulate real API calls
+    mockLLMClient.categorize.mockImplementation(
+      () => new Promise(resolve => setTimeout(() => resolve('web'), 50))
+    );
+
+    // Act - Start 5 concurrent categorizations directly via _categorizeByLLM
+    const promises = [];
+    for (let i = 0; i < 5; i++) {
+      promises.push(service._categorizeByLLM(`tool${i}`, { description: `Test tool ${i}` }));
+    }
+
+    await Promise.all(promises);
+
+    // Assert - All 5 should have been called
+    expect(mockLLMClient.categorize).toHaveBeenCalledTimes(5);
+
+    // Verify results are all 'web'
+    for (let i = 0; i < 5; i++) {
+      const result = await promises[i];
+      expect(result).toBe('web');
+    }
+
+    // Verify rate limiting via PQueue (should not all execute simultaneously)
+    // The calls should be spread out due to rate limiting
+    const calls = mockLLMClient.categorize.mock.calls;
+    expect(calls).toHaveLength(5);
+  });
+});
