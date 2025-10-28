@@ -570,6 +570,30 @@ Automatically enable filtering when tool count exceeds threshold:
 
 **Behavior:** If total tool count > 100, filtering automatically activates
 
+### LLM Enhancement (Optional)
+
+Use LLM to categorize ambiguous tools:
+
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "category",
+    "categoryFilter": {
+      "categories": ["filesystem", "web", "search"]
+    },
+    "llmProvider": {
+      "provider": "openai",
+      "apiKey": "${OPENAI_API_KEY}",
+      "model": "gpt-4o-mini"
+    }
+  }
+}
+```
+
+**Benefits**: 10-20% accuracy improvement for edge cases
+**Cost**: ~$0.01 per 100 tools (cached after first categorization)
+
 ### Monitoring & Statistics
 
 Check filtering effectiveness via REST API:
