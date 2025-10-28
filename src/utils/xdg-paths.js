@@ -66,3 +66,11 @@ export function getCacheDirectory() {
 export function getDataDirectory() {
   return getXDGDirectory('data');
 }
+
+/**
+ * Get the state directory path (XDG_STATE_HOME or ~/.local/state/mcp-hub)
+ * Falls back to ~/.mcp-hub if it exists
+ */
+export function getStateDirectory() {
+  return getXDGDirectory('state');
+}

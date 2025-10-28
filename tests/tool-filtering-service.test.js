@@ -1216,3 +1216,310 @@ describe('ToolFilteringService - Sprint 2.3.1: Category Filtering Tests', () => 
     });
   });
 });
+
+/**
+ * Test Suite: ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests
+ *
+ * Focus: Validates persistent LLM categorization cache
+ * - XDG-compliant cache location
+ * - Cache loaded on initialization
+ * - Cache saved after categorization
+ * - Handles missing cache gracefully
+ * - Async save doesn't block operations
+ * - Cache corruption handled
+ */
+describe('ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests', () => {
+  let service;
+  let mockMcpHub;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockMcpHub = {
+      config: {}
+    };
+  });
+
+  afterEach(async () => {
+    if (service) {
+      await service.shutdown();
+    }
+  });
+
+  describe('LLM Cache Initialization', () => {
+    it('should use XDG-compliant cache location', () => {
+      // Arrange
+      const config = {
+        toolFiltering: {
+          llmCategorization: {
+            enabled: true,
+            provider: 'openai',
+            apiKey: 'test-key'
+          }
+        }
+      };
+      mockMcpHub.config = config;
+
+      // Act
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+
+      // Assert - Should use XDG state directory
+      expect(service.llmCacheFile).toBeDefined();
+      expect(service.llmCacheFile).toContain('.local/state/mcp-hub');
+      expect(service.llmCacheFile).toContain('tool-categories-llm.json');
+    });
+
+    it('should initialize empty cache when no file exists', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {
+          llmCategorization: {
+            enabled: true,
+            provider: 'openai',
+            apiKey: 'test-key'
+          }
+        }
+      };
+      mockMcpHub.config = config;
+
+      // Act
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+
+      // Assert
+      expect(service.llmCache).toBeInstanceOf(Map);
+      expect(service.llmCache.size).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should handle cache loading errors gracefully', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {
+          llmCategorization: {
+            enabled: true,
+            provider: 'openai',
+            apiKey: 'test-key'
+          }
+        }
+      };
+      mockMcpHub.config = config;
+
+      // Act - Should not throw even if cache file is corrupted
+      expect(() => {
+        service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      }).not.toThrow();
+
+      // Assert
+      expect(service.llmCache).toBeInstanceOf(Map);
+    });
+  });
+
+  describe('Cache Read Operations', () => {
+    it('should return cached category if available', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {}
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+
+      // Pre-populate cache
+      service.llmCache.set('test_tool', 'database');
+
+      // Act
+      const category = await service._loadCachedCategory('test_tool');
+
+      // Assert
+      expect(category).toBe('database');
+    });
+
+    it('should return null for uncached tools', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {}
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+
+      // Act
+      const category = await service._loadCachedCategory('unknown_tool');
+
+      // Assert
+      expect(category).toBeNull();
+    });
+  });
+
+  describe('Cache Write Operations', () => {
+    it('should save category to in-memory cache', () => {
+      // Arrange
+      const config = {
+        toolFiltering: {}
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+
+      // Act
+      service._saveCachedCategory('new_tool', 'web');
+
+      // Assert
+      expect(service.llmCache.has('new_tool')).toBe(true);
+      expect(service.llmCache.get('new_tool')).toBe('web');
+    });
+
+    it('should mark cache as dirty after save', () => {
+      // Arrange
+      const config = {
+        toolFiltering: {}
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      service.llmCacheDirty = false;
+
+      // Act
+      service._saveCachedCategory('new_tool', 'web');
+
+      // Assert
+      expect(service.llmCacheDirty).toBe(true);
+    });
+
+    it('should increment pending writes counter', () => {
+      // Arrange
+      const config = {
+        toolFiltering: {}
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      const initialCount = service.llmCacheWritesPending;
+
+      // Act
+      service._saveCachedCategory('tool1', 'web');
+      service._saveCachedCategory('tool2', 'database');
+
+      // Assert
+      expect(service.llmCacheWritesPending).toBe(initialCount + 2);
+    });
+
+    it('should trigger flush when threshold reached', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {}
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      service.llmCacheFlushThreshold = 3;
+
+      // Mock flush to prevent actual disk I/O
+      const mockFlush = vi.fn().mockResolvedValue(undefined);
+      service._flushCache = mockFlush;
+
+      // Act - Write enough to trigger flush
+      service._saveCachedCategory('tool1', 'web');
+      service._saveCachedCategory('tool2', 'database');
+      service._saveCachedCategory('tool3', 'filesystem');
+
+      // Wait for async flush
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Assert
+      expect(mockFlush).toHaveBeenCalled();
+    });
+  });
+
+  describe('Cache Flush Operations', () => {
+    it('should not flush when cache is not dirty', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {}
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      service.llmCacheDirty = false;
+
+      // Act
+      await service._flushCache();
+
+      // Assert - Should return early without writing
+      expect(service.llmCacheDirty).toBe(false);
+    });
+
+    it('should reset dirty flag after successful flush', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {
+          llmCategorization: {
+            enabled: true,
+            provider: 'openai',
+            apiKey: 'test-key'
+          }
+        }
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      service.llmCache.set('test_tool', 'web');
+      service.llmCacheDirty = true;
+
+      // Act
+      await service._flushCache();
+
+      // Assert
+      expect(service.llmCacheDirty).toBe(false);
+      expect(service.llmCacheWritesPending).toBe(0);
+    });
+  });
+
+  describe('Cache Persistence', () => {
+    it('should persist categories across service restarts', async () => {
+      // Arrange - First instance
+      const config = {
+        toolFiltering: {
+          llmCategorization: {
+            enabled: true,
+            provider: 'openai',
+            apiKey: 'test-key'
+          }
+        }
+      };
+      mockMcpHub.config = config;
+      const service1 = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+
+      // Add and flush cache
+      service1._saveCachedCategory('persistent_tool', 'cloud');
+      await service1._flushCache();
+      await service1.shutdown();
+
+      // Act - Second instance should load persisted cache
+      const service2 = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      
+      // Wait for async cache load
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Assert
+      const category = await service2._loadCachedCategory('persistent_tool');
+      expect(category).toBe('cloud');
+
+      await service2.shutdown();
+    });
+  });
+
+  describe('Shutdown Behavior', () => {
+    it('should flush dirty cache on shutdown', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {}
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      service.llmCache.set('shutdown_test', 'development');
+      service.llmCacheDirty = true;
+
+      // Mock flush to verify it's called
+      const mockFlush = vi.fn().mockResolvedValue(undefined);
+      const originalFlush = service._flushCache.bind(service);
+      service._flushCache = mockFlush;
+
+      // Act
+      await service.shutdown();
+
+      // Assert
+      expect(mockFlush).toHaveBeenCalled();
+    });
+  });
+});

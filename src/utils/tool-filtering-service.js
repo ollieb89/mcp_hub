@@ -452,13 +452,25 @@ class ToolFilteringService {
     if (!this.llmCacheFile) return;
 
     try {
+      // Ensure directory exists
+      const cacheDir = path.dirname(this.llmCacheFile);
+      await fs.mkdir(cacheDir, { recursive: true });
+
+      // Load existing cache
       const data = await fs.readFile(this.llmCacheFile, 'utf-8');
       const cacheObj = JSON.parse(data);
-      this.llmCache = new Map(Object.entries(cacheObj));
-      logger.debug(`Loaded ${this.llmCache.size} entries from LLM cache`);
+      
+      // Load into Map
+      for (const [toolName, category] of Object.entries(cacheObj)) {
+        this.llmCache.set(toolName, category);
+      }
+      
+      logger.info(`Loaded ${this.llmCache.size} cached tool categories from ${this.llmCacheFile}`);
     } catch (error) {
-      if (error.code !== 'ENOENT') {
-        logger.warn('Failed to load LLM cache:', error.message);
+      if (error.code === 'ENOENT') {
+        logger.info('No existing LLM cache found, will create on first categorization');
+      } else {
+        logger.warn(`Failed to load LLM cache: ${error.message}`);
       }
     }
   }
@@ -625,6 +637,7 @@ class ToolFilteringService {
   async shutdown() {
     if (this.llmCacheFlushInterval) {
       clearInterval(this.llmCacheFlushInterval);
+      this.llmCacheFlushInterval = undefined;
     }
 
     if (this.llmCacheDirty) {
