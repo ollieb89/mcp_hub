@@ -40,7 +40,11 @@
       "Bash(find:*)",
       "Bash(git restore:*)",
       "Bash(npm install:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "mcp__serena__find_referencing_symbols",
+      "Read(//home/ob/**)",
+      "mcp__tavily-remote__tavily_search",
+      "mcp__tavily-remote__tavily_extract"
     ],
     "deny": [],
     "ask": []

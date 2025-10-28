@@ -6,6 +6,7 @@ import JSON5 from "json5";
 import logger from "./logger.js";
 import { ConfigError, wrapError } from "./errors.js";
 import { validatePoolConfig } from "./http-pool.js";
+import { DEFAULT_CATEGORIES } from "./tool-filtering-service.js";
 import deepEqual from "fast-deep-equal";
 export class ConfigManager extends EventEmitter {
   // Key fields to compare for server config changes
@@ -507,15 +508,66 @@ export class ConfigManager extends EventEmitter {
         );
       }
 
+      // Validate category names against known categories (Sprint 2.2.3)
+      const validCategories = [...Object.keys(DEFAULT_CATEGORIES), 'other'];
+      for (const category of filteringConfig.categoryFilter.categories) {
+        if (typeof category !== 'string') {
+          throw new ConfigError(
+            `Category must be a string, got: ${typeof category}`,
+            {
+              category,
+              validCategories,
+            }
+          );
+        }
+
+        if (!validCategories.includes(category)) {
+          logger.warn(
+            `Unknown category in config: "${category}". Valid categories: ${validCategories.join(', ')}`
+          );
+        }
+      }
+
+      // Validate custom mappings (Sprint 2.2.3)
       if (filteringConfig.categoryFilter.customMappings !== undefined) {
         if (typeof filteringConfig.categoryFilter.customMappings !== 'object' ||
             Array.isArray(filteringConfig.categoryFilter.customMappings)) {
           throw new ConfigError(
-            'toolFiltering.categoryFilter.customMappings must be an object',
+            'toolFiltering.categoryFilter.customMappings must be an object with pattern: category mappings',
             {
               customMappings: filteringConfig.categoryFilter.customMappings,
             }
           );
+        }
+
+        // Validate each custom mapping entry
+        for (const [pattern, category] of Object.entries(filteringConfig.categoryFilter.customMappings)) {
+          if (typeof pattern !== 'string' || pattern.length === 0) {
+            throw new ConfigError(
+              'Custom mapping pattern must be a non-empty string',
+              {
+                pattern,
+                category,
+              }
+            );
+          }
+
+          if (typeof category !== 'string') {
+            throw new ConfigError(
+              `Custom mapping category must be a string, got: ${typeof category}`,
+              {
+                pattern,
+                category,
+              }
+            );
+          }
+
+          // Warn if custom mapping category is not in valid categories
+          if (!validCategories.includes(category)) {
+            logger.warn(
+              `Custom mapping "${pattern}" uses unknown category "${category}". Valid categories: ${validCategories.join(', ')}`
+            );
+          }
         }
       }
     }
@@ -545,12 +597,12 @@ export class ConfigManager extends EventEmitter {
       }
     }
 
-    // Validate autoEnableThreshold
+    // Validate autoEnableThreshold (Sprint 2.2.3)
     if (filteringConfig.autoEnableThreshold !== undefined) {
       if (typeof filteringConfig.autoEnableThreshold !== 'number' ||
-          filteringConfig.autoEnableThreshold < 1) {
+          filteringConfig.autoEnableThreshold < 0) {
         throw new ConfigError(
-          'toolFiltering.autoEnableThreshold must be a positive number',
+          'toolFiltering.autoEnableThreshold must be a non-negative number',
           {
             autoEnableThreshold: filteringConfig.autoEnableThreshold,
           }

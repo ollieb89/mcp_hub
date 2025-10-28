@@ -365,6 +365,332 @@ mcp-hub --port 3000 --config ~/.config/mcphub/global.json --config ./.mcphub/pro
 }
 ```
 
+## Tool Filtering
+
+MCP Hub supports intelligent tool filtering to manage overwhelming tool counts from multiple MCP servers. With 25+ servers, you might have 3000+ tools consuming 50k+ tokens before any work begins. Tool filtering reduces this to 50-200 relevant tools, freeing 30-40k tokens for actual tasks.
+
+### Quick Start (5 Minutes)
+
+**Problem:** Check your current token usage to see if filtering will help:
+
+```bash
+# In Claude Code or your MCP client, check context usage
+# Look for "MCP tools: XXk tokens"
+# If > 30k tokens → Filtering recommended
+# If > 50k tokens → Filtering critical
+```
+
+**Solution:** Add minimal filtering configuration:
+
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "server-allowlist",
+    "serverFilter": {
+      "mode": "allowlist",
+      "servers": ["filesystem", "github", "web-browser"]
+    }
+  }
+}
+```
+
+**Result:** Typical reduction from 3000+ tools → 20-30 tools (70-85% token reduction)
+
+### Filtering Modes
+
+MCP Hub provides three filtering strategies:
+
+#### 1. Server-Allowlist Mode (Recommended for Beginners)
+
+**Use when:** You know which specific servers you need
+
+**Configuration:**
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "server-allowlist",
+    "serverFilter": {
+      "mode": "allowlist",
+      "servers": ["filesystem", "github"]
+    }
+  }
+}
+```
+
+**Expected outcome:** 10-30 tools | 70-85% token reduction
+
+**Best for:** Focused workflows where you use 2-5 specific servers
+
+#### 2. Category Mode
+
+**Use when:** You need tools by functional category (filesystem, web, search, etc.)
+
+**Configuration:**
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "category",
+    "categoryFilter": {
+      "categories": ["filesystem", "web", "search"]
+    }
+  }
+}
+```
+
+**Expected outcome:** 20-50 tools | 60-75% token reduction
+
+**Available categories:** `filesystem`, `web`, `search`, `code`, `communication`, `data`, `ai`, `system`, `custom`
+
+**Custom mappings:**
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "category",
+    "categoryFilter": {
+      "categories": ["custom", "filesystem"],
+      "customMappings": {
+        "mytool__*": "custom",
+        "company__*": "custom"
+      }
+    }
+  }
+}
+```
+
+#### 3. Hybrid Mode (Advanced)
+
+**Use when:** You need server filtering AND per-server tool filtering
+
+**Configuration:**
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "hybrid",
+    "serverFilter": {
+      "mode": "allowlist",
+      "servers": ["github", "filesystem"]
+    },
+    "categoryFilter": {
+      "categories": ["filesystem", "web"]
+    }
+  }
+}
+```
+
+**Expected outcome:** 30-80 tools | 50-70% token reduction
+
+**Best for:** Power users with complex, multi-server workflows
+
+### Configuration Examples
+
+#### Frontend Development
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "server-allowlist",
+    "serverFilter": {
+      "mode": "allowlist",
+      "servers": ["filesystem", "playwright", "web-browser"]
+    }
+  }
+}
+```
+**Tools:** ~15 | **Use case:** React/Vue development with browser testing
+
+#### Backend Development
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "category",
+    "categoryFilter": {
+      "categories": ["filesystem", "data", "search", "code"]
+    }
+  }
+}
+```
+**Tools:** ~25 | **Use case:** API development with database and code search
+
+#### DevOps/Infrastructure
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "server-allowlist",
+    "serverFilter": {
+      "mode": "allowlist",
+      "servers": ["kubernetes", "docker", "filesystem", "github"]
+    }
+  }
+}
+```
+**Tools:** ~20 | **Use case:** Infrastructure management and deployments
+
+### Server Denylist (Alternative)
+
+Instead of allowlist, block specific servers:
+
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "server-allowlist",
+    "serverFilter": {
+      "mode": "denylist",
+      "servers": ["experimental", "debug", "test"]
+    }
+  }
+}
+```
+
+**Use when:** You want most servers except a few problematic ones
+
+### Auto-Enable (Optional)
+
+Automatically enable filtering when tool count exceeds threshold:
+
+```json
+{
+  "toolFiltering": {
+    "enabled": false,
+    "autoEnableThreshold": 100,
+    "mode": "category",
+    "categoryFilter": {
+      "categories": ["filesystem", "web", "search"]
+    }
+  }
+}
+```
+
+**Behavior:** If total tool count > 100, filtering automatically activates
+
+### Monitoring & Statistics
+
+Check filtering effectiveness via REST API:
+
+```bash
+# Get filtering statistics
+curl http://localhost:3000/api/filtering/stats | jq
+```
+
+**Example response:**
+```json
+{
+  "enabled": true,
+  "mode": "server-allowlist",
+  "toolsEvaluated": 3469,
+  "toolsIncluded": 89,
+  "toolsFiltered": 3380,
+  "filterRate": 97.4,
+  "serversTotal": 25,
+  "serversActive": 3
+}
+```
+
+### Troubleshooting
+
+#### Issue: Token count didn't decrease after enabling filtering
+
+**Diagnostic:**
+```bash
+# 1. Verify config loaded
+cat mcp.json | grep -A 10 "toolFiltering"
+
+# 2. Check server names match exactly
+npm start 2>&1 | grep "Connected to server"
+
+# 3. Restart MCP Hub
+npm restart
+```
+
+**Solution:**
+- Server names in `serverFilter.servers` must match exact names from `mcpServers` config
+- Always restart after configuration changes
+- Check logs for "Tool filtering initialized" message
+
+#### Issue: LLM still selecting wrong tools
+
+**Root cause:** Tool count still > 30 (LLM threshold for reliable selection)
+
+**Diagnostic:**
+```bash
+# Check current tool count via filtering stats
+curl http://localhost:3000/api/filtering/stats | jq '.toolsIncluded'
+```
+
+**Solution:**
+- If > 30 tools: Switch to more restrictive mode (server-allowlist)
+- If using category mode: Reduce number of categories
+- If using hybrid mode: Add per-server tool patterns
+
+#### Issue: No tools showing up
+
+**Root cause:** Filters too restrictive, blocking everything
+
+**Diagnostic:**
+```bash
+# Check if any tools included
+curl http://localhost:3000/api/filtering/stats | jq '.toolsIncluded'
+# If 0: Your filters blocked all tools
+```
+
+**Solution:**
+- Start with minimal config (1-2 servers in allowlist)
+- Add servers incrementally
+- Verify server names with: `cat mcp.json | jq '.mcpServers | keys'`
+
+### Best Practices
+
+1. **Start Simple:** Begin with server-allowlist mode, 2-3 servers
+2. **Monitor Impact:** Check token reduction via stats API
+3. **Iterate:** Add servers/categories incrementally
+4. **Target 15-25 tools:** Optimal range for LLM reliability
+5. **Test Workflows:** Verify your common tasks still work after filtering
+6. **Document Config:** Comment your filtering choices for team members
+
+### Performance Impact
+
+- **Filtering overhead:** < 10ms per tool check
+- **Memory usage:** Negligible (~1MB for cache)
+- **Token reduction:** 60-85% typical
+- **Context freed:** 30-50k tokens for actual work
+
+### Migration Guide
+
+**Phase 1: Baseline** (No changes)
+```bash
+# Document current state
+curl http://localhost:3000/api/servers | jq '.servers[] | .name'
+# Note your most-used servers
+```
+
+**Phase 2: Experiment** (Reversible)
+```bash
+# Backup config
+cp mcp.json mcp.json.backup
+
+# Add minimal filtering
+# (server-allowlist with 1-2 servers)
+
+# Test and monitor
+curl http://localhost:3000/api/filtering/stats | jq
+```
+
+**Phase 3: Optimize** (Iterative)
+```bash
+# Add servers incrementally
+# Monitor token usage after each addition
+# Adjust mode if needed
+```
+
+**Rollback:** `mv mcp.json.backup mcp.json && npm restart`
+
 
 ### Configuration Options
 
