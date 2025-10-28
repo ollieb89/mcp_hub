@@ -65,7 +65,7 @@
   },
   "dependencies": {
     "json5": "^2.2.3",
-    "p-queue": "^8.0.1",
+    "p-queue": "^9.0.0",
     "undici": "^7.16.0"
   }
 }
