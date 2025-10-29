@@ -1,4 +1,96 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Mock OpenAI SDK - must be defined before imports
+const mockOpenAICreate = vi.fn();
+
+vi.mock('openai', () => {
+  class MockOpenAI {
+    constructor(config) {
+      this.config = config;
+      this.chat = {
+        completions: {
+          create: mockOpenAICreate
+        }
+      };
+    }
+  }
+
+  // Error classes
+  MockOpenAI.APIError = class APIError extends Error {
+    constructor(status, body, message, headers) {
+      super(message);
+      this.status = status;
+      this.request_id = null;
+      this.code = null;
+      this.type = null;
+    }
+  };
+
+  MockOpenAI.APIConnectionError = class APIConnectionError extends Error {
+    constructor(opts) {
+      super(opts.message);
+      this.cause = opts.cause;
+    }
+  };
+
+  MockOpenAI.RateLimitError = class RateLimitError extends Error {
+    constructor(message) {
+      super(message);
+      this.request_id = null;
+      this.headers = {};
+    }
+  };
+
+  return {
+    default: MockOpenAI
+  };
+});
+
+// Mock Anthropic SDK
+const mockAnthropicCreate = vi.fn();
+
+vi.mock('@anthropic-ai/sdk', () => {
+  class MockAnthropic {
+    constructor(config) {
+      this.config = config;
+      this.messages = {
+        create: mockAnthropicCreate
+      };
+    }
+  }
+
+  // Error classes
+  MockAnthropic.APIError = class APIError extends Error {
+    constructor(status, body, message, headers) {
+      super(message);
+      this.status = status;
+      this.request_id = null;
+      this.type = null;
+    }
+  };
+
+  MockAnthropic.APIConnectionError = class APIConnectionError extends Error {
+    constructor(opts) {
+      super(opts.message);
+      this.cause = opts.cause;
+    }
+  };
+
+  MockAnthropic.RateLimitError = class RateLimitError extends Error {
+    constructor(message) {
+      super(message);
+      this.request_id = null;
+      this.headers = {};
+    }
+  };
+
+  return {
+    default: MockAnthropic
+  };
+});
+
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { LLMProvider, OpenAIProvider, AnthropicProvider, createLLMProvider } from '../src/utils/llm-provider.js';
 
 /**
@@ -47,12 +139,11 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
 
   describe('OpenAI Provider', () => {
     let provider;
-    let mockFetch;
 
     beforeEach(() => {
+      // Reset mock before each test
+      mockOpenAICreate.mockReset();
       provider = new OpenAIProvider({ apiKey: 'test-openai-key' });
-      mockFetch = vi.fn();
-      global.fetch = mockFetch;
     });
 
     afterEach(() => {
@@ -73,47 +164,45 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
     });
 
     it('should successfully categorize tool with valid response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          choices: [
-            {
-              message: {
-                content: 'filesystem'
-              }
+      mockOpenAICreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: 'filesystem'
             }
-          ]
-        })
+          }
+        ]
       });
 
       const category = await provider.categorize('filesystem__read', testToolDefinition, validCategories);
 
       expect(category).toBe('filesystem');
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.openai.com/v1/chat/completions',
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Authorization': 'Bearer test-openai-key',
-            'Content-Type': 'application/json'
-          })
-        })
-      );
+      expect(mockOpenAICreate).toHaveBeenCalledTimes(1);
+      expect(mockOpenAICreate).toHaveBeenCalledWith({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a tool categorization expert. Respond with ONLY the category name, nothing else.'
+          },
+          {
+            role: 'user',
+            content: expect.stringContaining('filesystem__read')
+          }
+        ],
+        temperature: 0,
+        max_tokens: 20
+      });
     });
 
     it('should use specified model or default to gpt-4o-mini', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          choices: [{ message: { content: 'web' } }]
-        })
+      mockOpenAICreate.mockResolvedValueOnce({
+        choices: [{ message: { content: 'web' } }]
       });
 
       await provider.categorize('fetch__url', testToolDefinition, validCategories);
 
-      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(callBody.model).toBe('gpt-4o-mini');
+      expect(mockOpenAICreate.mock.calls[0][0].model).toBe('gpt-4o-mini');
     });
 
     it('should use custom model when specified', async () => {
@@ -122,31 +211,24 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
         model: 'gpt-4'
       });
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          choices: [{ message: { content: 'web' } }]
-        })
+      mockOpenAICreate.mockResolvedValueOnce({
+        choices: [{ message: { content: 'web' } }]
       });
 
       await customProvider.categorize('fetch__url', testToolDefinition, validCategories);
 
-      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(callBody.model).toBe('gpt-4');
+      expect(mockOpenAICreate.mock.calls[0][0].model).toBe('gpt-4');
     });
 
     it('should default to other for invalid category response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          choices: [
-            {
-              message: {
-                content: 'invalid_category'
-              }
+      mockOpenAICreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: 'invalid_category'
             }
-          ]
-        })
+          }
+        ]
       });
 
       const category = await provider.categorize('unknown_tool', testToolDefinition, validCategories);
@@ -155,24 +237,137 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        statusText: 'Unauthorized',
-        text: async () => 'Invalid API key'
-      });
+      const apiError = new OpenAI.APIError(
+        401,
+        { error: { message: 'Invalid API key' } },
+        'Invalid API key',
+        {}
+      );
+      apiError.status = 401;
+      apiError.request_id = 'req_123';
+      apiError.code = 'invalid_api_key';
+      apiError.type = 'invalid_request_error';
+
+      mockOpenAICreate.mockRejectedValueOnce(apiError);
 
       await expect(
         provider.categorize('test_tool', testToolDefinition, validCategories)
-      ).rejects.toThrow('OpenAI API error: 401 Unauthorized - Invalid API key');
+      ).rejects.toThrow('Invalid API key');
+    });
+
+    it('should handle APIError with request_id for debugging', async () => {
+      const apiError = new OpenAI.APIError(
+        500,
+        { error: { message: 'Internal server error', type: 'api_error' } },
+        'Internal server error',
+        { 'x-request-id': 'req_abc123' }
+      );
+      apiError.status = 500;
+      apiError.request_id = 'req_abc123';
+      apiError.code = 'internal_error';
+      apiError.type = 'api_error';
+
+      mockOpenAICreate.mockRejectedValueOnce(apiError);
+
+      // Verify error has request_id for logging
+      try {
+        await provider.categorize('test_tool', testToolDefinition, validCategories);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(OpenAI.APIError);
+        expect(error.message).toBe('Internal server error');
+        expect(error.request_id).toBe('req_abc123');
+        expect(error.status).toBe(500);
+        expect(error.code).toBe('internal_error');
+      }
+    });
+
+    it('should handle RateLimitError with retry-after header', async () => {
+      const rateLimitError = new OpenAI.RateLimitError('Rate limit exceeded');
+      rateLimitError.request_id = 'req_ratelimit_456';
+      rateLimitError.headers = { 'retry-after': '60', 'x-request-id': 'req_ratelimit_456' };
+      rateLimitError.status = 429;
+
+      mockOpenAICreate.mockRejectedValueOnce(rateLimitError);
+
+      // Verify rate limit error has retry information
+      try {
+        await provider.categorize('test_tool', testToolDefinition, validCategories);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(OpenAI.RateLimitError);
+        expect(error.message).toBe('Rate limit exceeded');
+        expect(error.request_id).toBe('req_ratelimit_456');
+        expect(error.headers['retry-after']).toBe('60');
+      }
     });
 
     it('should handle network errors', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      const connectionError = new OpenAI.APIConnectionError({ message: 'Network error' });
+
+      mockOpenAICreate.mockRejectedValueOnce(connectionError);
 
       await expect(
         provider.categorize('test_tool', testToolDefinition, validCategories)
       ).rejects.toThrow('Network error');
+    });
+
+    it('should handle APIConnectionError with cause', async () => {
+      const connectionError = new OpenAI.APIConnectionError({
+        message: 'Connection failed',
+        cause: new Error('ECONNREFUSED')
+      });
+
+      mockOpenAICreate.mockRejectedValueOnce(connectionError);
+
+      // Verify connection error has cause for debugging
+      try {
+        await provider.categorize('test_tool', testToolDefinition, validCategories);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(OpenAI.APIConnectionError);
+        expect(error.message).toBe('Connection failed');
+        expect(error.cause).toBeDefined();
+        expect(error.cause.message).toBe('ECONNREFUSED');
+      }
+    });
+
+    it('should handle timeout errors gracefully', async () => {
+      const timeoutError = new Error('Request timed out');
+      timeoutError.name = 'TimeoutError';
+
+      mockOpenAICreate.mockRejectedValueOnce(timeoutError);
+
+      await expect(
+        provider.categorize('test_tool', testToolDefinition, validCategories)
+      ).rejects.toThrow('Request timed out');
+    });
+
+    it('should handle malformed API responses gracefully', async () => {
+      // Missing choices array - should gracefully handle
+      mockOpenAICreate.mockResolvedValueOnce({
+        choices: []
+      });
+
+      const category = await provider.categorize('test_tool', testToolDefinition, validCategories);
+
+      // Malformed response should default to 'other'
+      expect(category).toBe('other');
+    });
+
+    it('should handle empty response content', async () => {
+      mockOpenAICreate.mockResolvedValueOnce({
+        choices: [{
+          message: {
+            content: ''
+          }
+        }]
+      });
+
+      const category = await provider.categorize('test_tool', testToolDefinition, validCategories);
+
+      // Empty content should default to 'other'
+      expect(category).toBe('other');
     });
 
     it('should build correct prompt', () => {
@@ -193,12 +388,11 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
 
   describe('Anthropic Provider', () => {
     let provider;
-    let mockFetch;
 
     beforeEach(() => {
+      // Reset mock before each test
+      mockAnthropicCreate.mockReset();
       provider = new AnthropicProvider({ apiKey: 'test-anthropic-key' });
-      mockFetch = vi.fn();
-      global.fetch = mockFetch;
     });
 
     afterEach(() => {
@@ -212,54 +406,45 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
     });
 
     it('should successfully categorize tool with valid response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          content: [
-            {
-              text: 'database'
-            }
-          ]
-        })
+      mockAnthropicCreate.mockResolvedValueOnce({
+        content: [
+          {
+            text: 'database'
+          }
+        ]
       });
 
       const category = await provider.categorize('postgres__query', testToolDefinition, validCategories);
 
       expect(category).toBe('database');
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.anthropic.com/v1/messages',
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'x-api-key': 'test-anthropic-key',
-            'anthropic-version': '2023-06-01',
-            'Content-Type': 'application/json'
-          })
-        })
-      );
+      expect(mockAnthropicCreate).toHaveBeenCalledTimes(1);
+      expect(mockAnthropicCreate).toHaveBeenCalledWith({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 20,
+        messages: [
+          {
+            role: 'user',
+            content: expect.stringContaining('postgres__query')
+          }
+        ],
+        system: 'You are a tool categorization expert. Respond with ONLY the category name, nothing else.',
+        temperature: 0
+      });
     });
 
     it('should use specified model or default to claude-3-haiku', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          content: [{ text: 'web' }]
-        })
+      mockAnthropicCreate.mockResolvedValueOnce({
+        content: [{ text: 'web' }]
       });
 
       await provider.categorize('fetch__url', testToolDefinition, validCategories);
 
-      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(callBody.model).toBe('claude-3-haiku-20240307');
+      expect(mockAnthropicCreate.mock.calls[0][0].model).toBe('claude-3-haiku-20240307');
     });
 
     it('should default to other for invalid category response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          content: [{ text: 'random_category' }]
-        })
+      mockAnthropicCreate.mockResolvedValueOnce({
+        content: [{ text: 'random_category' }]
       });
 
       const category = await provider.categorize('unknown_tool', testToolDefinition, validCategories);
@@ -268,16 +453,123 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 403,
-        statusText: 'Forbidden',
-        text: async () => 'Invalid API key'
-      });
+      const apiError = new Anthropic.APIError(
+        403,
+        { error: { message: 'Invalid API key' } },
+        'Invalid API key',
+        {}
+      );
+      apiError.status = 403;
+      apiError.request_id = 'req_456';
+      apiError.type = 'authentication_error';
+
+      mockAnthropicCreate.mockRejectedValueOnce(apiError);
 
       await expect(
         provider.categorize('test_tool', testToolDefinition, validCategories)
-      ).rejects.toThrow('Anthropic API error: 403 Forbidden - Invalid API key');
+      ).rejects.toThrow('Invalid API key');
+    });
+
+    it('should handle APIError with request_id for debugging', async () => {
+      const apiError = new Anthropic.APIError(
+        500,
+        { error: { message: 'Internal server error', type: 'api_error' } },
+        'Internal server error',
+        { 'x-request-id': 'req_anthropic_xyz789' }
+      );
+      apiError.status = 500;
+      apiError.request_id = 'req_anthropic_xyz789';
+      apiError.type = 'api_error';
+
+      mockAnthropicCreate.mockRejectedValueOnce(apiError);
+
+      // Verify error has request_id for logging
+      try {
+        await provider.categorize('test_tool', testToolDefinition, validCategories);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Anthropic.APIError);
+        expect(error.message).toBe('Internal server error');
+        expect(error.request_id).toBe('req_anthropic_xyz789');
+        expect(error.status).toBe(500);
+        expect(error.type).toBe('api_error');
+      }
+    });
+
+    it('should handle RateLimitError with retry information', async () => {
+      const rateLimitError = new Anthropic.RateLimitError('Rate limit exceeded');
+      rateLimitError.request_id = 'req_anthropic_ratelimit';
+      rateLimitError.headers = { 'retry-after': '120', 'x-request-id': 'req_anthropic_ratelimit' };
+      rateLimitError.status = 429;
+
+      mockAnthropicCreate.mockRejectedValueOnce(rateLimitError);
+
+      // Verify rate limit error has retry information
+      try {
+        await provider.categorize('test_tool', testToolDefinition, validCategories);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Anthropic.RateLimitError);
+        expect(error.message).toBe('Rate limit exceeded');
+        expect(error.request_id).toBe('req_anthropic_ratelimit');
+        expect(error.headers['retry-after']).toBe('120');
+      }
+    });
+
+    it('should handle APIConnectionError with cause', async () => {
+      const connectionError = new Anthropic.APIConnectionError({
+        message: 'Connection failed',
+        cause: new Error('ENOTFOUND')
+      });
+
+      mockAnthropicCreate.mockRejectedValueOnce(connectionError);
+
+      // Verify connection error has cause for debugging
+      try {
+        await provider.categorize('test_tool', testToolDefinition, validCategories);
+        expect.fail('Should have thrown an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Anthropic.APIConnectionError);
+        expect(error.message).toBe('Connection failed');
+        expect(error.cause).toBeDefined();
+        expect(error.cause.message).toBe('ENOTFOUND');
+      }
+    });
+
+    it('should handle timeout errors gracefully', async () => {
+      const timeoutError = new Error('Request timed out');
+      timeoutError.name = 'TimeoutError';
+
+      mockAnthropicCreate.mockRejectedValueOnce(timeoutError);
+
+      await expect(
+        provider.categorize('test_tool', testToolDefinition, validCategories)
+      ).rejects.toThrow('Request timed out');
+    });
+
+    it('should handle malformed API responses gracefully', async () => {
+      // Missing content array - should gracefully handle
+      mockAnthropicCreate.mockResolvedValueOnce({
+        content: []
+      });
+
+      const category = await provider.categorize('test_tool', testToolDefinition, validCategories);
+
+      // Malformed response should default to 'other'
+      expect(category).toBe('other');
+    });
+
+    it('should handle empty response content', async () => {
+      mockAnthropicCreate.mockResolvedValueOnce({
+        content: [{
+          text: ''
+        }]
+      });
+
+      const category = await provider.categorize('test_tool', testToolDefinition, validCategories);
+
+      // Empty content should default to 'other'
+      expect(category).toBe('other');
     });
   });
 

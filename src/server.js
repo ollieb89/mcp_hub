@@ -568,7 +568,6 @@ registerRoute(
       }
 
       const stats = mcpServerEndpoint.filteringService.getStats();
-      const totalTools = mcpServerEndpoint.registeredCapabilities.tools.size;
 
       // Calculate exposed vs filtered
       const exposedTools = stats.totalExposed;
