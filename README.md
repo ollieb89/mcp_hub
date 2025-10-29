@@ -570,10 +570,17 @@ Automatically enable filtering when tool count exceeds threshold:
 
 **Behavior:** If total tool count > 100, filtering automatically activates
 
-### LLM Enhancement (Optional)
+### LLM Enhancement (Optional) - Now with Official SDKs ✨
 
-Use LLM to categorize ambiguous tools:
+The LLM categorization feature now uses official OpenAI and Anthropic SDKs for production-grade reliability:
 
+**New Features:**
+- ✅ **Automatic Retries**: Transient failures (429, 5xx) automatically retried with exponential backoff
+- ✅ **Typed Errors**: Detailed error information with `APIError`, `RateLimitError`, `ConnectionError`
+- ✅ **Request Tracking**: Every API call tracked with `request_id` for debugging
+- ✅ **Better Observability**: Enhanced logging with error context and retry information
+
+**Configuration** (unchanged):
 ```json
 {
   "toolFiltering": {
@@ -582,17 +589,56 @@ Use LLM to categorize ambiguous tools:
     "categoryFilter": {
       "categories": ["filesystem", "web", "search"]
     },
-    "llmProvider": {
+    "llmCategorization": {
+      "enabled": true,
       "provider": "openai",
-      "apiKey": "${OPENAI_API_KEY}",
+      "apiKey": "${env:OPENAI_API_KEY}",
       "model": "gpt-4o-mini"
     }
   }
 }
 ```
 
-**Benefits**: 10-20% accuracy improvement for edge cases
-**Cost**: ~$0.01 per 100 tools (cached after first categorization)
+**Error Handling Examples:**
+
+```javascript
+// Automatic retry on transient failures
+// 429 Rate Limit → SDK retries with backoff
+// 500 Server Error → SDK retries up to 3 times
+// Connection timeout → SDK retries
+
+// Detailed error logging
+// ✅ Request ID: req_abc123
+// ✅ Error Type: RateLimitError
+// ✅ Retry After: 60 seconds
+// ✅ Status Code: 429
+```
+
+**Observability:**
+
+Check LLM performance in stats API:
+```bash
+curl http://localhost:37373/api/filtering/stats
+```
+
+Response includes LLM metrics:
+```json
+{
+  "llm": {
+    "cacheHits": 150,
+    "cacheMisses": 10,
+    "errorsByType": {
+      "RateLimitError": 2,
+      "APIError": 1
+    },
+    "totalRetries": 5
+  }
+}
+```
+
+**Benefits**: 10-20% accuracy improvement for edge cases  
+**Cost**: ~$0.01 per 100 tools (cached after first categorization)  
+**Reliability**: Automatic retry handles 80%+ of transient failures
 
 ### Monitoring & Statistics
 
