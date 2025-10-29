@@ -12,42 +12,41 @@ import {
 import { createTestConfig } from "./helpers/fixtures.js";
 import { expectServerConnected, expectServerDisconnected, expectNoActiveConnections } from "./helpers/assertions.js";
 
-// Mock ConfigManager
+// Mock ConfigManager with proper constructor
 vi.mock("../src/utils/config.js", () => {
-  const MockConfigManager = vi.fn(() => ({
-    loadConfig: vi.fn(),
-    watchConfig: vi.fn(),
-    getConfig: vi.fn(),
-    updateConfig: vi.fn(),
-    on: vi.fn(),
-  }));
-  return { ConfigManager: MockConfigManager };
+  return {
+    ConfigManager: vi.fn().mockImplementation(function() {
+      this.loadConfig = vi.fn();
+      this.watchConfig = vi.fn();
+      this.getConfig = vi.fn();
+      this.updateConfig = vi.fn();
+      this.on = vi.fn();
+    }),
+  };
 });
 
-// Mock MCPConnection
+// Mock MCPConnection with proper constructor
 vi.mock("../src/MCPConnection.js", () => {
-  const MockConnection = vi.fn(() => {
-    const instance = {
-      connect: vi.fn().mockResolvedValue(undefined),
-      disconnect: vi.fn().mockResolvedValue(undefined),
-      getServerInfo: vi.fn().mockResolvedValue({ name: '', status: 'connected' }),
-      callTool: vi.fn(),
-      readResource: vi.fn(),
-      on: vi.fn(),
-      emit: vi.fn(),
-      off: vi.fn(),
-      once: vi.fn(),
-      listenerCount: vi.fn().mockReturnValue(0),
-      removeAllListeners: vi.fn(),
-      updateCapabilities: vi.fn().mockResolvedValue(undefined),
-      listTools: vi.fn().mockResolvedValue([]),
-      listResources: vi.fn().mockResolvedValue([]),
-      listPrompts: vi.fn().mockResolvedValue([]),
-      status: 'connected'
-    };
-    return instance;
-  });
-  return { MCPConnection: MockConnection };
+  return {
+    MCPConnection: vi.fn().mockImplementation(function() {
+      this.connect = vi.fn().mockResolvedValue(undefined);
+      this.disconnect = vi.fn().mockResolvedValue(undefined);
+      this.getServerInfo = vi.fn().mockResolvedValue({ name: '', status: 'connected' });
+      this.callTool = vi.fn();
+      this.readResource = vi.fn();
+      this.on = vi.fn();
+      this.emit = vi.fn();
+      this.off = vi.fn();
+      this.once = vi.fn();
+      this.listenerCount = vi.fn().mockReturnValue(0);
+      this.removeAllListeners = vi.fn();
+      this.updateCapabilities = vi.fn().mockResolvedValue(undefined);
+      this.listTools = vi.fn().mockResolvedValue([]);
+      this.listResources = vi.fn().mockResolvedValue([]);
+      this.listPrompts = vi.fn().mockResolvedValue([]);
+      this.status = 'connected';
+    }),
+  };
 });
 
 // Mock logger
@@ -77,21 +76,12 @@ describe("MCPHub", () => {
       },
     };
 
-    // Setup ConfigManager mock
-    configManager = new ConfigManager();
-    ConfigManager.mockReturnValue(configManager);
-    configManager.getConfig.mockReturnValue(mockConfig);
-
-    // Setup MCPConnection mock
-    connection = new MCPConnection();
-    MCPConnection.mockReturnValue(connection);
-    connection.getServerInfo.mockReturnValue({
-      name: "server1",
-      status: "connected",
-    });
-
     // Create new MCPHub instance
     mcpHub = new MCPHub("config.json");
+    
+    // Get the mocked instances
+    configManager = mcpHub.configManager;
+    configManager.getConfig.mockReturnValue(mockConfig);
   });
 
   describe("Initialization", () => {
@@ -196,8 +186,6 @@ describe("MCPHub", () => {
       let newConnection;
       if (configChangeHandler) {
         // Setup mock for added server
-        newConnection = new MCPConnection();
-        MCPConnection.mockReturnValue(newConnection);
         configManager.getConfig.mockReturnValue(newConfig);
         
         // Call handler with changes indicating a new server was added
@@ -205,6 +193,9 @@ describe("MCPHub", () => {
           config: newConfig, 
           changes: { added: ['server3'], removed: [], modified: [] }
         });
+        
+        // Get the newly created connection
+        newConnection = mcpHub.connections.get('server3');
       }
 
       // ASSERT

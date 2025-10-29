@@ -11,30 +11,30 @@ import {
 
 // Mock MCP SDK
 vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: vi.fn(() => ({
-    connect: vi.fn().mockImplementation(async (transport) => {
+  Client: vi.fn().mockImplementation(function() {
+    this.connect = vi.fn().mockImplementation(async (transport) => {
       // Store transport for later use
-      if (client) {
-        client.transport = transport;
+      if (this) {
+        this.transport = transport;
       }
       return undefined;
-    }),
-    close: vi.fn(),
-    request: vi.fn(),
-    setNotificationHandler: vi.fn(),
-    transport: null,
-  })),
+    });
+    this.close = vi.fn();
+    this.request = vi.fn();
+    this.setNotificationHandler = vi.fn();
+    this.transport = null;
+  }),
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/stdio.js", () => ({
-  StdioClientTransport: vi.fn(() => ({
-    close: vi.fn(),
-    stderr: {
+  StdioClientTransport: vi.fn().mockImplementation(function() {
+    this.close = vi.fn();
+    this.stderr = {
       on: vi.fn(),
-    },
-    onerror: null,
-    onclose: null,
-  })),
+    };
+    this.onerror = null;
+    this.onclose = null;
+  }),
   getDefaultEnvironment: vi.fn().mockReturnValue({}),
 }));
 
@@ -65,22 +65,12 @@ describe("MCPConnection", () => {
       env: { TEST_ENV: "value" },
     };
 
-    // Setup client mock
-    client = new Client();
-    Client.mockReturnValue(client);
-    
-    // Override connect to store transport
-    client.connect = vi.fn().mockImplementation(async (transportParam) => {
-      client.transport = transportParam;
-      return undefined;
-    });
-
-    // Setup transport mock
-    transport = new StdioClientTransport();
-    StdioClientTransport.mockReturnValue(transport);
-
-    // Create connection instance
+    // Create connection instance (this will create the mocked Client and Transport)
     connection = new MCPConnection("test-server", mockConfig);
+    
+    // Get the mocked instances that were created
+    client = connection.client;
+    transport = connection.transport;
   });
 
   describe("Connection Lifecycle", () => {
