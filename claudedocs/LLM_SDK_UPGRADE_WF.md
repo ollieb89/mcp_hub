@@ -1011,7 +1011,7 @@ getStats() {
 **File**: `tests/llm-provider.test.js`  
 **Estimated Time**: 45 minutes  
 **Priority**: Critical  
-**Status**: ⏳ Not Started
+**Status**: ✅ Complete (2025-10-29)
 
 **Objective**: Replace nock/fetch mocks with SDK mocks using Vitest
 
@@ -1245,12 +1245,12 @@ describe('Anthropic Provider', () => {
 ```
 
 **Test Migration Checklist**:
-- [ ] Remove `nock` mocks (no longer needed)
-- [ ] Add SDK mocks (`vi.mock('openai')`, `vi.mock('@anthropic-ai/sdk')`)
-- [ ] Update all test assertions
-- [ ] Add typed error tests (APIError, RateLimitError, ConnectionError)
-- [ ] Verify request_id logging
-- [ ] Add retry behavior tests
+- [x] Remove `nock` mocks (no longer needed)
+- [x] Add SDK mocks (`vi.mock('openai')`, `vi.mock('@anthropic-ai/sdk')`)
+- [x] Update all test assertions
+- [x] Add typed error tests (APIError, RateLimitError, ConnectionError)
+- [x] Verify request_id logging
+- [x] Add retry behavior tests
 
 **Deliverables**:
 - ✅ All 24 OpenAI provider tests updated
@@ -1259,10 +1259,10 @@ describe('Anthropic Provider', () => {
 - ✅ Factory function tests verified
 
 **Acceptance Criteria**:
-- [ ] All llm-provider tests pass (24/24 baseline + new error tests)
-- [ ] SDK mocks work correctly
-- [ ] Error handling thoroughly tested
-- [ ] No nock dependencies remaining
+- [x] All llm-provider tests pass (36/36, exceeded 24 baseline with 12 new error tests)
+- [x] SDK mocks work correctly
+- [x] Error handling thoroughly tested
+- [x] No nock dependencies remaining
 
 ---
 
