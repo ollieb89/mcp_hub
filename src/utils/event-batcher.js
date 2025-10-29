@@ -1,5 +1,4 @@
 import EventEmitter from 'events';
-import logger from './logger.js';
 
 /**
  * Default batching configuration

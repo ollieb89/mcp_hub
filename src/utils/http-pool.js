@@ -59,7 +59,9 @@ export function createHTTPAgent(config = {}) {
   const poolConfig = { ...DEFAULT_POOL_CONFIG, ...config };
 
   // Remove 'enabled' property as it's not a valid Agent option
-  const { enabled, ...agentOptions } = poolConfig;
+  // Create a shallow copy and remove the 'enabled' flag (not an Agent option)
+  const agentOptions = { ...poolConfig };
+  if ('enabled' in agentOptions) delete agentOptions.enabled;
 
   try {
     // Create undici Agent with pooling configuration

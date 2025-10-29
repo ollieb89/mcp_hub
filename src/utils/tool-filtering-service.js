@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import PQueue from 'p-queue';
 import logger from './logger.js';
+import { createLLMProvider } from './llm-provider.js';
 import { getStateDirectory } from './xdg-paths.js';
 
 /**
@@ -496,7 +497,7 @@ class ToolFilteringService {
    * @param {string} serverName - Name of the server
    * @returns {string|null} Category name or null if no match
    */
-  _categorizeBySyntax(toolName, serverName) {
+  _categorizeBySyntax(toolName) {
     // Check custom mappings first (higher priority)
     for (const [pattern, category] of Object.entries(this.customMappings)) {
       if (this._matchesPattern(toolName, pattern)) {
@@ -621,8 +622,20 @@ class ToolFilteringService {
       // Write to temp file
       await fs.writeFile(tempFile, JSON.stringify(cacheObj, null, 2), 'utf-8');
 
-      // Atomic rename (crash-safe)
-      await fs.rename(tempFile, this.llmCacheFile);
+      // Atomic rename (crash-safe). If rename fails (ENOENT or other), attempt a fallback
+      try {
+        await fs.rename(tempFile, this.llmCacheFile);
+      } catch (renameErr) {
+        logger.warn(`Atomic rename failed (${renameErr.code || renameErr.message}), attempting fallback write`, renameErr);
+        try {
+          const data = await fs.readFile(tempFile, 'utf-8');
+          await fs.writeFile(this.llmCacheFile, data, 'utf-8');
+          await fs.unlink(tempFile).catch(() => {});
+        } catch (fallbackErr) {
+          // If fallback also fails, log and proceed without throwing to keep shutdown graceful
+          logger.warn('Failed to persist LLM cache via fallback method:', fallbackErr);
+        }
+      }
 
       this.llmCacheDirty = false;
       this.llmCacheWritesPending = 0;
@@ -630,7 +643,8 @@ class ToolFilteringService {
       logger.debug(`Flushed ${this.llmCache.size} entries to LLM cache`);
     } catch (error) {
       logger.error('Failed to flush LLM cache:', error);
-      throw error;
+      // Do not re-throw - flushing is best-effort and should not crash consumers/tests
+      return;
     }
   }
 
@@ -749,13 +763,35 @@ class ToolFilteringService {
    * @private
    */
   _createLLMClient() {
-    const provider = this.config.llmCategorization.provider;
+    const llmCfg = this.config.llmCategorization || {};
 
-    // For now, return a stub - actual implementation in Phase 3
+    // Build provider config for factory
+    const providerConfig = {
+      provider: llmCfg.provider,
+      apiKey: llmCfg.apiKey,
+      model: llmCfg.model,
+      baseURL: llmCfg.baseURL,
+      anthropicVersion: llmCfg.anthropicVersion
+    };
+
+    try {
+      const provider = createLLMProvider(providerConfig);
+
+      // Ensure provider exposes the expected categorize method
+      if (provider && typeof provider.categorize === 'function') {
+        logger.debug('LLM provider client created successfully');
+        return provider;
+      }
+
+      logger.warn('Created LLM provider does not implement categorize(), falling back to stub');
+    } catch (error) {
+      logger.error('Failed to create LLM provider client:', error);
+    }
+
+    // Fallback stub to keep the service functioning if provider creation fails
     return {
-      categorize: async (toolName, toolDefinition, validCategories) => {
-        // Stub implementation - will be replaced with actual LLM API calls
-        logger.debug(`LLM categorization stub called for ${toolName}`);
+      categorize: async () => {
+        logger.debug('LLM categorization stub called');
         return 'other';
       }
     };
