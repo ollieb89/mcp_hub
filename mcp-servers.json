@@ -1,4 +1,11 @@
 {
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "category",
+    "categoryFilter": {
+      "categories": ["filesystem", "web", "search"]
+    }
+  },
   "mcpServers": {
     "serena": {
       "command": "uv",

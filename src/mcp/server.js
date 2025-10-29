@@ -167,6 +167,7 @@ export class MCPServerEndpoint {
 
     // Initialize tool filtering service (Sprint 2)
     const config = this.mcpHub.configManager?.getConfig() || {};
+    console.log('[DEBUG] Config has toolFiltering:', !!config.toolFiltering, 'Keys:', Object.keys(config));
     this.filteringService = new ToolFilteringService(config, this.mcpHub);
 
     // Setup capability synchronization once

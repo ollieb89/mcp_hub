@@ -21,6 +21,10 @@ const SERVER_ID = "mcp-hub";
 // Create Express app
 const app = express();
 app.use(express.json());
+
+// Serve static files from public directory
+app.use(express.static('public'));
+
 app.use("/api", router);
 
 // Helper to determine HTTP status code from error type
@@ -539,6 +543,70 @@ registerRoute("GET", "/health", "Check server health", async (req, res) => {
 
   res.json(healthData);
 });
+
+// Register filtering statistics endpoint
+registerRoute(
+  "GET",
+  "/filtering/stats",
+  "Get tool filtering statistics",
+  async (req, res) => {
+    try {
+      // Check if MCP endpoint exists
+      if (!mcpServerEndpoint) {
+        return res.status(404).json({
+          error: 'MCP endpoint not initialized',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Check if tool filtering service exists
+      if (!mcpServerEndpoint.filteringService) {
+        return res.status(404).json({
+          error: 'Tool filtering not initialized',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      const stats = mcpServerEndpoint.filteringService.getStats();
+      const totalTools = mcpServerEndpoint.registeredCapabilities.tools.size;
+
+      // Calculate exposed vs filtered
+      const exposedTools = stats.totalExposed;
+      const filteredTools = stats.totalFiltered;
+
+      res.json({
+        enabled: stats.enabled,
+        mode: stats.mode,
+        totalTools: stats.totalChecked,
+        filteredTools,
+        exposedTools,
+        filterRate: stats.filterRate,
+
+        // Server filter info
+        serverFilterMode: mcpServerEndpoint.filteringService.config.serverFilter?.mode || null,
+        allowedServers: stats.allowedServers,
+
+        // Category filter info
+        allowedCategories: stats.allowedCategories,
+
+        // Cache performance
+        categoryCacheSize: stats.categoryCacheSize,
+        cacheHitRate: stats.cacheHitRate,
+
+        // LLM cache performance
+        llmCacheSize: stats.llmCacheSize,
+        llmCacheHitRate: stats.llmCacheHitRate,
+
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Failed to get filtering stats:', error);
+      throw wrapError(error, 'FILTERING_STATS_ERROR', {
+        message: error.message
+      });
+    }
+  }
+);
 
 // Register server list endpoint
 registerRoute(
