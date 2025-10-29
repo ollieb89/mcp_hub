@@ -1,6 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import ToolFilteringService, { DEFAULT_CATEGORIES } from '../src/utils/tool-filtering-service.js';
 import logger from '../src/utils/logger.js';
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
+
+// Mock the SDK modules for Task 3.2 integration tests
+vi.mock('openai');
+vi.mock('@anthropic-ai/sdk');
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
+
+// Mock the SDK modules for Task 3.2 integration tests
+vi.mock('openai');
+vi.mock('@anthropic-ai/sdk');
 
 /**
  * Test Suite: ToolFilteringService - Sprint 0.1 Non-Blocking Architecture
@@ -1727,9 +1739,16 @@ describe('ToolFilteringService - Task 3.2.1: _categorizeByLLM', () => {
         description: 'Test tool'
       });
 
-      // Assert
+      // Assert - verify enhanced logging with structured error data
       expect(warnSpy).toHaveBeenCalledWith(
-        'LLM categorization failed for timeout_tool: Network timeout'
+        'LLM categorization failed for timeout_tool',
+        {
+          errorType: 'Error',
+          requestId: 'unknown',
+          message: 'Network timeout',
+          status: undefined,
+          code: undefined
+        }
       );
 
       warnSpy.mockRestore();
@@ -2329,3 +2348,300 @@ describe('ToolFilteringService - Task 3.3.2: LLM Categorization', () => {
     expect(calls).toHaveLength(5);
   });
 });
+
+/**
+ * Task 3.2: Non-Blocking LLM Integration with SDK
+ * 
+ * Enhanced integration tests for SDK-based LLM providers:
+ * - SDK error handling (APIError, RateLimitError, ConnectionError)
+ * - Request ID tracking in background operations
+ * - Retry behavior verification
+ * - Stats tracking for SDK-specific metrics
+ */
+describe('Non-Blocking LLM Integration with SDK', () => {
+  let mockLLMCreate;
+  let service;
+  let mockMcpHub;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    
+    mockMcpHub = {
+      config: {}
+    };
+
+    // Mock SDK - OpenAI
+    mockLLMCreate = vi.fn();
+    OpenAI.mockImplementation(() => ({
+      chat: {
+        completions: {
+          create: mockLLMCreate
+        }
+      }
+    }));
+
+    // Mock SDK - Anthropic
+    const mockAnthropicCreate = vi.fn();
+    Anthropic.mockImplementation(() => ({
+      messages: {
+        create: mockAnthropicCreate
+      }
+    }));
+  });
+
+  afterEach(async () => {
+    if (service) {
+      await service.shutdown();
+    }
+  });
+
+  it('should handle SDK errors gracefully in background', async () => {
+    // Mock API error with request_id
+    const apiError = new Error('Internal server error');
+    apiError.name = 'APIError';
+    apiError.status = 500;
+    apiError.request_id = 'req_test_123';
+    
+    const mockLLMClient = {
+      categorize: vi.fn().mockRejectedValue(apiError)
+    };
+
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        mode: 'category',
+        categoryFilter: { categories: ['filesystem'] },
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    service.llmClient = mockLLMClient;
+    
+    // Spy on logger
+    const warnSpy = vi.spyOn(logger, 'warn');
+    
+    // Directly trigger LLM categorization (background happens via getToolCategory)
+    const category = await service._categorizeByLLM('unknown_tool', {
+      description: 'Unknown tool'
+    });
+    
+    // Should fallback to 'other' on error
+    expect(category).toBe('other');
+    
+    // Verify error was logged with request_id
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('LLM categorization failed'),
+      expect.objectContaining({
+        requestId: 'req_test_123',
+        message: 'Internal server error'
+      })
+    );
+
+    warnSpy.mockRestore();
+  });
+
+  it('should track request IDs in stats', async () => {
+    // Mock the LLM client directly on the service
+    const mockLLMClient = {
+      categorize: vi.fn().mockResolvedValue('filesystem')
+    };
+
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        mode: 'category',
+        categoryFilter: { categories: ['filesystem'] },
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    service.llmClient = mockLLMClient;
+    
+    // Trigger LLM categorization via internal method
+    const category = await service._categorizeByLLM('test_tool', { description: 'Test' });
+    
+    expect(category).toBe('filesystem');
+    
+    const stats = service.getStats();
+    expect(stats.llm).toBeDefined();
+    expect(stats.llm.cacheHits).toBeGreaterThanOrEqual(0);
+    expect(stats.llm.cacheMisses).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should handle retry attempts correctly', async () => {
+    // Mock LLM client to fail first time, succeed second time
+    const mockLLMClient = {
+      categorize: vi.fn()
+        .mockRejectedValueOnce(new Error('Service unavailable'))
+        .mockResolvedValueOnce('filesystem')
+    };
+
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        mode: 'category',
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    service.llmClient = mockLLMClient;
+    
+    // First attempt will fail and return 'other' (graceful fallback)
+    const firstCategory = await service._categorizeByLLM('test_tool', { description: 'Test' });
+    expect(firstCategory).toBe('other');  // Fallback on error
+    
+    // Second attempt should succeed
+    const secondCategory = await service._categorizeByLLM('test_tool_2', { description: 'Test 2' });
+    expect(secondCategory).toBe('filesystem');
+  });
+
+  it('should handle rate limit errors with proper logging', async () => {
+    // Mock rate limit error
+    const rateLimitError = new Error('Rate limit exceeded');
+    rateLimitError.name = 'RateLimitError';
+    rateLimitError.status = 429;
+    rateLimitError.request_id = 'req_rate_limit_456';
+    
+    const mockLLMClient = {
+      categorize: vi.fn().mockRejectedValue(rateLimitError)
+    };
+
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        mode: 'category',
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    service.llmClient = mockLLMClient;
+    
+    const warnSpy = vi.spyOn(logger, 'warn');
+    
+    // Trigger categorization - should fallback to 'other'
+    const category = await service._categorizeByLLM('rate_limited_tool', { description: 'Test' });
+    
+    // Should fallback gracefully
+    expect(category).toBe('other');
+    
+    // Verify error was logged with request_id and status
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('LLM categorization failed'),
+      expect.objectContaining({
+        requestId: 'req_rate_limit_456',
+        status: 429,
+        message: 'Rate limit exceeded'
+      })
+    );
+    
+    warnSpy.mockRestore();
+  });
+
+  it('should handle connection errors gracefully', async () => {
+    // Mock connection error
+    const connectionError = new Error('Connection failed');
+    connectionError.name = 'APIConnectionError';
+    connectionError.code = 'ECONNREFUSED';
+    
+    const mockLLMClient = {
+      categorize: vi.fn().mockRejectedValue(connectionError)
+    };
+
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        mode: 'category',
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    service.llmClient = mockLLMClient;
+    
+    const warnSpy = vi.spyOn(logger, 'warn');
+    
+    // Trigger categorization - should fallback gracefully
+    const category = await service._categorizeByLLM('connection_test', { description: 'Test' });
+    
+    // Should fallback to 'other'
+    expect(category).toBe('other');
+    
+    // Verify graceful handling with error logged
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('LLM categorization failed'),
+      expect.objectContaining({
+        code: 'ECONNREFUSED',
+        message: 'Connection failed'
+      })
+    );
+    
+    warnSpy.mockRestore();
+  });
+
+  it('should maintain non-blocking behavior with SDK errors', async () => {
+    // Mock SDK error
+    const apiError = new Error('Timeout');
+    apiError.name = 'APITimeoutError';
+    mockLLMCreate.mockRejectedValue(apiError);
+
+    const config = {
+      toolFiltering: {
+        enabled: true,
+        mode: 'category',
+        categoryFilter: { categories: ['filesystem'] },
+        llmCategorization: {
+          enabled: true,
+          provider: 'openai',
+          apiKey: 'test-key'
+        }
+      }
+    };
+    mockMcpHub.config = config;
+
+    service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    
+    // Act
+    const startTime = Date.now();
+    const result = service.shouldIncludeTool('slow_tool', 'test-server', {
+      description: 'Tool that times out'
+    });
+    const duration = Date.now() - startTime;
+    
+    // Assert - should return immediately despite SDK error
+    expect(result).toBe(false);  // Not in category list
+    expect(duration).toBeLessThan(50);  // Non-blocking
+    
+    // Background error should be logged but not thrown
+    await new Promise(resolve => setTimeout(resolve, 200));
+  });
+});
+

@@ -1,3 +1,5 @@
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import logger from './logger.js';
 
 /**
@@ -30,7 +32,17 @@ export class LLMProvider {
 export class OpenAIProvider extends LLMProvider {
   constructor(config) {
     super(config);
+    
+    // Store baseURL for backward compatibility
     this.baseURL = config.baseURL || 'https://api.openai.com/v1';
+    
+    // Initialize OpenAI client with retry configuration
+    this.client = new OpenAI({
+      apiKey: this.apiKey,
+      baseURL: config.baseURL,  // Optional custom endpoint
+      maxRetries: 3,            // Retry transient failures
+      timeout: 30000,           // 30 second timeout
+    });
   }
 
   /**
@@ -44,47 +56,62 @@ export class OpenAIProvider extends LLMProvider {
     const prompt = this._buildPrompt(toolName, toolDefinition, validCategories);
 
     try {
-      const response = await fetch(`${this.baseURL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: this.model || 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a tool categorization expert. Respond with ONLY the category name, nothing else.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0,
-          max_tokens: 20
-        })
+      const completion = await this.client.chat.completions.create({
+        model: this.model || 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a tool categorization expert. Respond with ONLY the category name, nothing else.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0,
+        max_tokens: 20
       });
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`OpenAI API error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      const category = data.choices[0].message.content.trim().toLowerCase();
+      const category = completion.choices[0]?.message?.content?.trim().toLowerCase();
 
       // Validate response
-      if (!validCategories.includes(category)) {
-        logger.warn(`LLM returned invalid category: ${category}, defaulting to 'other'`);
+      if (!category || !validCategories.includes(category)) {
+        logger.warn(`LLM returned invalid category: ${category}, defaulting to 'other'`, {
+          toolName,
+          validCategories: validCategories.join(', ')
+        });
         return 'other';
       }
 
       return category;
     } catch (error) {
-      logger.error(`OpenAI API call failed: ${error.message}`);
-      throw error;
+      // Enhanced error handling with typed errors
+      if (error instanceof OpenAI.APIError) {
+        logger.error(`OpenAI API error: ${error.status} - ${error.message}`, {
+          requestId: error.request_id,
+          code: error.code,
+          type: error.type,
+          toolName
+        });
+      } else if (error instanceof OpenAI.APIConnectionError) {
+        logger.error(`OpenAI connection error: ${error.message}`, {
+          toolName,
+          cause: error.cause
+        });
+      } else if (error instanceof OpenAI.RateLimitError) {
+        logger.warn(`OpenAI rate limit exceeded`, {
+          requestId: error.request_id,
+          toolName,
+          retryAfter: error.headers?.['retry-after']
+        });
+      } else {
+        logger.error(`OpenAI API call failed: ${error.message}`, {
+          toolName,
+          error: error.stack
+        });
+      }
+      
+      throw error;  // Re-throw for upstream handling
     }
   }
 
@@ -113,8 +140,18 @@ Respond with ONLY the category name.`;
 export class AnthropicProvider extends LLMProvider {
   constructor(config) {
     super(config);
+    
+    // Store baseURL for backward compatibility
     this.baseURL = config.baseURL || 'https://api.anthropic.com/v1';
     this.anthropicVersion = config.anthropicVersion || '2023-06-01';
+    
+    // Initialize Anthropic client with retry configuration
+    this.client = new Anthropic({
+      apiKey: this.apiKey,
+      baseURL: config.baseURL,  // Optional custom endpoint
+      maxRetries: 3,            // Retry transient failures
+      timeout: 30000,           // 30 second timeout
+    });
   }
 
   /**
@@ -128,45 +165,58 @@ export class AnthropicProvider extends LLMProvider {
     const prompt = this._buildPrompt(toolName, toolDefinition, validCategories);
 
     try {
-      const response = await fetch(`${this.baseURL}/messages`, {
-        method: 'POST',
-        headers: {
-          'x-api-key': this.apiKey,
-          'anthropic-version': this.anthropicVersion,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: this.model || 'claude-3-haiku-20240307',
-          max_tokens: 20,
-          messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          system: 'You are a tool categorization expert. Respond with ONLY the category name, nothing else.',
-          temperature: 0
-        })
+      const message = await this.client.messages.create({
+        model: this.model || 'claude-3-haiku-20240307',
+        max_tokens: 20,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        system: 'You are a tool categorization expert. Respond with ONLY the category name, nothing else.',
+        temperature: 0
       });
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`Anthropic API error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      const category = data.content[0].text.trim().toLowerCase();
+      const category = message.content[0]?.text?.trim().toLowerCase();
 
       // Validate response
-      if (!validCategories.includes(category)) {
-        logger.warn(`LLM returned invalid category: ${category}, defaulting to 'other'`);
+      if (!category || !validCategories.includes(category)) {
+        logger.warn(`LLM returned invalid category: ${category}, defaulting to 'other'`, {
+          toolName,
+          validCategories: validCategories.join(', ')
+        });
         return 'other';
       }
 
       return category;
     } catch (error) {
-      logger.error(`Anthropic API call failed: ${error.message}`);
-      throw error;
+      // Enhanced error handling with typed errors
+      if (error instanceof Anthropic.APIError) {
+        logger.error(`Anthropic API error: ${error.status} - ${error.message}`, {
+          requestId: error.request_id,
+          type: error.type,
+          toolName
+        });
+      } else if (error instanceof Anthropic.APIConnectionError) {
+        logger.error(`Anthropic connection error: ${error.message}`, {
+          toolName,
+          cause: error.cause
+        });
+      } else if (error instanceof Anthropic.RateLimitError) {
+        logger.warn(`Anthropic rate limit exceeded`, {
+          requestId: error.request_id,
+          toolName,
+          retryAfter: error.headers?.['retry-after']
+        });
+      } else {
+        logger.error(`Anthropic API call failed: ${error.message}`, {
+          toolName,
+          error: error.stack
+        });
+      }
+      
+      throw error;  // Re-throw for upstream handling
     }
   }
 
