@@ -4,13 +4,7 @@ import logger from '../src/utils/logger.js';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 
-// Mock the SDK modules for Task 3.2 integration tests
-vi.mock('openai');
-vi.mock('@anthropic-ai/sdk');
-import OpenAI from 'openai';
-import Anthropic from '@anthropic-ai/sdk';
-
-// Mock the SDK modules for Task 3.2 integration tests
+// Mock the SDK modules for Task 3.2 integration tests (tests may override)
 vi.mock('openai');
 vi.mock('@anthropic-ai/sdk');
 
