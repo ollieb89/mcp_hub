@@ -85,6 +85,13 @@ export class OpenAIProvider extends LLMProvider {
 
       return category;
     } catch (error) {
+      // Ensure request id is available on the error object for observability
+      try {
+        error.request_id = error.request_id || error.headers?.['x-request-id'] || error.requestId || 'unknown';
+      } catch {
+        /* ignore */
+      }
+
       // Enhanced error handling with typed errors
       if (error instanceof OpenAI.APIError) {
         logger.error(`OpenAI API error: ${error.status} - ${error.message}`, {
@@ -110,8 +117,9 @@ export class OpenAIProvider extends LLMProvider {
           error: error.stack
         });
       }
-      
-      throw error;  // Re-throw for upstream handling
+
+      // Re-throw the original error object (now decorated with request_id when available)
+      throw error;
     }
   }
 
@@ -191,6 +199,13 @@ export class AnthropicProvider extends LLMProvider {
 
       return category;
     } catch (error) {
+      // Ensure request id is available on the error object for observability
+      try {
+        error.request_id = error.request_id || error.headers?.['x-request-id'] || error.requestId || 'unknown';
+      } catch {
+        /* ignore */
+      }
+
       // Enhanced error handling with typed errors
       if (error instanceof Anthropic.APIError) {
         logger.error(`Anthropic API error: ${error.status} - ${error.message}`, {
@@ -215,8 +230,9 @@ export class AnthropicProvider extends LLMProvider {
           error: error.stack
         });
       }
-      
-      throw error;  // Re-throw for upstream handling
+
+      // Re-throw the original error object (now decorated with request_id when available)
+      throw error;
     }
   }
 
