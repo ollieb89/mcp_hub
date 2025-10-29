@@ -39,7 +39,8 @@ class StorageManager {
     }
   }
 
-  get(serverUrl) {
+  async get(serverUrl) {
+    await initPromise;
     if (!serversStorage[serverUrl]) {
       serversStorage[serverUrl] = { clientInfo: null, tokens: null, codeVerifier: null };
     }
@@ -47,7 +48,7 @@ class StorageManager {
   }
 
   async update(serverUrl, data) {
-    const serverData = this.get(serverUrl);
+    const serverData = await this.get(serverUrl);
     serversStorage[serverUrl] = { ...serverData, ...data };
     return this.save();
   }
@@ -56,8 +57,8 @@ class StorageManager {
 // Singleton instance
 const storage = new StorageManager();
 
-// Initialize storage once
-storage.init();
+// Initialize storage once - store the promise so methods can await it
+let initPromise = storage.init();
 
 export default class MCPHubOAuthProvider {
   constructor({ serverName, serverUrl, hubServerUrl }) {
@@ -85,7 +86,7 @@ export default class MCPHubOAuthProvider {
   }
 
   async clientInformation() {
-    const data = storage.get(this.serverUrl);
+    const data = await storage.get(this.serverUrl);
     logger.file(`[${this.serverName}] Getting client information`);
     return data.clientInfo;
   }
@@ -96,7 +97,8 @@ export default class MCPHubOAuthProvider {
   }
 
   async tokens() {
-    return storage.get(this.serverUrl).tokens;
+    const data = await storage.get(this.serverUrl);
+    return data.tokens;
   }
 
   async saveTokens(tokens) {
@@ -117,6 +119,7 @@ export default class MCPHubOAuthProvider {
 
   async codeVerifier() {
     logger.file(`[${this.serverName}] Getting Code verifier`);
-    return storage.get(this.serverUrl).codeVerifier;
+    const data = await storage.get(this.serverUrl);
+    return data.codeVerifier;
   }
 }
