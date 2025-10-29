@@ -40,7 +40,8 @@ vi.mock('openai', () => {
     }
   }
 
-  return { OpenAI, __esModule: true };
+  // Export as default to match imports like `import OpenAI from 'openai'`
+  return { default: OpenAI, __esModule: true };
 });
 
 vi.mock('@anthropic-ai/sdk', () => {
@@ -54,6 +55,7 @@ vi.mock('@anthropic-ai/sdk', () => {
     messages = { create: createMessage };
   }
 
-  return { Anthropic, __esModule: true };
+  // Export as default to match imports like `import Anthropic from '@anthropic-ai/sdk'`
+  return { default: Anthropic, __esModule: true };
 });
 
