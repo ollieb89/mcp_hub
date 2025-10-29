@@ -7,6 +7,17 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.js"],
     setupFiles: ["./tests/setup.js"],
+    // Resource-efficient defaults: sequential execution to minimize system load
+    // Override with --no-file-parallelism=false for faster parallel execution
+    fileParallelism: false, // Run test files sequentially (lower memory/CPU)
+    maxConcurrency: 5, // Limit concurrent tests within a file
+    pool: 'threads', // Use thread pool (more stable than forks)
+    poolOptions: {
+      threads: {
+        singleThread: true, // Use single worker thread (minimal resources)
+      },
+    },
+    isolate: true, // Isolate test files (prevents memory leaks between files)
       coverage: {
         provider: "v8",
         reporter: ["text", "json", "html"],

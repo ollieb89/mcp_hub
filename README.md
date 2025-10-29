@@ -1811,15 +1811,32 @@ MCP Hub employs a strategic two-tier coverage approach:
 
 - **Critical Components**: 70-80%+ coverage (MCPConnection, MCPHub, core utilities)
 - **Global Baseline**: 50-70% (infrastructure files require integration tests)
-- **Current Metrics**: 308 tests passing, 82.94% branches coverage
+- **Current Metrics**: 477+ tests passing, 82.94% branches coverage
 
 #### Run Tests
+
+**Resource-Efficient (Default - Recommended for CI/CD)**:
 ```bash
-npm test                    # Run all 308 tests
-npm run test:watch          # Watch mode for development
-npm run test:coverage       # Generate coverage report
+npm test                    # Sequential execution (~50-100MB memory, 30-60s)
+npm run test:seq            # Explicit sequential mode
+npm run test:quality        # Sequential + coverage for quality gates
+```
+
+**Fast Mode (When Resources Available)**:
+```bash
+npm run test:fast           # Parallel execution (~200-300MB memory, 10-20s)
+```
+
+**Development**:
+```bash
+npm run test:watch          # Watch mode with sequential execution
+npm run test:coverage       # Generate coverage report (sequential)
 npm run test:coverage:ui    # Open HTML coverage report
 ```
+
+> **Note**: Tests run sequentially by default to minimize system resource usage. This is ideal for CI/CD, resource-constrained systems, or when running tests alongside development work. Use `npm run test:fast` for quicker results when you have available CPU/memory resources.
+>
+> For detailed configuration options and resource optimization, see [`docs/testing-resource-optimization.md`](docs/testing-resource-optimization.md).
 
 #### Coverage Strategy
 The project focuses on testing observable outcomes ("exit doors"):
