@@ -162,6 +162,10 @@ class ToolFilteringService {
     this._llmCacheHits = 0;
     this._llmCacheMisses = 0;
 
+    // LLM error tracking for observability (Task 2.5)
+    this._llmErrorsByType = new Map(); // Track error types
+    this._llmRetryCount = 0;            // Track retry attempts
+
     // Initialize LLM client if enabled
     if (this.config.llmCategorization?.enabled) {
       this._initializeLLM();
@@ -433,7 +437,28 @@ class ToolFilteringService {
 
       return category;
     } catch (error) {
-      logger.warn(`LLM categorization failed for ${toolName}: ${error.message}`);
+      // Extract request_id if available (SDK adds it to error)
+      const requestId = error.request_id || 'unknown';
+      const errorType = error.constructor.name || 'Error';
+      
+      logger.warn(`LLM categorization failed for ${toolName}`, {
+        errorType,
+        requestId,
+        message: error.message,
+        status: error.status,
+        code: error.code
+      });
+      
+      // Track error type
+      this._llmErrorsByType.set(
+        errorType,
+        (this._llmErrorsByType.get(errorType) || 0) + 1
+      );
+      
+      // Track if retry occurred (SDK adds retry info)
+      if (error._retryCount) {
+        this._llmRetryCount += error._retryCount;
+      }
 
       // Fall back to 'other'
       return 'other';
@@ -708,6 +733,12 @@ class ToolFilteringService {
       llmCacheHitRate: totalLLMCacheAccess > 0
         ? this._llmCacheHits / totalLLMCacheAccess
         : 0,
+      llm: {
+        cacheHits: this._llmCacheHits,
+        cacheMisses: this._llmCacheMisses,
+        errorsByType: Object.fromEntries(this._llmErrorsByType),
+        totalRetries: this._llmRetryCount
+      },
       allowedServers: this.config.serverFilter?.servers || [],
       allowedCategories: this.config.categoryFilter?.categories || []
     };
