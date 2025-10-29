@@ -212,48 +212,72 @@ class ToolFilteringService {
   }
 
   /**
-   * Main filtering decision method
-   * SYNCHRONOUS - NO BREAKING CHANGES (Sprint 0.1)
-   *
-   * @param {string} toolName - Name of the tool
-   * @param {string} serverName - Name of the server providing the tool
-   * @param {object} toolDefinition - Tool definition object
-   * @returns {boolean} True if tool should be included
+   * Primary decision method - MUST be synchronous
+   * Determines if a tool should be included based on configuration.
+   * 
+   * Performance: <10ms average
+   * Thread-safe: No blocking operations
+   * Fail-safe: Defaults to true on error
+   * 
+   * @param {string} toolName - Tool name (without namespace)
+   * @param {string} serverName - Source MCP server name
+   * @param {object} toolDefinition - Full tool definition (optional)
+   * @returns {boolean} - true to include, false to exclude
    */
-  shouldIncludeTool(toolName, serverName, toolDefinition) {
-    if (!this.config.enabled) return true;
+  shouldIncludeTool(toolName, serverName, toolDefinition = {}) {
+    try {
+      // Fail-safe: if filtering disabled, allow all
+      if (!this.config.enabled) return true;
 
-    // Get category (may trigger background LLM, but doesn't block)
-    const category = this.getToolCategory(toolName, serverName, toolDefinition);
+      // Performance tracking (debug only)
+      const startTime = process.env.DEBUG_TOOL_FILTERING ? performance.now() : null;
 
-    // Make filtering decision immediately
-    let result;
-    switch(this.config.mode) {
-      case 'server-allowlist':
-        result = this._filterByServer(serverName);
-        break;
-      case 'category':
-        result = this._filterByCategory(category);
-        break;
-      case 'hybrid':
-        result = this._filterByServer(serverName) ||
-                 this._filterByCategory(category);
-        break;
-      default:
-        logger.warn(`Unknown filtering mode: ${this.config.mode}, defaulting to disabled`);
-        result = true;
+      // Get category (may trigger background LLM, but doesn't block)
+      const category = this.getToolCategory(toolName, serverName, toolDefinition);
+
+      // Make filtering decision immediately
+      let result;
+      switch(this.config.mode) {
+        case 'server-allowlist':
+          result = this._filterByServer(serverName);
+          break;
+        case 'category':
+          result = this._filterByCategory(category);
+          break;
+        case 'hybrid':
+          result = this._filterByServer(serverName) ||
+                   this._filterByCategory(category);
+          break;
+        default:
+          logger.warn(`Unknown filtering mode: ${this.config.mode}, defaulting to disabled`);
+          result = true;
+      }
+
+      // Performance logging (debug only)
+      if (startTime) {
+        const duration = performance.now() - startTime;
+        if (duration > 10) {
+          logger.warn(`Tool filtering exceeded 10ms target: ${duration.toFixed(2)}ms for ${toolName}`);
+        } else {
+          logger.debug(`Tool filtering: ${duration.toFixed(2)}ms for ${toolName}`);
+        }
+      }
+
+      // Log filter decisions at debug level
+      if (!result) {
+        logger.debug(`Tool filtered out: ${toolName} (server: ${serverName}, mode: ${this.config.mode})`);
+      }
+
+      // Track statistics
+      this._checkedCount++;
+      if (!result) this._filteredCount++;
+
+      return result;
+    } catch (error) {
+      // Fail-safe: on error, allow tool (availability > filtering)
+      logger.error(`Error in shouldIncludeTool for ${toolName}:`, error);
+      return true;
     }
-
-    // Log filter decisions at debug level (Sprint 1.2.3)
-    if (!result) {
-      logger.debug(`Tool filtered out: ${toolName} (server: ${serverName}, mode: ${this.config.mode})`);
-    }
-
-    // Track statistics
-    this._checkedCount++;
-    if (!result) this._filteredCount++;
-
-    return result;
   }
 
   /**
@@ -297,16 +321,17 @@ class ToolFilteringService {
   }
 
   /**
-   * Get tool category using pattern matching or LLM
-   * SYNCHRONOUS - Returns immediately (non-blocking) (Sprint 0.1)
-   * LLM categorization runs in background if needed
-   *
-   * @param {string} toolName - Name of the tool
-   * @param {string} serverName - Name of the server
-   * @param {object} toolDefinition - Tool definition object
-   * @returns {string} Category name ('other' if uncategorized)
+   * Get tool's category (for category/hybrid modes)
+   * Synchronous return with background LLM refinement
+   * 
+   * Priority: customMappings > patternMatch > LLM (async) > 'other'
+   * 
+   * @param {string} toolName - Tool name
+   * @param {string} serverName - Server name
+   * @param {object} toolDefinition - Tool definition
+   * @returns {string} - Category name ('filesystem', 'web', etc.)
    */
-  getToolCategory(toolName, serverName, toolDefinition) {
+  getToolCategory(toolName, serverName, toolDefinition = {}) {
     // Check memory cache first
     if (this.categoryCache.has(toolName)) {
       this._cacheHits++;
@@ -646,10 +671,21 @@ class ToolFilteringService {
   }
 
   /**
-   * Get statistics about filtering (Sprint 0.5)
-   * Safe division prevents NaN
-   *
-   * @returns {object} Statistics object
+   * Get current filtering statistics
+   * 
+   * @returns {object} - Stats object with:
+   *   - enabled: boolean - whether filtering is active
+   *   - mode: string - filtering mode (server-allowlist/category/hybrid)
+   *   - totalChecked: number - total tools evaluated
+   *   - totalFiltered: number - tools filtered out
+   *   - totalExposed: number - tools allowed through
+   *   - filterRate: number - percentage filtered (0-1)
+   *   - categoryCacheSize: number - memory cache size
+   *   - cacheHitRate: number - cache hit percentage (0-1)
+   *   - llmCacheSize: number - persistent LLM cache size
+   *   - llmCacheHitRate: number - LLM cache hit percentage (0-1)
+   *   - allowedServers: string[] - servers in allowlist
+   *   - allowedCategories: string[] - categories in allowlist
    */
   getStats() {
     const totalCacheAccess = this._cacheHits + this._cacheMisses;
@@ -695,7 +731,12 @@ class ToolFilteringService {
   }
 
   /**
-   * Graceful shutdown - flush pending writes (Sprint 0.1)
+   * Graceful shutdown - flush pending operations
+   * 
+   * Awaits pending LLM categorizations, flushes logs and caches.
+   * Call this before process termination to prevent data loss.
+   * 
+   * @returns {Promise<void>}
    */
   async shutdown() {
     if (this.llmCacheFlushInterval) {
