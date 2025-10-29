@@ -161,7 +161,10 @@ class ServiceManager {
       this.broadcastSubscriptionEvent(SubscriptionTypes.SERVERS_UPDATED, data);
     });
 
-    // Initialize MCP server endpoint
+    await this.mcpHub.initialize();
+    this.setState(HubState.READY);
+
+    // Initialize MCP server endpoint AFTER config is loaded
     try {
       mcpServerEndpoint = new MCPServerEndpoint(this.mcpHub);
       logger.info(`Hub endpoint ready: Use \`${mcpServerEndpoint.getEndpointUrl()}\` endpoint with any other MCP clients`);
@@ -170,9 +173,6 @@ class ServiceManager {
         error: error.message
       }, false);
     }
-
-    await this.mcpHub.initialize();
-    this.setState(HubState.READY)
   }
 
   async restartHub() {
