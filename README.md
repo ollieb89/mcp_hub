@@ -1900,7 +1900,7 @@ MCP Hub employs a strategic two-tier coverage approach:
 
 - **Critical Components**: 70-80%+ coverage (MCPConnection, MCPHub, core utilities)
 - **Global Baseline**: 50-70% (infrastructure files require integration tests)
-- **Current Metrics**: 308+ tests passing (100% pass rate), 82.94% branches coverage
+- **Current Metrics**: 308+ tests passing (100% pass rate), 82.94% branch coverage
 
 #### Run Tests
 
