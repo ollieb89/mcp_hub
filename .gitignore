@@ -13,3 +13,6 @@ junk/
 # Test coverage reports (generated artifacts)
 coverage/
 openai
+
+# Training monitor example data
+training_logs/
