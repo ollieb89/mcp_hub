@@ -1,0 +1,12 @@
+{
+  "job_id": "demo-001",
+  "status": "running",
+  "created_at": "2025-10-30T23:54:12.293306",
+  "model": "example-model",
+  "metrics": {
+    "loss": 0.123,
+    "accuracy": 0.95,
+    "epoch": 10
+  },
+  "progress": "75%"
+}

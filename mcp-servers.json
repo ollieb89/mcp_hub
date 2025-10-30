@@ -247,6 +247,17 @@
       "env": {},
       "disabled": false,
       "note": "Microsoft Playwright MCP server for browser automation. Provides 40+ tools for web page interaction, screenshots, PDF generation, form filling, and E2E testing. Automatically installs browsers when needed."
+    },
+    "pico-training-monitor": {
+      "command": "python",
+      "args": ["-m", "pico_training_monitor"],
+      "cwd": ".",
+      "env": {
+        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs",
+        "MONITOR_PORT": "8080"
+      },
+      "disabled": true,
+      "note": "Training job monitor for ML workflows. Monitors training status, metrics, and logs. Enable this by setting 'disabled: false' and ensure pico_training_monitor is installed. Use the 'pico__run_training_monitor' tool to check training job status."
     }
   }
 }
