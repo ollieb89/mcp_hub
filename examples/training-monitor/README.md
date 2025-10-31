@@ -46,12 +46,30 @@ chmod +x pico_training_monitor.py
 
 Add the training monitor to your MCP Hub configuration (`mcp-servers.json` or `.vscode/mcp.json`):
 
+**Option 1: Using absolute path to script file**
 ```json
 {
   "mcpServers": {
     "pico-training-monitor": {
       "command": "python",
-      "args": ["/absolute/path/to/pico_training_monitor.py"],
+      "args": ["/absolute/path/to/examples/training-monitor/pico_training_monitor.py"],
+      "cwd": ".",
+      "env": {
+        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"
+      },
+      "disabled": false
+    }
+  }
+}
+```
+
+**Option 2: Using module import (if installed as Python package)**
+```json
+{
+  "mcpServers": {
+    "pico-training-monitor": {
+      "command": "python",
+      "args": ["-m", "pico_training_monitor"],
       "cwd": ".",
       "env": {
         "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"

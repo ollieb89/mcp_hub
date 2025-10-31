@@ -12,12 +12,13 @@ The Pico Training Monitor is an MCP server that integrates with MCP Hub to provi
 
 Add the training monitor to your `mcp-servers.json`:
 
+**Option 1: Direct script path (recommended for local usage)**
 ```json
 {
   "mcpServers": {
     "pico-training-monitor": {
       "command": "python",
-      "args": ["/absolute/path/to/pico_training_monitor.py"],
+      "args": ["/absolute/path/to/examples/training-monitor/pico_training_monitor.py"],
       "env": {
         "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"
       },
@@ -27,7 +28,23 @@ Add the training monitor to your `mcp-servers.json`:
 }
 ```
 
-Replace `/absolute/path/to/` with the actual path to the script.
+**Option 2: Module import (if installed as package)**
+```json
+{
+  "mcpServers": {
+    "pico-training-monitor": {
+      "command": "python",
+      "args": ["-m", "pico_training_monitor"],
+      "env": {
+        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"
+      },
+      "disabled": false
+    }
+  }
+}
+```
+
+Replace `/absolute/path/to/` with the actual path to your MCP Hub directory.
 
 ### Step 2: Start MCP Hub
 
