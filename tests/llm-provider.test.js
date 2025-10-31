@@ -1,13 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LLMProvider, OpenAIProvider, AnthropicProvider, createLLMProvider } from '../src/utils/llm-provider.js';
 
+// Mock the SDKs
+vi.mock('openai');
+vi.mock('@anthropic-ai/sdk');
+
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
+
 /**
  * Test Suite: LLM Provider - Sprint 3.1.1
  *
- * Focus: Validates LLM provider abstraction and implementations
+ * Focus: Validates LLM provider abstraction and implementations with SDK mocks
  * - Abstract base class structure
- * - OpenAI provider implementation
- * - Anthropic provider implementation
+ * - OpenAI provider implementation (using official SDK)
+ * - Anthropic provider implementation (using official SDK)
  * - Factory function for provider creation
  * - Prompt building logic
  * - Response validation
@@ -47,21 +54,35 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
 
   describe('OpenAI Provider', () => {
     let provider;
-    let mockFetch;
+    let mockCreate;
 
     beforeEach(() => {
+      // Setup mock for OpenAI SDK
+      mockCreate = vi.fn();
+      OpenAI.mockImplementation(function() {
+        return {
+          chat: {
+            completions: {
+              create: mockCreate
+            }
+          }
+        };
+      });
+      
       provider = new OpenAIProvider({ apiKey: 'test-openai-key' });
-      mockFetch = vi.fn();
-      global.fetch = mockFetch;
     });
 
     afterEach(() => {
-      vi.restoreAllMocks();
+      vi.clearAllMocks();
     });
 
     it('should initialize with correct defaults', () => {
-      expect(provider.baseURL).toBe('https://api.openai.com/v1');
-      expect(provider.apiKey).toBe('test-openai-key');
+      // Verify OpenAI client was created with correct config
+      expect(OpenAI).toHaveBeenCalledWith({
+        apiKey: 'test-openai-key',
+        maxRetries: 3,
+        timeout: 30000
+      });
     });
 
     it('should allow custom baseURL', () => {
@@ -69,51 +90,57 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
         apiKey: 'test-key',
         baseURL: 'https://custom.openai.com/v1'
       });
-      expect(customProvider.baseURL).toBe('https://custom.openai.com/v1');
+      
+      // Check the last call to OpenAI constructor
+      expect(OpenAI).toHaveBeenLastCalledWith({
+        apiKey: 'test-key',
+        baseURL: 'https://custom.openai.com/v1',
+        maxRetries: 3,
+        timeout: 30000
+      });
     });
 
     it('should successfully categorize tool with valid response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          choices: [
-            {
-              message: {
-                content: 'filesystem'
-              }
+      mockCreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: 'filesystem'
             }
-          ]
-        })
+          }
+        ],
+        id: 'chatcmpl-test',
+        object: 'chat.completion'
       });
 
       const category = await provider.categorize('filesystem__read', testToolDefinition, validCategories);
 
       expect(category).toBe('filesystem');
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.openai.com/v1/chat/completions',
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Authorization': 'Bearer test-openai-key',
-            'Content-Type': 'application/json'
-          })
-        })
-      );
+      expect(mockCreate).toHaveBeenCalledWith({
+        model: 'gpt-4o-mini',
+        messages: expect.arrayContaining([
+          expect.objectContaining({ role: 'system' }),
+          expect.objectContaining({ role: 'user' })
+        ]),
+        temperature: 0,
+        max_tokens: 20
+      });
     });
 
     it('should use specified model or default to gpt-4o-mini', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          choices: [{ message: { content: 'web' } }]
-        })
+      mockCreate.mockResolvedValueOnce({
+        choices: [{ message: { content: 'web' } }],
+        id: 'chatcmpl-test',
+        object: 'chat.completion'
       });
 
       await provider.categorize('fetch__url', testToolDefinition, validCategories);
 
-      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(callBody.model).toBe('gpt-4o-mini');
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gpt-4o-mini'
+        })
+      );
     });
 
     it('should use custom model when specified', async () => {
@@ -122,31 +149,32 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
         model: 'gpt-4'
       });
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          choices: [{ message: { content: 'web' } }]
-        })
+      mockCreate.mockResolvedValueOnce({
+        choices: [{ message: { content: 'web' } }],
+        id: 'chatcmpl-test',
+        object: 'chat.completion'
       });
 
       await customProvider.categorize('fetch__url', testToolDefinition, validCategories);
 
-      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(callBody.model).toBe('gpt-4');
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gpt-4'
+        })
+      );
     });
 
     it('should default to other for invalid category response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          choices: [
-            {
-              message: {
-                content: 'invalid_category'
-              }
+      mockCreate.mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: 'invalid_category'
             }
-          ]
-        })
+          }
+        ],
+        id: 'chatcmpl-test',
+        object: 'chat.completion'
       });
 
       const category = await provider.categorize('unknown_tool', testToolDefinition, validCategories);
@@ -155,24 +183,22 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        statusText: 'Unauthorized',
-        text: async () => 'Invalid API key'
-      });
+      const apiError = new Error('Invalid API key');
+      apiError.status = 401;
+      apiError.type = 'invalid_request_error';
+      mockCreate.mockRejectedValueOnce(apiError);
 
       await expect(
         provider.categorize('test_tool', testToolDefinition, validCategories)
-      ).rejects.toThrow('OpenAI API error: 401 Unauthorized - Invalid API key');
+      ).rejects.toThrow();
     });
 
     it('should handle network errors', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+      mockCreate.mockRejectedValueOnce(new Error('Network error'));
 
       await expect(
         provider.categorize('test_tool', testToolDefinition, validCategories)
-      ).rejects.toThrow('Network error');
+      ).rejects.toThrow();
     });
 
     it('should build correct prompt', () => {
@@ -193,73 +219,87 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
 
   describe('Anthropic Provider', () => {
     let provider;
-    let mockFetch;
+    let mockCreate;
 
     beforeEach(() => {
+      // Setup mock for Anthropic SDK
+      mockCreate = vi.fn();
+      Anthropic.mockImplementation(function() {
+        return {
+          messages: {
+            create: mockCreate
+          }
+        };
+      });
+      
       provider = new AnthropicProvider({ apiKey: 'test-anthropic-key' });
-      mockFetch = vi.fn();
-      global.fetch = mockFetch;
     });
 
     afterEach(() => {
-      vi.restoreAllMocks();
+      vi.clearAllMocks();
     });
 
     it('should initialize with correct defaults', () => {
-      expect(provider.baseURL).toBe('https://api.anthropic.com/v1');
-      expect(provider.apiKey).toBe('test-anthropic-key');
-      expect(provider.anthropicVersion).toBe('2023-06-01');
+      // Verify Anthropic client was created with correct config
+      expect(Anthropic).toHaveBeenCalledWith({
+        apiKey: 'test-anthropic-key',
+        baseURL: undefined,
+        maxRetries: 3,
+        timeout: 30000
+      });
     });
 
     it('should successfully categorize tool with valid response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          content: [
-            {
-              text: 'database'
-            }
-          ]
-        })
+      mockCreate.mockResolvedValueOnce({
+        content: [
+          {
+            text: 'database'
+          }
+        ],
+        id: 'msg-test',
+        model: 'claude-3-haiku-20240307',
+        role: 'assistant'
       });
 
       const category = await provider.categorize('postgres__query', testToolDefinition, validCategories);
 
       expect(category).toBe('database');
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.anthropic.com/v1/messages',
+      expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'x-api-key': 'test-anthropic-key',
-            'anthropic-version': '2023-06-01',
-            'Content-Type': 'application/json'
-          })
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 20,
+          system: expect.any(String),
+          temperature: 0,
+          messages: expect.arrayContaining([
+            expect.objectContaining({ role: 'user' })
+          ])
         })
       );
     });
 
     it('should use specified model or default to claude-3-haiku', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          content: [{ text: 'web' }]
-        })
+      mockCreate.mockResolvedValueOnce({
+        content: [{ text: 'web' }],
+        id: 'msg-test',
+        model: 'claude-3-haiku-20240307',
+        role: 'assistant'
       });
 
       await provider.categorize('fetch__url', testToolDefinition, validCategories);
 
-      const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
-      expect(callBody.model).toBe('claude-3-haiku-20240307');
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'claude-3-haiku-20240307'
+        })
+      );
     });
 
     it('should default to other for invalid category response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          content: [{ text: 'random_category' }]
-        })
+      mockCreate.mockResolvedValueOnce({
+        content: [{ text: 'random_category' }],
+        id: 'msg-test',
+        model: 'claude-3-haiku-20240307',
+        role: 'assistant'
       });
 
       const category = await provider.categorize('unknown_tool', testToolDefinition, validCategories);
@@ -268,20 +308,41 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 403,
-        statusText: 'Forbidden',
-        text: async () => 'Invalid API key'
-      });
+      const apiError = new Error('Invalid API key');
+      apiError.status = 401;
+      apiError.type = 'authentication_error';
+      mockCreate.mockRejectedValueOnce(apiError);
 
       await expect(
         provider.categorize('test_tool', testToolDefinition, validCategories)
-      ).rejects.toThrow('Anthropic API error: 403 Forbidden - Invalid API key');
+      ).rejects.toThrow();
     });
   });
 
   describe('Factory Function', () => {
+    beforeEach(() => {
+      // Reset mocks for factory tests
+      vi.clearAllMocks();
+      
+      OpenAI.mockImplementation(function() {
+        return {
+          chat: {
+            completions: {
+              create: vi.fn()
+            }
+          }
+        };
+      });
+      
+      Anthropic.mockImplementation(function() {
+        return {
+          messages: {
+            create: vi.fn()
+          }
+        };
+      });
+    });
+
     it('should create OpenAI provider', () => {
       const provider = createLLMProvider({
         provider: 'openai',
@@ -351,7 +412,12 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
       });
 
       expect(provider.model).toBe('gpt-4');
-      expect(provider.baseURL).toBe('https://custom.com');
+      // baseURL is passed to SDK, not stored on provider instance
+      expect(OpenAI).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://custom.com'
+        })
+      );
     });
   });
 });

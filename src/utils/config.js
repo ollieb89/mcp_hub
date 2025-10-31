@@ -463,7 +463,7 @@ export class ConfigManager extends EventEmitter {
    */
   #validateToolFilteringConfig(filteringConfig = {}) {
     // Validate mode
-    const validModes = ['server-allowlist', 'category', 'hybrid'];
+    const validModes = ['server-allowlist', 'category', 'hybrid', 'prompt-based'];
     if (filteringConfig.mode && !validModes.includes(filteringConfig.mode)) {
       throw new ConfigError(
         `Invalid toolFiltering.mode: ${filteringConfig.mode}. Must be one of: ${validModes.join(', ')}`,
@@ -584,7 +584,7 @@ export class ConfigManager extends EventEmitter {
           );
         }
 
-        const validProviders = ['openai', 'anthropic'];
+        const validProviders = ['openai', 'anthropic', 'gemini'];
         if (!validProviders.includes(filteringConfig.llmCategorization.provider)) {
           throw new ConfigError(
             `Invalid LLM provider: ${filteringConfig.llmCategorization.provider}. Must be one of: ${validProviders.join(', ')}`,

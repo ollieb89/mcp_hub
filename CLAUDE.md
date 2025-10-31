@@ -210,6 +210,88 @@ All errors include:
    - HTTP connection pooling with undici Agent
    - Custom fetch wrapper for persistent connections
 
+## LLM-Based Tool Filtering (Prompt-Based Mode)
+
+**New Feature**: Intelligent, prompt-based tool exposure for managing overwhelming tool counts.
+
+### Overview
+Instead of exposing all tools at once (which can consume 50k+ tokens with 25+ servers), clients start with zero tools and dynamically receive only relevant tools based on LLM analysis of user prompts.
+
+**Benefits:**
+- Zero-default exposure: Clients start with only meta-tools
+- Context-aware: LLM analyzes user intent to expose relevant tools
+- Per-client isolation: Each session has independent tool exposure
+- Token reduction: 70-90% typical token savings
+
+### Meta-Tool: `hub__analyze_prompt`
+
+**Purpose**: Analyze user prompt and expose relevant tools dynamically
+
+**Input**:
+```json
+{
+  "prompt": "Check my GitHub notifications",
+  "context": "Optional conversation context"
+}
+```
+
+**Output**:
+```json
+{
+  "categories": ["github"],
+  "confidence": 0.98,
+  "reasoning": "User wants to check GitHub notifications",
+  "message": "Updated tool exposure: github",
+  "nextStep": "Tools list has been updated. Proceed with your request."
+}
+```
+
+**Workflow:**
+1. User makes request → Client calls `hub__analyze_prompt`
+2. Hub analyzes with LLM (Gemini) → Identifies relevant categories
+3. Hub exposes relevant tools → Sends `tools/list_changed` notification
+4. Client re-fetches tool list → Proceeds with original request
+
+### Configuration
+
+**Enable Prompt-Based Mode:**
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "prompt-based",
+    "promptBasedFiltering": {
+      "enabled": true,
+      "defaultExposure": "meta-only",
+      "enableMetaTools": true,
+      "sessionIsolation": true
+    },
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "gemini",
+      "apiKey": "${GEMINI_API_KEY}",
+      "model": "gemini-2.5-flash"
+    }
+  }
+}
+```
+
+**Configuration Options:**
+- `mode`: "prompt-based" | "static" | "server-allowlist" | "category"
+- `defaultExposure`: "zero" | "meta-only" (recommended) | "minimal" | "all"
+- `sessionIsolation`: true (per-client) | false (global)
+
+### LLM Provider Support
+- **Gemini**: Primary (gemini-2.5-flash recommended)
+- **OpenAI**: Supported (gpt-4o-mini)
+- **Anthropic**: Supported (claude-3-5-haiku)
+
+### Tool Categories
+Standard categories for LLM categorization:
+- `github`, `filesystem`, `web`, `docker`, `git`, `python`, `database`, `memory`, `vertex_ai`, `meta`
+
+See `claudedocs/PROMPT_BASED_FILTERING_QUICK_START.md` for complete guide.
+
 ## Testing Strategy
 
 **Current Status**: 311/311 tests passing (100% pass rate), 82.94% branches coverage
@@ -490,3 +572,11 @@ scripts/
 3. Test transport independently (STDIO vs SSE vs streamable-http)
 4. Check OAuth callback flow for remote servers
 5. Verify workspace cache for port conflicts
+
+**Common Connection Issues:**
+- `TypeError: fetch failed` → Hub not running, start with `npm start`
+- `Connection refused` → Port 7000 not listening, check port conflicts
+- `404 Not Found` → Wrong endpoint, use `/mcp` not `/messages`
+- Connection timeout → Firewall/network issue, try `127.0.0.1`
+
+See comprehensive troubleshooting guide: `claudedocs/TROUBLESHOOTING_MCP_CONNECTION.md`

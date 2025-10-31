@@ -171,7 +171,8 @@ export class EnvResolver {
       return resolved;
     }
 
-    if ((fieldType === 'url' || fieldType === 'command' || fieldType === 'cwd') && typeof fieldValue === 'string') {
+    // Generic string field resolution - handles url, command, cwd, apiKey, baseURL, model, etc.
+    if (typeof fieldValue === 'string') {
       return await this._resolveStringWithPlaceholders(fieldValue, context);
     }
 

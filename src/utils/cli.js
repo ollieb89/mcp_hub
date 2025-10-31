@@ -44,16 +44,18 @@ function loadEnvFile() {
 loadEnvFile();
 
 // Read version from package.json while in dev mode to get the latest version
-// We can't do this production, due to issues when installed as global package on "bun"
-// Ignore the esbuild build warning id: 'assign-to-define',
+// In production, VERSION will be injected at build time via esbuild define
+let VERSION;
 if (process.env.NODE_ENV != "production") {
   // Get the directory path of the current module
   const __dirname = fileURLToPath(new URL('.', import.meta.url));
   // Navigate up two directories to find package.json
   const pkgPath = join(__dirname, '..', '..', 'package.json');
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-  const version = pkg.version;
-  process.env.VERSION = version;
+  VERSION = pkg.version;
+} else {
+  // In production, use the version defined at build time
+  VERSION = process.env.VERSION || "v0.0.0";
 }
 
 // Custom failure handler for yargs
@@ -76,7 +78,7 @@ function handleParseError(msg, err) {
 async function run() {
   const argv = yargs(hideBin(process.argv))
     .usage("Usage: mcp-hub [options]")
-    .version(process.env.VERSION || "v0.0.0")
+    .version(VERSION || "v0.0.0")
     .options({
       port: {
         alias: "p",

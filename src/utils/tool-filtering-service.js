@@ -3,6 +3,8 @@ import path from 'path';
 import PQueue from 'p-queue';
 import logger from './logger.js';
 import { getStateDirectory } from './xdg-paths.js';
+import { createLLMProvider } from './llm-provider.js';
+import { envResolver } from './env-resolver.js';
 
 /**
  * Default category mappings for tool classification
@@ -164,7 +166,9 @@ class ToolFilteringService {
 
     // Initialize LLM client if enabled
     if (this.config.llmCategorization?.enabled) {
-      this._initializeLLM();
+      this._initializeLLM().catch(err => {
+        logger.error('Failed to initialize LLM categorization:', err.message);
+      });
     }
   }
 
@@ -172,7 +176,7 @@ class ToolFilteringService {
    * Initialize LLM client and cache
    * @private
    */
-  _initializeLLM() {
+  async _initializeLLM() {
     try {
       // Validate API key (Sprint 0.5)
       if (!this.config.llmCategorization.apiKey) {
@@ -181,7 +185,7 @@ class ToolFilteringService {
       }
 
       // Initialize LLM client
-      this.llmClient = this._createLLMClient();
+      this.llmClient = await this._createLLMClient();
 
       // Set up persistent cache location
       const stateDir = getStateDirectory();
@@ -247,6 +251,11 @@ class ToolFilteringService {
         case 'hybrid':
           result = this._filterByServer(serverName) ||
                    this._filterByCategory(category);
+          break;
+        case 'prompt-based':
+          // In prompt-based mode, pass through all tools
+          // Filtering happens at MCP server level based on client sessions
+          result = true;
           break;
         default:
           logger.warn(`Unknown filtering mode: ${this.config.mode}, defaulting to disabled`);
@@ -714,20 +723,43 @@ class ToolFilteringService {
   }
 
   /**
-   * Create LLM client for categorization
+   * Create LLM client for categorization (Phase 3)
+   * Uses official OpenAI/Anthropic SDKs with retry logic and typed errors
    * @private
+   * @returns {LLMProvider} Configured LLM provider instance
    */
-  _createLLMClient() {
-    const provider = this.config.llmCategorization.provider;
+  async _createLLMClient() {
+    const config = this.config.llmCategorization;
+    
+    // Validate configuration
+    if (!config.provider) {
+      throw new Error('LLM provider not specified');
+    }
+    
+    if (!config.apiKey) {
+      throw new Error(`API key required for ${config.provider} provider`);
+    }
+    
+    // Resolve environment variables in the configuration
+    const resolvedConfig = await envResolver.resolveConfig(config, ['apiKey', 'baseURL', 'model']);
 
-    // For now, return a stub - actual implementation in Phase 3
-    return {
-      categorize: async (toolName, toolDefinition, validCategories) => {
-        // Stub implementation - will be replaced with actual LLM API calls
-        logger.debug(`LLM categorization stub called for ${toolName}`);
-        return 'other';
-      }
-    };
+    
+    // Create provider using factory (supports OpenAI, Anthropic, and Gemini)
+    try {
+      const provider = createLLMProvider({
+        provider: resolvedConfig.provider,
+        apiKey: resolvedConfig.apiKey,
+        model: resolvedConfig.model,
+        baseURL: resolvedConfig.baseURL
+      });
+      
+      logger.info(`LLM categorization initialized: ${resolvedConfig.provider} (${resolvedConfig.model || 'default model'})`);
+      
+      return provider;
+    } catch (error) {
+      logger.error(`Failed to create LLM provider: ${error.message}`);
+      throw error;
+    }
   }
 
   /**

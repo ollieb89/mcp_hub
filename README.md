@@ -55,7 +55,7 @@ Configure all MCP clients with just one endpoint:
 {
     "mcpServers" : {
         "Hub": {
-            "url" : "http://localhost:37373/mcp"  
+            "url" : "http://localhost:7000/mcp"  
         }
     }
 }
@@ -75,6 +75,14 @@ The Hub automatically:
   - Automatic namespacing prevents conflicts between servers
   - Real-time capability updates when servers change
   - Simplified client configuration - just one endpoint instead of many
+
+- **🆕 Intelligent Prompt-Based Tool Filtering**:
+  - Zero-default tool exposure - clients start with only meta-tools
+  - LLM-powered intent analysis using Gemini
+  - Dynamic tool exposure based on user prompts
+  - Per-client session isolation
+  - Context-aware tool selection
+  - See [Prompt-Based Filtering Guide](./claudedocs/PROMPT_BASED_FILTERING_QUICK_START.md)
 
 - **Dynamic Server Management**:
   - Start, stop, enable/disable servers on demand
