@@ -932,6 +932,41 @@ The [ravitemer/mcphub.nvim](https://github.com/ravitemer/mcphub.nvim) plugin pro
 - Real-time status updates in Neovim
 - Auto install mcp servers with marketplace addition
 
+### Training Job Monitoring
+
+MCP Hub can be used to monitor ML training jobs through custom MCP servers. See [examples/training-monitor](./examples/training-monitor) for a complete example demonstrating:
+
+- **Real-time Training Status**: Check training job progress, metrics, and logs
+- **Multi-Job Monitoring**: Track multiple training runs simultaneously
+- **Custom Tools**: Use `run_training_monitor` tool to query training status
+- **Framework Integration**: Extend to work with TensorBoard, Weights & Biases, or custom training frameworks
+
+Example configuration:
+```json
+{
+  "mcpServers": {
+    "pico-training-monitor": {
+      "command": "python",
+      "args": ["/path/to/pico_training_monitor.py"],
+      "env": {
+        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"
+      }
+    }
+  }
+}
+```
+
+Use the tool through any MCP client:
+```javascript
+// Check all training jobs
+await client.callTool('pico-training-monitor', 'run_training_monitor', {});
+
+// Check specific job
+await client.callTool('pico-training-monitor', 'run_training_monitor', {
+  job_id: "experiment-123"
+});
+```
+
 ## REST API
 
 ### Health and Status
