@@ -42,11 +42,30 @@ cd ~/my-training-monitor
 chmod +x pico_training_monitor.py
 ```
 
+3. Install optional dependencies for cloud platforms:
+
+**For AWS SageMaker:**
+```bash
+pip install boto3
+```
+
+**For Google Vertex AI:**
+```bash
+pip install google-cloud-aiplatform
+```
+
+**For both platforms:**
+```bash
+pip install boto3 google-cloud-aiplatform
+```
+
+**Note:** The monitor works with local file-based tracking without any additional dependencies. Cloud platform SDKs are only needed if you want to monitor SageMaker or Vertex AI jobs.
+
 ## Configuration
 
 Add the training monitor to your MCP Hub configuration (`mcp-servers.json` or `.vscode/mcp.json`):
 
-**Option 1: Using absolute path to script file**
+**Option 1: Local file-based tracking only**
 ```json
 {
   "mcpServers": {
@@ -63,15 +82,61 @@ Add the training monitor to your MCP Hub configuration (`mcp-servers.json` or `.
 }
 ```
 
-**Option 2: Using module import (if installed as Python package)**
+**Option 2: With AWS SageMaker integration**
 ```json
 {
   "mcpServers": {
     "pico-training-monitor": {
       "command": "python",
-      "args": ["-m", "pico_training_monitor"],
+      "args": ["/absolute/path/to/examples/training-monitor/pico_training_monitor.py"],
       "cwd": ".",
       "env": {
+        "AWS_ACCESS_KEY_ID": "${env:AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${env:AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "us-east-1",
+        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"
+      },
+      "disabled": false
+    }
+  }
+}
+```
+
+**Option 3: With Google Vertex AI integration**
+```json
+{
+  "mcpServers": {
+    "pico-training-monitor": {
+      "command": "python",
+      "args": ["/absolute/path/to/examples/training-monitor/pico_training_monitor.py"],
+      "cwd": ".",
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "${env:GOOGLE_APPLICATION_CREDENTIALS}",
+        "GOOGLE_CLOUD_PROJECT": "${env:GOOGLE_CLOUD_PROJECT}",
+        "GOOGLE_CLOUD_LOCATION": "us-central1",
+        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"
+      },
+      "disabled": false
+    }
+  }
+}
+```
+
+**Option 4: Multi-platform (SageMaker + Vertex AI + Local)**
+```json
+{
+  "mcpServers": {
+    "pico-training-monitor": {
+      "command": "python",
+      "args": ["/absolute/path/to/examples/training-monitor/pico_training_monitor.py"],
+      "cwd": ".",
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${env:AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${env:AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "us-east-1",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${env:GOOGLE_APPLICATION_CREDENTIALS}",
+        "GOOGLE_CLOUD_PROJECT": "${env:GOOGLE_CLOUD_PROJECT}",
+        "GOOGLE_CLOUD_LOCATION": "us-central1",
         "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"
       },
       "disabled": false
@@ -82,25 +147,54 @@ Add the training monitor to your MCP Hub configuration (`mcp-servers.json` or `.
 
 ### Environment Variables
 
+**Local Storage:**
 - `TRAINING_LOG_DIR`: Directory where training job logs are stored (default: `./training_logs`)
-- `MONITOR_PORT`: Optional port for monitoring interface (default: 8080)
+
+**AWS SageMaker Integration:**
+- `AWS_ACCESS_KEY_ID`: AWS access key
+- `AWS_SECRET_ACCESS_KEY`: AWS secret key
+- `AWS_REGION`: AWS region (e.g., `us-east-1`)
+
+**Google Vertex AI Integration:**
+- `GOOGLE_APPLICATION_CREDENTIALS`: Path to service account JSON file
+- `GOOGLE_CLOUD_PROJECT`: GCP project ID
+- `GOOGLE_CLOUD_LOCATION`: GCP location (default: `us-central1`)
+
+**Note:** The monitor automatically detects which platforms are configured and queries all available platforms. You only need to set the environment variables for the platforms you want to use.
 
 ## Usage
 
 Once configured in MCP Hub, you can use the training monitor through any MCP client:
 
-### Check All Training Jobs
+### Check All Training Jobs (All Platforms)
 
 ```javascript
-// Through MCP client
+// Query all configured platforms automatically
 await client.callTool('pico-training-monitor', 'run_training_monitor', {});
 ```
 
 Response:
 ```json
 {
-  "total_jobs": 2,
+  "total_jobs": 3,
+  "platforms": {
+    "sagemaker": true,
+    "vertex_ai": true,
+    "local": true
+  },
   "jobs": [
+    {
+      "job_id": "sagemaker-training-job-123",
+      "status": "inprogress",
+      "created_at": "2025-10-30T10:00:00",
+      "platform": "sagemaker"
+    },
+    {
+      "job_id": "vertex-custom-job-456",
+      "status": "running",
+      "created_at": "2025-10-30T11:00:00",
+      "platform": "vertex-ai"
+    },
     {
       "job_id": "demo-001",
       "status": "running",
@@ -120,7 +214,26 @@ Response:
 
 ```javascript
 await client.callTool('pico-training-monitor', 'run_training_monitor', {
-  job_id: "demo-001"
+  job_id: "sagemaker-training-job-123"
+});
+```
+
+### Query Specific Platform Only
+
+```javascript
+// Only check SageMaker jobs
+await client.callTool('pico-training-monitor', 'run_training_monitor', {
+  platform: "sagemaker"
+});
+
+// Only check Vertex AI jobs
+await client.callTool('pico-training-monitor', 'run_training_monitor', {
+  platform: "vertex-ai"
+});
+
+// Only check local jobs
+await client.callTool('pico-training-monitor', 'run_training_monitor', {
+  platform: "local"
 });
 ```
 

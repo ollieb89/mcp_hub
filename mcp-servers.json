@@ -254,10 +254,15 @@
       "cwd": ".",
       "env": {
         "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs",
-        "MONITOR_PORT": "8080"
+        "AWS_ACCESS_KEY_ID": "${env:AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${env:AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${env:AWS_REGION}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${env:GOOGLE_APPLICATION_CREDENTIALS}",
+        "GOOGLE_CLOUD_PROJECT": "${env:GOOGLE_CLOUD_PROJECT}",
+        "GOOGLE_CLOUD_LOCATION": "${env:GOOGLE_CLOUD_LOCATION}"
       },
       "disabled": true,
-      "note": "Training job monitor for ML workflows. Monitors training status, metrics, and logs. Enable this by setting 'disabled: false' and ensure pico_training_monitor is installed. Use the 'pico__run_training_monitor' tool to check training job status."
+      "note": "Training job monitor for ML workflows. Supports AWS SageMaker, Google Vertex AI, and local file tracking. Automatically detects configured platforms via environment variables. Add AWS_* variables for SageMaker or GOOGLE_* variables for Vertex AI in your .env file. Use 'pico__run_training_monitor' tool to check training status across all platforms."
     }
   }
 }

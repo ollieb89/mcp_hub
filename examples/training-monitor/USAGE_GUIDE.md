@@ -4,15 +4,62 @@ This guide shows how to solve the problem: **"Check training status of training 
 
 ## Overview
 
-The Pico Training Monitor is an MCP server that integrates with MCP Hub to provide real-time training job status monitoring through a simple tool interface.
+The Pico Training Monitor is an MCP server that integrates with MCP Hub to provide real-time training job status monitoring across multiple platforms:
+- **AWS SageMaker**: Monitor training jobs by adding AWS credentials
+- **Google Vertex AI**: Monitor training jobs by adding GCP credentials  
+- **Local**: File-based tracking (no additional setup required)
 
-## Quick Setup (5 minutes)
+The monitor automatically detects configured platforms and queries all available sources.
 
-### Step 1: Configure MCP Hub
+## Quick Setup
+
+### Step 1: Install Dependencies (Optional)
+
+**For AWS SageMaker:**
+```bash
+pip install boto3
+```
+
+**For Google Vertex AI:**
+```bash
+pip install google-cloud-aiplatform
+```
+
+### Step 2: Configure Environment Variables
+
+Create a `.env` file in your project root with your cloud credentials:
+
+**For SageMaker:**
+```bash
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=us-east-1
+```
+
+**For Vertex AI:**
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+```
+
+**For both platforms:**
+```bash
+# AWS SageMaker
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=us-east-1
+
+# Google Vertex AI
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+```
+
+### Step 3: Configure MCP Hub
 
 Add the training monitor to your `mcp-servers.json`:
 
-**Option 1: Direct script path (recommended for local usage)**
 ```json
 {
   "mcpServers": {
@@ -20,23 +67,13 @@ Add the training monitor to your `mcp-servers.json`:
       "command": "python",
       "args": ["/absolute/path/to/examples/training-monitor/pico_training_monitor.py"],
       "env": {
-        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"
-      },
-      "disabled": false
-    }
-  }
-}
-```
-
-**Option 2: Module import (if installed as package)**
-```json
-{
-  "mcpServers": {
-    "pico-training-monitor": {
-      "command": "python",
-      "args": ["-m", "pico_training_monitor"],
-      "env": {
-        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs"
+        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs",
+        "AWS_ACCESS_KEY_ID": "${env:AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${env:AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${env:AWS_REGION}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${env:GOOGLE_APPLICATION_CREDENTIALS}",
+        "GOOGLE_CLOUD_PROJECT": "${env:GOOGLE_CLOUD_PROJECT}",
+        "GOOGLE_CLOUD_LOCATION": "${env:GOOGLE_CLOUD_LOCATION}"
       },
       "disabled": false
     }
@@ -52,14 +89,20 @@ Replace `/absolute/path/to/` with the actual path to your MCP Hub directory.
 mcp-hub --config /path/to/mcp-servers.json
 ```
 
-### Step 3: Use the Training Monitor
+### Step 4: Use the Training Monitor
 
 Through any MCP client (Claude Desktop, Cline, etc.), you can now:
 
-**Check all training jobs:**
+**Check all training jobs across all platforms:**
 ```
 Use the tool: pico-training-monitor__run_training_monitor
 Arguments: {} (empty)
+```
+
+**Check jobs from a specific platform:**
+```
+Use the tool: pico-training-monitor__run_training_monitor
+Arguments: { "platform": "sagemaker" }  // or "vertex-ai" or "local"
 ```
 
 **Check a specific job:**
@@ -70,6 +113,42 @@ Arguments: { "job_id": "your-job-id" }
 
 ## Example Response
 
+**Multi-platform response:**
+```json
+{
+  "total_jobs": 3,
+  "platforms": {
+    "sagemaker": true,
+    "vertex_ai": true,
+    "local": true
+  },
+  "jobs": [
+    {
+      "job_id": "sagemaker-job-123",
+      "status": "inprogress",
+      "created_at": "2025-10-30T10:00:00",
+      "platform": "sagemaker"
+    },
+    {
+      "job_id": "vertex-job-456",
+      "status": "running",
+      "created_at": "2025-10-30T11:00:00",
+      "platform": "vertex-ai"
+    },
+    {
+      "job_id": "local-experiment-001",
+      "status": "running",
+      "metrics": {
+        "loss": 0.123,
+        "accuracy": 0.95
+      },
+      "platform": "local"
+    }
+  ]
+}
+```
+
+**Single job response:**
 ```json
 {
   "total_jobs": 1,
