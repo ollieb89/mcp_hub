@@ -1049,8 +1049,10 @@ Respond with ONLY a JSON object in this exact format:
     if (transportInfo) {
       await transportInfo.transport.handlePostMessage(req, res, req.body);
     } else {
-      logger.warn(`MCP message for unknown session: ${sessionId}`);
-      return sendErrorResponse(404, new Error(`Session not found: ${sessionId}`));
+      logger.warn(`MCP message for unknown session: ${sessionId} (hub may have restarted)`);
+      return sendErrorResponse(404, new Error(
+        `Session not found: ${sessionId}. The hub may have restarted. Please reconnect.`
+      ));
     }
   }
 
