@@ -16,3 +16,4 @@ openai
 
 # Training monitor example data
 training_logs/
+__pycache__/
