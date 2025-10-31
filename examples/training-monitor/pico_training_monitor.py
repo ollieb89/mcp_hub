@@ -166,14 +166,16 @@ def main():
     
     # Read JSON-RPC requests from stdin
     for line in sys.stdin:
+        request_id = None
         try:
             request = json.loads(line)
+            request_id = request.get('id')
             response = handle_mcp_request(request, monitor)
             
             # Build JSON-RPC response
             rpc_response = {
                 "jsonrpc": "2.0",
-                "id": request.get('id')
+                "id": request_id
             }
             
             if "error" in response:
@@ -187,7 +189,7 @@ def main():
         except Exception as e:
             error_response = {
                 "jsonrpc": "2.0",
-                "id": request.get('id') if 'request' in locals() else None,
+                "id": request_id,
                 "error": {
                     "code": -32603,
                     "message": f"Internal error: {str(e)}"
