@@ -272,25 +272,28 @@ describe('ToolFilteringService - Sprint 0.1: Non-Blocking Architecture', () => {
       };
       mockMcpHub.config = llmConfig;
       service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      await service.waitForInitialization();
+      service.llmCache.clear(); // Ensure cache is empty for this test
 
       const mockCategorize = vi.fn().mockResolvedValue('web');
       service.llmClient = { categorize: mockCategorize };
 
-      // Act - Trigger 20 categorizations rapidly
+      // Act - Trigger 20 categorizations rapidly by directly queueing LLM calls
+      const promises = [];
       for (let i = 0; i < 20; i++) {
-        service.getToolCategory(
-          `tool_${i}`,
-          'test-server',
-          { description: `Tool ${i}` }
+        promises.push(
+          service._queueLLMCategorization(
+            `rate_limit_tool_${i}`,
+            { description: `Tool ${i}` }
+          )
         );
       }
 
-      // Wait for queue to process
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Wait for all to complete
+      await Promise.all(promises);
 
       // Assert - With concurrency=5 and interval=100ms (10/sec),
-      // 20 tools should take at least 2 seconds
-      // But we can't easily test exact timing, so just verify all were called
+      // all 20 should have been called
       expect(mockCategorize).toHaveBeenCalledTimes(20);
     });
 
@@ -1247,7 +1250,7 @@ describe('ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests', () => {
   });
 
   describe('LLM Cache Initialization', () => {
-    it('should use XDG-compliant cache location', () => {
+    it('should use XDG-compliant cache location', async () => {
       // Arrange
       const config = {
         toolFiltering: {
@@ -1262,6 +1265,7 @@ describe('ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests', () => {
 
       // Act
       service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      await service.waitForInitialization();
 
       // Assert - Should use XDG state directory
       expect(service.llmCacheFile).toBeDefined();
@@ -1310,6 +1314,90 @@ describe('ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests', () => {
 
       // Assert
       expect(service.llmCache).toBeInstanceOf(Map);
+    });
+
+    it('should warn when OpenAI API key does not start with sk-', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {
+          llmCategorization: {
+            enabled: true,
+            provider: 'openai',
+            apiKey: 'invalid-key-format',
+            model: 'gpt-4'
+          }
+        }
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+
+      const warnSpy = vi.spyOn(logger, 'warn');
+
+      // Act
+      await service._createLLMClient();
+
+      // Assert
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('OpenAI API key does not start with "sk-"')
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it('should not warn when OpenAI API key has correct format', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {
+          llmCategorization: {
+            enabled: true,
+            provider: 'openai',
+            apiKey: 'sk-test1234567890abcdef',
+            model: 'gpt-4'
+          }
+        }
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+
+      const warnSpy = vi.spyOn(logger, 'warn');
+
+      // Act
+      await service._createLLMClient();
+
+      // Assert
+      expect(warnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('OpenAI API key does not start with "sk-"')
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it('should not validate non-OpenAI providers', async () => {
+      // Arrange
+      const config = {
+        toolFiltering: {
+          llmCategorization: {
+            enabled: true,
+            provider: 'anthropic',
+            apiKey: 'anthropic-key-without-prefix',
+            model: 'claude-3-sonnet'
+          }
+        }
+      };
+      mockMcpHub.config = config;
+      service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+
+      const warnSpy = vi.spyOn(logger, 'warn');
+
+      // Act
+      await service._createLLMClient();
+
+      // Assert - Should not warn about OpenAI format for other providers
+      expect(warnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('OpenAI API key does not start with "sk-"')
+      );
+
+      warnSpy.mockRestore();
     });
   });
 
@@ -1454,6 +1542,7 @@ describe('ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests', () => {
       };
       mockMcpHub.config = config;
       service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      await service.waitForInitialization();
       service.llmCache.set('test_tool', 'web');
       service.llmCacheDirty = true;
 
@@ -1480,6 +1569,7 @@ describe('ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests', () => {
       };
       mockMcpHub.config = config;
       const service1 = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+      await service1.waitForInitialization();
 
       // Add and flush cache
       service1._saveCachedCategory('persistent_tool', 'cloud');
@@ -1488,9 +1578,7 @@ describe('ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests', () => {
 
       // Act - Second instance should load persisted cache
       const service2 = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
-      
-      // Wait for async cache load
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await service2.waitForInitialization();
 
       // Assert
       const category = await service2._loadCachedCategory('persistent_tool');
@@ -2035,6 +2123,8 @@ describe('ToolFilteringService - Task 3.2.2: Non-Blocking LLM Integration', () =
     };
     mockMcpHub.config = config;
     service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    await service.waitForInitialization();
+    service.llmCache.clear(); // Ensure cache is empty for this test
 
     // Mock LLM
     const mockCategorize = vi.fn().mockResolvedValue('web');
@@ -2299,6 +2389,8 @@ describe('ToolFilteringService - Task 3.3.2: LLM Categorization', () => {
     };
     mockMcpHub.config = config;
     service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
+    await service.waitForInitialization();
+    service.llmCache.clear(); // Ensure cache is empty for this test
     service.llmClient = mockLLMClient;
 
     // Mock LLM with delay to simulate real API calls

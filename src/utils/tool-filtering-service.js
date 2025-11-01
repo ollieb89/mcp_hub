@@ -166,10 +166,22 @@ class ToolFilteringService {
 
     // Initialize LLM client if enabled
     if (this.config.llmCategorization?.enabled) {
-      this._initializeLLM().catch(err => {
+      this._initializationPromise = this._initializeLLM().catch(err => {
         logger.error('Failed to initialize LLM categorization:', err.message);
+        throw err; // Re-throw for waitForInitialization()
       });
+    } else {
+      this._initializationPromise = Promise.resolve();
     }
+  }
+
+  /**
+   * Wait for async initialization to complete
+   * Useful for testing and ensuring LLM is ready before use
+   * @returns {Promise<void>}
+   */
+  async waitForInitialization() {
+    await this._initializationPromise;
   }
 
   /**
@@ -191,10 +203,8 @@ class ToolFilteringService {
       const stateDir = getStateDirectory();
       this.llmCacheFile = path.join(stateDir, 'tool-categories-llm.json');
 
-      // Load existing cache
-      this._loadLLMCache().catch(err => {
-        logger.warn('Failed to load LLM cache:', err.message);
-      });
+      // Load existing cache (await to ensure it completes before initialization finishes)
+      await this._loadLLMCache();
 
       // Periodic cache flush (30 seconds) (Sprint 0.2)
       this.llmCacheFlushInterval = setInterval(() => {
@@ -743,6 +753,12 @@ class ToolFilteringService {
     // Resolve environment variables in the configuration
     const resolvedConfig = await envResolver.resolveConfig(config, ['apiKey', 'baseURL', 'model']);
 
+    // Validate API key format for OpenAI (Sprint 0.5)
+    if (resolvedConfig.provider === 'openai' && resolvedConfig.apiKey) {
+      if (!resolvedConfig.apiKey.startsWith('sk-')) {
+        logger.warn('OpenAI API key does not start with "sk-", may be invalid');
+      }
+    }
     
     // Create provider using factory (supports OpenAI, Anthropic, and Gemini)
     try {
