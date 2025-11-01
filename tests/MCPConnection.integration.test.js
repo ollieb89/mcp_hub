@@ -234,7 +234,7 @@ describe("MCPConnection Integration Tests", () => {
       // Mock HTTP transport (should be tried first)
       const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
       const mockHTTPTransport = { close: vi.fn() };
-      StreamableHTTPClientTransport.mockReturnValue(mockHTTPTransport);
+      StreamableHTTPClientTransport.mockImplementation(function() { return mockHTTPTransport; });
 
       await connection.connect();
 
@@ -284,7 +284,7 @@ describe("MCPConnection Integration Tests", () => {
       // Mock HTTP transport
       const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
       const mockHTTPTransport = { close: vi.fn() };
-      StreamableHTTPClientTransport.mockReturnValue(mockHTTPTransport);
+      StreamableHTTPClientTransport.mockImplementation(function() { return mockHTTPTransport; });
 
       await connection.connect();
 
@@ -330,7 +330,7 @@ describe("MCPConnection Integration Tests", () => {
       // Mock HTTP transport
       const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
       const mockHTTPTransport = { close: vi.fn() };
-      StreamableHTTPClientTransport.mockReturnValue(mockHTTPTransport);
+      StreamableHTTPClientTransport.mockImplementation(function() { return mockHTTPTransport; });
 
       await connection.connect();
 
@@ -614,7 +614,7 @@ describe("MCPConnection Integration Tests", () => {
         close: vi.fn().mockResolvedValue(undefined),
         on: vi.fn()
       };
-      SSEClientTransport.mockReturnValue(mockSSETransport);
+      SSEClientTransport.mockImplementation(function() { return mockSSETransport; });
       
       // Need fresh client mock
       const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
@@ -627,7 +627,7 @@ describe("MCPConnection Integration Tests", () => {
         onerror: null,
         onclose: null,
       };
-      Client.mockReturnValue(mockClient2);
+      Client.mockImplementation(function() { return mockClient2; });
       
       await connection.connect();
       expect(connection.status).toBe("connected");
@@ -729,7 +729,7 @@ describe("MCPConnection Integration Tests", () => {
         onerror: null,
         onclose: null,
       };
-      Client.mockReturnValue(mockClient);
+      Client.mockImplementation(function() { return mockClient; });
 
       // Setup mock transport
       const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
@@ -739,7 +739,7 @@ describe("MCPConnection Integration Tests", () => {
           on: vi.fn()
         }
       };
-      StdioClientTransport.mockReturnValue(mockTransport);
+      StdioClientTransport.mockImplementation(function() { return mockTransport; });
     });
 
     it("should handle hanging operations with race condition", async () => {
@@ -924,7 +924,7 @@ describe("MCPConnection Integration Tests", () => {
         onerror: null,
         onclose: null,
       };
-      Client.mockReturnValue(mockClient);
+      Client.mockImplementation(function() { return mockClient; });
 
       // Setup mock transport
       const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
@@ -934,7 +934,7 @@ describe("MCPConnection Integration Tests", () => {
           on: vi.fn()
         }
       };
-      StdioClientTransport.mockReturnValue(mockTransport);
+      StdioClientTransport.mockImplementation(function() { return mockTransport; });
     });
 
     it("should handle missing command for STDIO server during connection", async () => {
@@ -1057,7 +1057,7 @@ describe("MCPConnection Integration Tests", () => {
         onerror: null,
         onclose: null,
       };
-      Client.mockReturnValue(mockClient);
+      Client.mockImplementation(function() { return mockClient; });
 
       // Setup mock transport
       const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
@@ -1067,7 +1067,7 @@ describe("MCPConnection Integration Tests", () => {
           on: vi.fn()
         }
       };
-      StdioClientTransport.mockReturnValue(mockTransport);
+      StdioClientTransport.mockImplementation(function() { return mockTransport; });
     });
 
     it("should handle parallel client requests without interference", async () => {
@@ -1278,7 +1278,7 @@ describe("MCPConnection Integration Tests", () => {
         onerror: null,
         onclose: null,
       };
-      Client.mockReturnValue(mockClient);
+      Client.mockImplementation(function() { return mockClient; });
 
       // Setup mock transport
       const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
@@ -1288,7 +1288,7 @@ describe("MCPConnection Integration Tests", () => {
           on: vi.fn()
         }
       };
-      StdioClientTransport.mockReturnValue(mockTransport);
+      StdioClientTransport.mockImplementation(function() { return mockTransport; });
     });
 
     it("should handle empty server capabilities gracefully", async () => {

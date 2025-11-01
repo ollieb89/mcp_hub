@@ -12,16 +12,20 @@ import {
 import { createTestConfig } from "./helpers/fixtures.js";
 import { expectServerConnected, expectServerDisconnected, expectNoActiveConnections } from "./helpers/assertions.js";
 
-// Mock ConfigManager
+// Mock ConfigManager with shared instance
+let sharedConfigManagerInstance = null;
 vi.mock("../src/utils/config.js", () => {
   const MockConfigManager = vi.fn(function() {
-    return {
-      loadConfig: vi.fn(),
-      watchConfig: vi.fn(),
-      getConfig: vi.fn(),
-      updateConfig: vi.fn(),
-      on: vi.fn(),
-    };
+    if (!sharedConfigManagerInstance) {
+      sharedConfigManagerInstance = {
+        loadConfig: vi.fn(),
+        watchConfig: vi.fn(),
+        getConfig: vi.fn(),
+        updateConfig: vi.fn(),
+        on: vi.fn(),
+      };
+    }
+    return sharedConfigManagerInstance;
   });
   return { ConfigManager: MockConfigManager };
 });
@@ -68,6 +72,9 @@ describe("MCPHub", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Reset shared ConfigManager instance
+    sharedConfigManagerInstance = null;
 
     // Reset instance mocks
     mockConfig = {
@@ -81,7 +88,7 @@ describe("MCPHub", () => {
     configManager = new ConfigManager();
     configManager.getConfig.mockReturnValue(mockConfig);
 
-    // Setup MCPConnection mock
+    // Setup MCPConnection mock - don't override, use the default from vi.mock
     connection = new MCPConnection();
     connection.getServerInfo.mockReturnValue({
       name: "server1",
@@ -195,7 +202,7 @@ describe("MCPHub", () => {
       if (configChangeHandler) {
         // Setup mock for added server
         newConnection = new MCPConnection();
-        MCPConnection.mockReturnValue(newConnection);
+        MCPConnection.mockImplementation(function() { return newConnection; });
         configManager.getConfig.mockReturnValue(newConfig);
         
         // Call handler with changes indicating a new server was added
