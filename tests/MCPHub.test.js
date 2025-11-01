@@ -14,20 +14,22 @@ import { expectServerConnected, expectServerDisconnected, expectNoActiveConnecti
 
 // Mock ConfigManager
 vi.mock("../src/utils/config.js", () => {
-  const MockConfigManager = vi.fn(() => ({
-    loadConfig: vi.fn(),
-    watchConfig: vi.fn(),
-    getConfig: vi.fn(),
-    updateConfig: vi.fn(),
-    on: vi.fn(),
-  }));
+  const MockConfigManager = vi.fn(function() {
+    return {
+      loadConfig: vi.fn(),
+      watchConfig: vi.fn(),
+      getConfig: vi.fn(),
+      updateConfig: vi.fn(),
+      on: vi.fn(),
+    };
+  });
   return { ConfigManager: MockConfigManager };
 });
 
 // Mock MCPConnection
-vi.mock("../src/MCPConnection.js", () => {
-  const MockConnection = vi.fn(() => {
-    const instance = {
+vi.mock("../src/MCPConnection.js", () => ({
+  MCPConnection: vi.fn().mockImplementation(function() {
+    return {
       connect: vi.fn().mockResolvedValue(undefined),
       disconnect: vi.fn().mockResolvedValue(undefined),
       getServerInfo: vi.fn().mockResolvedValue({ name: '', status: 'connected' }),
@@ -45,10 +47,8 @@ vi.mock("../src/MCPConnection.js", () => {
       listPrompts: vi.fn().mockResolvedValue([]),
       status: 'connected'
     };
-    return instance;
-  });
-  return { MCPConnection: MockConnection };
-});
+  })
+}));
 
 // Mock logger
 vi.mock("../src/utils/logger.js", () => ({
@@ -79,12 +79,10 @@ describe("MCPHub", () => {
 
     // Setup ConfigManager mock
     configManager = new ConfigManager();
-    ConfigManager.mockReturnValue(configManager);
     configManager.getConfig.mockReturnValue(mockConfig);
 
     // Setup MCPConnection mock
     connection = new MCPConnection();
-    MCPConnection.mockReturnValue(connection);
     connection.getServerInfo.mockReturnValue({
       name: "server1",
       status: "connected",

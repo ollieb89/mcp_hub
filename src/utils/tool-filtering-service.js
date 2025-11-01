@@ -612,6 +612,10 @@ class ToolFilteringService {
       const cacheObj = Object.fromEntries(this.llmCache);
       const tempFile = `${this.llmCacheFile}.tmp`;
 
+      // Ensure parent directory exists
+      const dir = path.dirname(this.llmCacheFile);
+      await fs.mkdir(dir, { recursive: true });
+
       // Write to temp file
       await fs.writeFile(tempFile, JSON.stringify(cacheObj, null, 2), 'utf-8');
 

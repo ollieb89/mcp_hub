@@ -12,20 +12,52 @@ import {
 
 // Mock all external dependencies
 vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: vi.fn()
+  Client: vi.fn().mockImplementation(function() {
+    return {
+      connect: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+      request: vi.fn(),
+      setNotificationHandler: vi.fn(),
+      onerror: null,
+      onclose: null,
+    };
+  })
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/stdio.js", () => ({
-  StdioClientTransport: vi.fn(),
+  StdioClientTransport: vi.fn().mockImplementation(function() {
+    return {
+      close: vi.fn().mockResolvedValue(undefined),
+      stderr: {
+        on: vi.fn()
+      },
+      onerror: null,
+      onclose: null,
+    };
+  }),
   getDefaultEnvironment: vi.fn(() => ({ NODE_ENV: 'test' }))
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/sse.js", () => ({
-  SSEClientTransport: vi.fn()
+  SSEClientTransport: vi.fn().mockImplementation(function() {
+    return {
+      close: vi.fn().mockResolvedValue(undefined),
+      on: vi.fn(),
+      onerror: null,
+      onclose: null,
+    };
+  })
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/streamableHttp.js", () => ({
-  StreamableHTTPClientTransport: vi.fn()
+  StreamableHTTPClientTransport: vi.fn().mockImplementation(function() {
+    return {
+      close: vi.fn().mockResolvedValue(undefined),
+      on: vi.fn(),
+      onerror: null,
+      onclose: null,
+    };
+  })
 }));
 
 vi.mock("../src/utils/logger.js", () => ({
@@ -38,11 +70,13 @@ vi.mock("../src/utils/logger.js", () => ({
 }));
 
 vi.mock("../src/utils/dev-watcher.js", () => ({
-  DevWatcher: vi.fn(() => ({
-    on: vi.fn(),
-    start: vi.fn(),
-    stop: vi.fn(),
-  }))
+  DevWatcher: vi.fn().mockImplementation(function() {
+    return {
+      on: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+    };
+  })
 }));
 
 // Mock child_process for EnvResolver
@@ -87,7 +121,7 @@ describe("MCPConnection Integration Tests", () => {
       onerror: null,
       onclose: null,
     };
-    Client.mockReturnValue(mockClient);
+    Client.mockImplementation(function() { return mockClient; });
 
     // Setup mock transport for STDIO
     const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
@@ -97,7 +131,7 @@ describe("MCPConnection Integration Tests", () => {
         on: vi.fn()
       }
     };
-    StdioClientTransport.mockReturnValue(mockTransport);
+    StdioClientTransport.mockImplementation(function() { return mockTransport; });
 
     // Setup mock transport for SSE
     const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
@@ -105,7 +139,7 @@ describe("MCPConnection Integration Tests", () => {
       close: vi.fn().mockResolvedValue(undefined),
       on: vi.fn()
     };
-    SSEClientTransport.mockReturnValue(mockSSETransport);
+    SSEClientTransport.mockImplementation(function() { return mockSSETransport; });
   });
 
   describe("Basic Connection Lifecycle", () => {
@@ -396,7 +430,7 @@ describe("MCPConnection Integration Tests", () => {
 
       // Mock transport creation failure
       const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
-      StdioClientTransport.mockImplementation(() => {
+      StdioClientTransport.mockImplementation(function() {
         throw new Error("Transport creation failed");
       });
 
@@ -447,7 +481,7 @@ describe("MCPConnection Integration Tests", () => {
       });
       
       // SSE transport also fails  
-      SSEClientTransport.mockImplementationOnce(() => {
+      SSEClientTransport.mockImplementationOnce(function() {
         throw new Error("Network unreachable");
       });
 
@@ -472,12 +506,12 @@ describe("MCPConnection Integration Tests", () => {
       const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
       
       // HTTP transport fails
-      StreamableHTTPClientTransport.mockImplementationOnce(() => {
+      StreamableHTTPClientTransport.mockImplementationOnce(function() {
         throw new Error("Connection failed");
       });
       
       // SSE transport also fails
-      SSEClientTransport.mockImplementationOnce(() => {
+      SSEClientTransport.mockImplementationOnce(function() {
         throw new Error("Connection failed");
       });
 
@@ -510,7 +544,7 @@ describe("MCPConnection Integration Tests", () => {
       });
       
       // SSE transport also fails with SSL error
-      SSEClientTransport.mockImplementationOnce(() => {
+      SSEClientTransport.mockImplementationOnce(function() {
         throw new Error("certificate has expired");
       });
 
@@ -564,10 +598,10 @@ describe("MCPConnection Integration Tests", () => {
       const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
       const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
       
-      StreamableHTTPClientTransport.mockImplementationOnce(() => {
+      StreamableHTTPClientTransport.mockImplementationOnce(function() {
         throw new Error("Initial connection failed");
       });
-      SSEClientTransport.mockImplementationOnce(() => {
+      SSEClientTransport.mockImplementationOnce(function() {
         throw new Error("Initial connection failed");
       });
       
@@ -917,7 +951,7 @@ describe("MCPConnection Integration Tests", () => {
       // The actual validation happens when transport is created
       // STDIO transport requires command, so this will fail
       const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
-      StdioClientTransport.mockImplementationOnce(() => {
+      StdioClientTransport.mockImplementationOnce(function() {
         throw new Error('Cannot create STDIO transport without command');
       });
 
@@ -940,7 +974,7 @@ describe("MCPConnection Integration Tests", () => {
 
       // Mock SSE transport to throw error for invalid URL
       const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
-      SSEClientTransport.mockImplementationOnce(() => {
+      SSEClientTransport.mockImplementationOnce(function() {
         try {
           new URL('not-a-valid-url');
         } catch (error) {
