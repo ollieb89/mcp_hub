@@ -80,7 +80,7 @@ export default class MCPHubOAuthProvider {
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       client_name: "MCP Hub",
-      client_uri: "https://github.com/ravitemer/mcp-hub",
+      client_uri: "https://github.com/ollieb89/mcp_hub",
     };
   }
 

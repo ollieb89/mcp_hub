@@ -533,5 +533,5 @@ K6_CLOUD_TOKEN=your-token k6 cloud tests/load/basic-mcp-endpoint.js
 ## Support
 
 For issues or questions:
-- GitHub Issues: [MCP Hub Issues](https://github.com/ravitemer/mcp-hub/issues)
+- GitHub Issues: [MCP Hub Issues](https://github.com/ollieb89/mcp_hub/issues)
 - k6 Community: [k6 Community Forum](https://community.k6.io/)
