@@ -17,7 +17,7 @@
 
 1. **Start MCP Hub with filtering enabled**:
    ```bash
-   cd /home/ob/Development/Tools/mcp-hub
+   cd ~/mcp-hub
    npm start
    ```
 

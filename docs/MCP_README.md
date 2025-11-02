@@ -38,7 +38,7 @@ MCP Hub is running on **port 7000** and provides unified access to multiple MCP 
 - Shell command execution
 
 **Configuration**: Local installation using `uv`  
-**Location**: `/home/ob/Development/Tools/mcps/serena`
+**Location**: `~/mcps/serena`
 
 **Use Cases**:
 - Code exploration and navigation
@@ -130,7 +130,7 @@ DOCKER_HUB_USERNAME=${DOCKER_HUB_USERNAME}
 
 **Installation Notes**:
 - Requires manual installation from https://github.com/docker/hub-mcp
-- Binary located at: `/home/ob/Development/Tools/mcps/hub-mcp/dist/index.js`
+- Binary located at: `~/mcps/hub-mcp/dist/index.js`
 
 **Use Cases**:
 - Image discovery and search
@@ -206,7 +206,7 @@ NANANA_API_TOKEN=${NANANA_API_TOKEN}
 - Google Cloud integration
 
 **Configuration**:
-- Binary installation at `/home/ob/bin/imagen3-mcp`
+- Binary installation at `~/bin/imagen3-mcp`
 - Uses Gemini API for operations
 
 **Environment Variables**:
@@ -234,7 +234,7 @@ GEMINI_API_KEY=${GEMINI_API_KEY}
 - Best practices and patterns
 
 **Configuration**:
-- Local installation at `/home/ob/Development/Tools/mcps/augments-mcp-server`
+- Local installation at `~/mcps/augments-mcp-server`
 - Requires GitHub token for API access
 
 **Environment Variables**:
@@ -309,7 +309,7 @@ NEON_API_KEY=${NEON_API_KEY}
 - **Research & Analysis**: Code analysis, documentation synthesis, project guidelines generation
 
 **Configuration**:
-- Local installation at `/home/ob/Development/Tools/mcps/vertex-ai-mcp-server`
+- Local installation at `~/mcps/vertex-ai-mcp-server`
 - Provider: Vertex AI
 - Project: `hopeful-sound-470614-r3`
 - Location: `us-central1`
@@ -364,7 +364,7 @@ AI_MAX_OUTPUT_TOKENS=65536
 
 **Configuration**:
 - Official GitHub MCP server
-- Binary installation at `/home/ob/Development/Tools/mcps/github-mcp-server/github-mcp-server`
+- Binary installation at `~/mcps/github-mcp-server/github-mcp-server`
 - Uses `stdio` transport mode
 
 **Environment Variables**:
@@ -599,7 +599,7 @@ NOTION_TOKEN=${NOTION_API_KEY}
 
 **Configuration**:
 - Local installation required
-- Location: `/home/ob/Development/Tools/mcps/prometheus-mcp-server`
+- Location: `~/mcps/prometheus-mcp-server`
 - Uses `uv` to run Python server
 
 **Environment Variables**:
@@ -727,7 +727,7 @@ PINECONE_API_KEY=${PINECONE_API_KEY}
 ### Starting the Hub
 
 ```bash
-cd /home/ob/Development/Tools/mcp-hub
+cd ~/mcp-hub
 npm start
 ```
 
@@ -831,16 +831,16 @@ Check `.env` file in MCP Hub root directory. Each server requires specific crede
 ## Server Installation Locations
 
 ### Local Installations
-- **Serena**: `/home/ob/Development/Tools/mcps/serena`
-- **Augments**: `/home/ob/Development/Tools/mcps/augments-mcp-server`
-- **Vertex AI**: `/home/ob/Development/Tools/mcps/vertex-ai-mcp-server`
-- **Docker Hub**: `/home/ob/Development/Tools/mcps/hub-mcp`
-- **GitHub**: `/home/ob/Development/Tools/mcps/github-mcp-server`
-- **Prometheus**: `/home/ob/Development/Tools/mcps/prometheus-mcp-server`
+- **Serena**: `~/mcps/serena`
+- **Augments**: `~/mcps/augments-mcp-server`
+- **Vertex AI**: `~/mcps/vertex-ai-mcp-server`
+- **Docker Hub**: `~/mcps/hub-mcp`
+- **GitHub**: `~/mcps/github-mcp-server`
+- **Prometheus**: `~/mcps/prometheus-mcp-server`
 
 ### Binaries
-- **Imagen3**: `/home/ob/bin/imagen3-mcp`
-- **GitHub**: `/home/ob/Development/Tools/mcps/github-mcp-server/github-mcp-server`
+- **Imagen3**: `~/bin/imagen3-mcp`
+- **GitHub**: `~/mcps/github-mcp-server/github-mcp-server`
 
 ### NPX-Based (Auto-downloaded)
 - **Shadcn UI**: `@jpisnice/shadcn-ui-mcp-server`

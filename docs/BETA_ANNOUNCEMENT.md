@@ -4,7 +4,7 @@
 **Status**: 🟢 Accepting Applications
 **Target**: 5-10 beta testers
 **Duration**: 2 weeks
-**Start Date**: TBD (Week 2 of rollout)
+**Start Date**: November 4, 2025 (Week 2 of rollout)
 
 ---
 
@@ -208,7 +208,7 @@ We'll measure beta success using these KPIs:
 
 Ready to help shape the future of MCP Hub tool management?
 
-**👉 [Post your application in GitHub Discussions](https://github.com/[your-repo]/discussions) 👈**
+**👉 [Post your application in GitHub Discussions](https://github.com/ollieb89/mcp_hub/discussions) 👈**
 
 Questions? Ask in the Beta Q&A discussion category.
 
