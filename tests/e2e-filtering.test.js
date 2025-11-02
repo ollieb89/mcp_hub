@@ -256,14 +256,14 @@ describe("E2E: Tool Filtering System", () => {
         }
       }
 
-      // ACT: Create endpoint applying denylist
+      // ACT: Create endpoint applying denylist filtering
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // ASSERT: Blocked servers excluded, others exposed
+      // ASSERT: Blocked servers excluded from tool registration
       const registeredTools = endpoint.registeredCapabilities.tools.size;
       expect(registeredTools).toBe(expectedTools);
       expect(registeredTools).toBeGreaterThan(0);
-      expect(registeredTools).toBeLessThan(700); // Less than total
+      expect(registeredTools).toBeLessThan(700);
     });
 
     it("should apply category-based filtering", () => {
@@ -279,16 +279,15 @@ describe("E2E: Tool Filtering System", () => {
       };
 
       mcpHub = createRealistic25ServerHub(config);
-      const expectedTools = 15 + 45 + 5 + 8 + 12; // 85 tools from matching categories
+      const expectedTools = 15 + 45 + 5 + 8 + 12;
 
-      // ACT: Apply category filtering
+      // ACT: Apply category filtering with specified categories
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // ASSERT: Only tools from matching categories exposed (85 tools)
+      // ASSERT: Only tools from matching categories exposed
       const registeredTools = endpoint.registeredCapabilities.tools.size;
       expect(registeredTools).toBe(expectedTools);
       
-      // Verify stats
       const stats = endpoint.filteringService.getStats();
       expect(stats.allowedCategories).toContain("filesystem");
       expect(stats.allowedCategories).toContain("web");
@@ -313,14 +312,13 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // ACT: Apply hybrid filtering (OR logic)
+      // ACT: Apply hybrid filtering with OR logic
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // ASSERT: Tools from either server OR category exposed (60 total)
+      // ASSERT: Tools from either server OR category exposed
       const registeredTools = endpoint.registeredCapabilities.tools.size;
-      expect(registeredTools).toBe(60); // playwright (45) + serena (15)
+      expect(registeredTools).toBe(60);
       
-      // Verify stats
       const stats = endpoint.filteringService.getStats();
       expect(stats.mode).toBe("hybrid");
     });
@@ -347,19 +345,17 @@ describe("E2E: Tool Filtering System", () => {
         totalTools += conn.tools.length;
       }
 
-      // ACT: Apply aggressive server filtering
+      // ACT: Apply aggressive server filtering to hub
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // ASSERT: 80-95% tool reduction achieved for focused workflow
+      // ASSERT: 80-95% tool reduction achieved
       const exposedTools = endpoint.registeredCapabilities.tools.size;
       const reductionRate = 1 - (exposedTools / totalTools);
       
-      expect(reductionRate).toBeGreaterThanOrEqual(0.80); // At least 80% reduction
-      expect(reductionRate).toBeLessThanOrEqual(0.95); // At most 95% reduction
-      
-      // Verify actual tool count is reasonable for frontend work
-      expect(exposedTools).toBeLessThan(100); // Should be manageable
-      expect(exposedTools).toBeGreaterThan(50); // Should have enough tools
+      expect(reductionRate).toBeGreaterThanOrEqual(0.80);
+      expect(reductionRate).toBeLessThanOrEqual(0.95);
+      expect(exposedTools).toBeLessThan(100);
+      expect(exposedTools).toBeGreaterThan(50);
     });
 
     it("should achieve 45-70% reduction with category filtering", () => {
@@ -384,12 +380,12 @@ describe("E2E: Tool Filtering System", () => {
       // ACT: Apply category filtering for full-stack workflow
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // ASSERT: 45-70% tool reduction while maintaining broad capability
+      // ASSERT: 45-70% tool reduction while maintaining capability
       const exposedTools = endpoint.registeredCapabilities.tools.size;
       const reductionRate = 1 - (exposedTools / totalTools);
       
-      expect(reductionRate).toBeGreaterThanOrEqual(0.45); // At least 45% reduction
-      expect(reductionRate).toBeLessThanOrEqual(0.70); // At most 70% reduction
+      expect(reductionRate).toBeGreaterThanOrEqual(0.45);
+      expect(reductionRate).toBeLessThanOrEqual(0.70);
     });
 
     it("should auto-enable filtering when threshold exceeded", () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EnvResolver, envResolver } from "../src/utils/env-resolver.js";
 import { exec } from 'child_process';
 import { promisify } from 'util';
