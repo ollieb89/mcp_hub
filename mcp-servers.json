@@ -1,9 +1,36 @@
 {
   "toolFiltering": {
     "enabled": true,
-    "mode": "category",
-    "categoryFilter": {
-      "categories": ["filesystem", "web", "search"]
+    "mode": "prompt-based",
+    "comment": "Modes: 'static' (all tools exposed), 'server-allowlist' (filter by server), 'prompt-based' (dynamic exposure via LLM)",
+    "promptBasedFiltering": {
+      "enabled": true,
+      "defaultExposure": "meta-only",
+      "comment": "defaultExposure options: 'zero' (no tools), 'meta-only' (only meta-tools), 'minimal' (core tools), 'all' (all tools)",
+      "enableMetaTools": true,
+      "sessionIsolation": true
+    },
+    "serverFilter": {
+      "mode": "allowlist",
+      "servers": [
+        "serena",
+        "git",
+        "github",
+        "sequential-thinking",
+        "memory",
+        "fetch",
+        "vertex-ai",
+        "augments",
+        "playwright",
+        "docker"
+      ]
+    },
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "gemini",
+      "apiKey": "${GEMINI_API_KEY}",
+      "model": "gemini-2.5-flash",
+      "comment": "Native Gemini provider. Options: 'gemini-2.5-flash' (fastest), 'gemini-2.0-flash' (fast), 'gemini-2.5-pro' (best quality). For OpenAI: provider 'openai', OPENAI_API_KEY, model 'gpt-4o-mini'. For Anthropic: provider 'anthropic', ANTHROPIC_API_KEY, model 'claude-3-haiku-20240307'"
     }
   },
   "mcpServers": {
@@ -65,7 +92,10 @@
       "args": [],
       "cwd": ".",
       "env": {
-        "GEMINI_API_KEY": "${GEMINI_API_KEY}"
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "NO_COLOR": "1",
+        "CLICOLOR": "0",
+        "CLICOLOR_FORCE": "0"
       },
       "disabled": false,
       "note": "Google Imagen 3.0 image generation using Gemini API. Binary installed at /home/ob/bin/imagen3-mcp"

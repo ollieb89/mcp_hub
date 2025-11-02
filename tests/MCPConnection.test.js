@@ -11,30 +11,34 @@ import {
 
 // Mock MCP SDK
 vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: vi.fn(() => ({
-    connect: vi.fn().mockImplementation(async (transport) => {
-      // Store transport for later use
-      if (client) {
-        client.transport = transport;
-      }
-      return undefined;
-    }),
-    close: vi.fn(),
-    request: vi.fn(),
-    setNotificationHandler: vi.fn(),
-    transport: null,
-  })),
+  Client: vi.fn().mockImplementation(function() {
+    return {
+      connect: vi.fn().mockImplementation(async (transport) => {
+        // Store transport for later use
+        if (client) {
+          client.transport = transport;
+        }
+        return undefined;
+      }),
+      close: vi.fn(),
+      request: vi.fn(),
+      setNotificationHandler: vi.fn(),
+      transport: null,
+    };
+  }),
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/stdio.js", () => ({
-  StdioClientTransport: vi.fn(() => ({
-    close: vi.fn(),
-    stderr: {
-      on: vi.fn(),
-    },
-    onerror: null,
-    onclose: null,
-  })),
+  StdioClientTransport: vi.fn().mockImplementation(function() {
+    return {
+      close: vi.fn(),
+      stderr: {
+        on: vi.fn(),
+      },
+      onerror: null,
+      onclose: null,
+    };
+  }),
   getDefaultEnvironment: vi.fn().mockReturnValue({}),
 }));
 
@@ -67,7 +71,7 @@ describe("MCPConnection", () => {
 
     // Setup client mock
     client = new Client();
-    Client.mockReturnValue(client);
+    Client.mockImplementation(function() { return client; });
     
     // Override connect to store transport
     client.connect = vi.fn().mockImplementation(async (transportParam) => {
@@ -77,7 +81,7 @@ describe("MCPConnection", () => {
 
     // Setup transport mock
     transport = new StdioClientTransport();
-    StdioClientTransport.mockReturnValue(transport);
+    StdioClientTransport.mockImplementation(function() { return transport; });
 
     // Create connection instance
     connection = new MCPConnection("test-server", mockConfig);

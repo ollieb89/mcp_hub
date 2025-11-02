@@ -13,6 +13,7 @@ junk/
 # Test coverage reports (generated artifacts)
 coverage/
 openai
+.claude/settings.local.json
 
 # Training monitor example data
 training_logs/

@@ -159,15 +159,34 @@ export class MCPServerEndpoint {
     this.clients = new Map(); // sessionId -> { transport, server }
     this.serversMap = new Map(); // sessionId -> server instance
 
-    // Store registered capabilities by type
-    this.registeredCapabilities = {};
+    // Store ALL available capabilities (global registry)
+    this.allCapabilities = {};
     Object.values(CAPABILITY_TYPES).forEach(capType => {
-      this.registeredCapabilities[capType.id] = new Map(); // namespacedName -> { serverName, originalName, definition }
+      this.allCapabilities[capType.id] = new Map(); // namespacedName -> { serverName, originalName, definition, category }
     });
+
+    // Store per-client capability exposure (session-based)
+    this.clientSessions = new Map(); // sessionId -> { exposedCategories: Set, exposedTools: Map, promptHistory: [] }
+
+    // Backward compatibility: registeredCapabilities points to allCapabilities for non-prompt-based mode
+    this.registeredCapabilities = this.allCapabilities;
 
     // Initialize tool filtering service (Sprint 2)
     const config = this.mcpHub.configManager?.getConfig() || {};
     this.filteringService = new ToolFilteringService(config, this.mcpHub);
+
+    // Read prompt-based filtering configuration
+    this.promptBasedConfig = config.toolFiltering?.promptBasedFiltering || {};
+    this.filteringMode = config.toolFiltering?.mode || 'static';
+    
+    // Register hub-internal meta tools if prompt-based filtering is enabled
+    if (this.filteringMode === 'prompt-based' && this.promptBasedConfig.enableMetaTools !== false) {
+      logger.info(`Registering meta-tools for prompt-based filtering (mode: ${this.filteringMode}, enableMetaTools: ${this.promptBasedConfig.enableMetaTools})`);
+      this.registerMetaTools();
+      logger.info(`Meta-tools registered: ${this.allCapabilities.tools.size} total tools in allCapabilities`);
+    } else {
+      logger.warn(`Meta-tools NOT registered: mode=${this.filteringMode}, enableMetaTools=${this.promptBasedConfig.enableMetaTools}`);
+    }
 
     // Setup capability synchronization once
     this.setupCapabilitySync();
@@ -178,6 +197,148 @@ export class MCPServerEndpoint {
 
   getEndpointUrl() {
     return `${this.mcpHub.hubServerUrl}/mcp`;
+  }
+
+  /**
+   * Initialize capabilities for a new client session
+   * @param {string} sessionId - Client session identifier
+   * @param {string[]} initialCategories - Initial categories to expose (default: from config)
+   */
+  initializeClientSession(sessionId, initialCategories = null) {
+    // Determine initial categories based on configuration
+    if (!initialCategories) {
+      const defaultExposure = this.promptBasedConfig.defaultExposure || 'meta-only';
+      switch (defaultExposure) {
+        case 'zero':
+          initialCategories = [];
+          break;
+        case 'meta-only':
+          initialCategories = ['meta'];
+          break;
+        case 'minimal':
+          initialCategories = ['meta', 'filesystem', 'memory'];
+          break;
+        case 'all':
+          initialCategories = ['all'];
+          break;
+        default:
+          initialCategories = ['meta'];
+      }
+    }
+
+    this.clientSessions.set(sessionId, {
+      exposedCategories: new Set(initialCategories),
+      exposedTools: new Map(), // toolName -> capability
+      promptHistory: [],
+      createdAt: new Date()
+    });
+    
+    // Build initial tool list based on categories
+    this.updateClientTools(sessionId, initialCategories);
+  }
+
+  /**
+   * Get capabilities exposed to a specific client session
+   * @param {string} sessionId - Client session ID
+   * @param {string} capabilityType - Type of capability (tools, resources, etc)
+   * @returns {Map} Filtered capability map for this client
+   */
+  getClientCapabilities(sessionId, capabilityType) {
+    // If prompt-based filtering is disabled, return all capabilities
+    if (this.filteringMode !== 'prompt-based') {
+      return this.allCapabilities[capabilityType];
+    }
+
+    // If no session or session doesn't exist, return all capabilities (backward compatibility)
+    if (!sessionId || !this.clientSessions.has(sessionId)) {
+      return this.allCapabilities[capabilityType];
+    }
+
+    const session = this.clientSessions.get(sessionId);
+    const allCaps = this.allCapabilities[capabilityType];
+    
+    // If 'all' category is exposed, return everything
+    if (session.exposedCategories.has('all')) {
+      return allCaps;
+    }
+    
+    // For tools, filter by exposed categories
+    if (capabilityType === CAPABILITY_TYPES.TOOLS.id) {
+      const filteredCaps = new Map();
+      
+      // Always include meta tools
+      for (const [name, cap] of allCaps) {
+        const category = cap.category || this.getCapabilityCategory(name);
+        if (category === 'meta' || session.exposedCategories.has(category)) {
+          filteredCaps.set(name, cap);
+        }
+      }
+      
+      return filteredCaps;
+    }
+    
+    // For other capability types, return all (or implement filtering as needed)
+    return allCaps;
+  }
+
+  /**
+   * Update tools exposed to a client based on analyzed categories
+   * @param {string} sessionId - Client session ID
+   * @param {string[]} categories - Categories to expose
+   * @param {boolean} additive - If true, add to existing categories; if false, replace
+   */
+  async updateClientTools(sessionId, categories, additive = false) {
+    if (!this.clientSessions.has(sessionId)) {
+      logger.warn(`Attempted to update tools for non-existent session: ${sessionId}`);
+      return;
+    }
+
+    const session = this.clientSessions.get(sessionId);
+    
+    // Update exposed categories
+    if (additive) {
+      categories.forEach(cat => session.exposedCategories.add(cat));
+    } else {
+      session.exposedCategories = new Set(['meta', ...categories]); // Always include meta
+    }
+
+    logger.info(`Updated client ${sessionId} tool exposure: ${Array.from(session.exposedCategories).join(', ')}`);
+
+    // Notify client that tool list has changed
+    const client = this.clients.get(sessionId);
+    if (client && client.server) {
+      try {
+        await client.server.sendToolListChanged();
+        logger.debug(`Sent tools/list_changed notification to client ${sessionId}`);
+      } catch (error) {
+        logger.error(`Failed to send tool list notification to ${sessionId}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Get category for a capability (used for filtering)
+   * @param {string} capabilityName - Name of the capability
+   * @returns {string} Category name
+   */
+  getCapabilityCategory(capabilityName) {
+    // Extract server prefix (e.g., 'github' from 'github__list_issues')
+    const match = capabilityName.match(/^([^_]+)__/);
+    if (match) {
+      return match[1];
+    }
+    return 'uncategorized';
+  }
+
+  /**
+   * Cleanup client session on disconnect
+   * @param {string} sessionId - Client session ID to cleanup
+   */
+  cleanupClientSession(sessionId) {
+    if (this.clientSessions.has(sessionId)) {
+      this.clientSessions.delete(sessionId);
+      logger.debug(`Cleaned up session ${sessionId}`);
+    }
   }
 
   /**
@@ -207,8 +368,7 @@ export class MCPServerEndpoint {
     server.onerror = function(err) {
       logger.warn(`Hub Endpoint onerror: ${err.message}`);
     }
-    // Setup request handlers for this server instance
-    this.setupRequestHandlers(server);
+    // Note: Request handlers will be set up in handleSSEConnection with sessionId
 
     return server;
   }
@@ -222,17 +382,200 @@ export class MCPServerEndpoint {
 
 
   /**
-   * Setup MCP request handlers for a server instance
+   * Register hub-internal meta tools for prompt-based filtering
    */
-  setupRequestHandlers(server) {
+  registerMetaTools() {
+    const metaTools = [
+      {
+        name: 'hub__analyze_prompt',
+        description: 'Analyze a user prompt to determine which tool categories are needed. This meta-tool uses LLM to understand user intent and dynamically expose relevant tools. Call this when you receive a new user request.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            prompt: {
+              type: 'string',
+              description: 'The user prompt or query to analyze'
+            },
+            context: {
+              type: 'string',
+              description: 'Optional conversation context to improve analysis'
+            }
+          },
+          required: ['prompt']
+        },
+        handler: async (args, sessionId) => {
+          return await this.handleAnalyzePrompt(args, sessionId);
+        }
+      }
+    ];
+
+    // Register meta tools in allCapabilities with 'meta' category
+    const toolsMap = this.allCapabilities[CAPABILITY_TYPES.TOOLS.id];
+    metaTools.forEach(tool => {
+      toolsMap.set(tool.name, {
+        serverName: HUB_INTERNAL_SERVER_NAME,
+        originalName: tool.name,
+        definition: {
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema
+        },
+        category: 'meta',
+        handler: tool.handler
+      });
+      logger.debug(`Registered meta-tool: ${tool.name}`);
+    });
+    logger.info(`Registered ${metaTools.length} meta-tools in allCapabilities.tools (total tools now: ${toolsMap.size})`);
+  }
+
+  /**
+   * Handle analyze_prompt meta-tool invocation
+   */
+  async handleAnalyzePrompt(args, sessionId) {
+    const { prompt, context } = args;
+    
+    if (!this.filteringService || !this.filteringService.llmClient) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            error: 'LLM-based prompt analysis not available',
+            suggestion: 'Configure toolFiltering with LLM provider in mcp-servers.json'
+          })
+        }]
+      };
+    }
+
+    try {
+      // Use LLM to analyze user intent and determine needed tool categories
+      const analysisPrompt = `Analyze this user request and determine which MCP tool categories are needed.
+
+User request: "${prompt}"
+${context ? `Context: ${context}` : ''}
+
+Available tool categories:
+- github: GitHub repository management, issues, PRs
+- filesystem: File operations, reading/writing files
+- web: Web browsing, fetching web content
+- docker: Container management
+- git: Git operations (local)
+- python: Python environment management
+- database: Database operations
+- memory: Knowledge management
+- vertex_ai: AI-assisted development tasks
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "categories": ["category1", "category2"],
+  "confidence": 0.95,
+  "reasoning": "Brief explanation"
+}`;
+
+      const response = await this.filteringService.llmClient.generateResponse(analysisPrompt);
+      
+      // Parse LLM response
+      let analysis;
+      try {
+        // Extract JSON from response (handle markdown code blocks)
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { categories: [], confidence: 0, reasoning: 'Failed to parse response' };
+      } catch (e) {
+        logger.warn(`Failed to parse LLM analysis response: ${e.message}`);
+        analysis = { categories: [], confidence: 0, reasoning: 'Invalid response format' };
+      }
+
+      // Update client tools based on analysis
+      if (analysis.categories && analysis.categories.length > 0) {
+        await this.updateClientTools(sessionId, analysis.categories, false);
+      }
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            ...analysis,
+            message: `Updated tool exposure: ${analysis.categories.join(', ')}`,
+            nextStep: 'Tools list has been updated. Please proceed with your request using the newly available tools.'
+          })
+        }]
+      };
+    } catch (error) {
+      logger.error(`Error in analyze_prompt meta-tool: ${error.message}`);
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            error: 'Failed to analyze prompt',
+            details: error.message
+          })
+        }],
+        isError: true
+      };
+    }
+  }
+
+  /**
+   * Setup MCP request handlers for a server instance
+   * @param {Server} server - MCP server instance
+   * @param {string} sessionId - Client session ID for per-client filtering
+   */
+  setupRequestHandlers(server, sessionId = null) {
+    // Setup handler for meta tools (hub-internal tools)
+    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const toolName = request.params.name;
+      
+      // Check if this is a meta tool
+      const toolsMap = this.allCapabilities[CAPABILITY_TYPES.TOOLS.id];
+      const tool = toolsMap.get(toolName);
+      
+      if (tool && tool.category === 'meta' && tool.handler) {
+        // Execute meta tool handler
+        try {
+          return await tool.handler(request.params.arguments || {}, sessionId);
+        } catch (error) {
+          throw new McpError(ErrorCode.InternalError, `Meta tool error: ${error.message}`);
+        }
+      }
+      
+      // Not a meta tool, proceed with normal tool handling below
+      const registeredCap = this.getRegisteredCapability(request, CAPABILITY_TYPES.TOOLS.id, 'name', sessionId);
+      if (!registeredCap) {
+        throw new McpError(ErrorCode.InvalidParams, `Tool not found: ${toolName}`);
+      }
+      
+      const { serverName, originalName } = registeredCap;
+      try {
+        const result = await this.mcpHub.rawRequest(serverName, {
+          method: 'tools/call',
+          params: { name: originalName, arguments: request.params.arguments }
+        }, null, { timeout: MCP_REQUEST_TIMEOUT });
+        return result;
+      } catch (error) {
+        logger.debug(`Error executing tool '${originalName}': ${error.message}`);
+        throw new McpError(ErrorCode.InternalError, error.message);
+      }
+    });
+
     // Setup handlers for each capability type
     Object.values(CAPABILITY_TYPES).forEach(capType => {
       const capId = capType.id;
 
+      // Skip tools - already handled above with meta-tool support
+      if (capId === CAPABILITY_TYPES.TOOLS.id) {
+        // Setup list handler only
+        server.setRequestHandler(capType.listSchema, () => {
+          const capabilityMap = this.getClientCapabilities(sessionId, capId);
+          const capabilities = Array.from(capabilityMap.values()).map(item => item.definition);
+          return { [capId]: capabilities };
+        });
+        return; // Skip call handler
+      }
+
       // Setup list handler if schema exists
       if (capType.listSchema) {
         server.setRequestHandler(capType.listSchema, () => {
-          const capabilityMap = this.registeredCapabilities[capId];
+          // Get capabilities for this specific client session
+          const capabilityMap = this.getClientCapabilities(sessionId, capId);
           const capabilities = Array.from(capabilityMap.values()).map(item => item.definition);
           return { [capId]: capabilities };
         });
@@ -269,8 +612,9 @@ export class MCPServerEndpoint {
     });
   }
 
-  getRegisteredCapability(request, capId, uidField) {
-    const capabilityMap = this.registeredCapabilities[capId];
+  getRegisteredCapability(request, capId, uidField, sessionId = null) {
+    // Check in client-specific capabilities first, then fall back to all capabilities
+    const capabilityMap = sessionId ? this.getClientCapabilities(sessionId, capId) : this.allCapabilities[capId];
     let key = request.params[uidField]
     const registeredCap = capabilityMap.get(key);
     // key might be a resource Template
@@ -330,8 +674,11 @@ export class MCPServerEndpoint {
    * Includes auto-enable logic for tool filtering (Sprint 2)
    */
   syncCapabilities(capabilityIds = null, affectedServers = null) {
+    logger.debug(`syncCapabilities called with capabilityIds: ${capabilityIds ? JSON.stringify(capabilityIds) : 'null'}, affectedServers: ${affectedServers ? JSON.stringify(affectedServers) : 'null'}`);
+
     // Default to all capability IDs if none specified
     const idsToSync = capabilityIds || Object.values(CAPABILITY_TYPES).map(capType => capType.id);
+    logger.debug(`  Will sync capability IDs: ${JSON.stringify(idsToSync)}`);
 
     // Update the servers map with current connection states
     // If affectedServers is specified, only update those specific servers
@@ -465,26 +812,59 @@ export class MCPServerEndpoint {
     const capabilityMap = this.registeredCapabilities[capabilityId];
     const previousKeys = new Set(capabilityMap.keys());
 
+    if (capabilityId === CAPABILITY_TYPES.TOOLS.id) {
+      logger.debug(`syncCapabilityType for tools: ${capabilityMap.size} tools before sync`);
+      const metaCount = Array.from(capabilityMap.values()).filter(v => v.category === 'meta').length;
+      logger.debug(`  Meta-tools before sync: ${metaCount}`);
+    }
+
     if (affectedServers && affectedServers.length > 0) {
       // Incremental update: only update capabilities for affected servers
-      // First, remove capabilities from affected servers
+      // First, remove capabilities from affected servers (but preserve meta-tools)
       for (const [key, registration] of capabilityMap.entries()) {
+        // Skip meta-tools (hub-internal) during incremental sync
+        if (registration.category === 'meta') continue;
+
         if (affectedServers.includes(registration.serverName)) {
           capabilityMap.delete(key);
         }
       }
-      
+
       // Then, re-register capabilities for affected servers
       for (const [serverId, connection] of this.serversMap) {
-        if (affectedServers.includes(connection.name) && 
-            connection.status === "connected" && 
+        if (affectedServers.includes(connection.name) &&
+            connection.status === "connected" &&
             !connection.disabled) {
           this.registerServerCapabilities(connection, { capabilityId, serverId });
         }
       }
     } else {
-      // Full rebuild: clear and rebuild capabilities from all connected servers
+      // Full rebuild: preserve meta-tools, clear and rebuild other capabilities
+      // Save meta-tools before clearing (tools with category === 'meta')
+      const metaTools = new Map();
+      if (capabilityId === CAPABILITY_TYPES.TOOLS.id) {
+        for (const [key, registration] of capabilityMap.entries()) {
+          if (registration.category === 'meta') {
+            metaTools.set(key, registration);
+          }
+        }
+        if (metaTools.size > 0) {
+          logger.debug(`Preserving ${metaTools.size} meta-tools during sync: ${Array.from(metaTools.keys()).join(', ')}`);
+        }
+      }
+
+      // Clear all capabilities
       capabilityMap.clear();
+
+      // Restore meta-tools first
+      for (const [key, registration] of metaTools.entries()) {
+        capabilityMap.set(key, registration);
+      }
+      if (metaTools.size > 0) {
+        logger.debug(`Restored ${metaTools.size} meta-tools after clear`);
+      }
+
+      // Then rebuild capabilities from all connected servers
       for (const [serverId, connection] of this.serversMap) {
         if (connection.status === "connected" && !connection.disabled) {
           this.registerServerCapabilities(connection, { capabilityId, serverId });
@@ -548,7 +928,7 @@ export class MCPServerEndpoint {
       }
     }
 
-    const capabilityMap = this.registeredCapabilities[capabilityId];
+    const capabilityMap = this.allCapabilities[capabilityId];
 
     // Register each capability with namespaced name
     for (const cap of capabilities) {
@@ -604,6 +984,14 @@ export class MCPServerEndpoint {
     // Create a new server instance for this connection
     const server = this.createServer();
 
+    // Initialize client session if prompt-based filtering is enabled
+    if (this.filteringMode === 'prompt-based' && this.promptBasedConfig.sessionIsolation !== false) {
+      this.initializeClientSession(sessionId);
+    }
+
+    // Setup request handlers with sessionId for per-client filtering
+    this.setupRequestHandlers(server, sessionId);
+
     // Store transport and server together
     this.clients.set(sessionId, { transport, server });
 
@@ -613,6 +1001,7 @@ export class MCPServerEndpoint {
     // Setup cleanup on close
     const cleanup = async () => {
       this.clients.delete(sessionId);
+      this.cleanupClientSession(sessionId); // Cleanup session data
       try {
         await server.close();
       } catch (error) {
@@ -660,8 +1049,10 @@ export class MCPServerEndpoint {
     if (transportInfo) {
       await transportInfo.transport.handlePostMessage(req, res, req.body);
     } else {
-      logger.warn(`MCP message for unknown session: ${sessionId}`);
-      return sendErrorResponse(404, new Error(`Session not found: ${sessionId}`));
+      logger.warn(`MCP message for unknown session: ${sessionId} (hub may have restarted)`);
+      return sendErrorResponse(404, new Error(
+        `Session not found: ${sessionId}. The hub may have restarted. Please reconnect.`
+      ));
     }
   }
 

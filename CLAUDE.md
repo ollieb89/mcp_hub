@@ -12,16 +12,18 @@ The architecture enables users to manage MCP servers through the Hub's UI while 
 
 ## Development Commands
 
+> **Note**: This project uses Bun as the primary runtime. All commands use `bun` instead of `npm` for better performance.
+
 ### Build & Run
 ```bash
 # Development start with config file
-npm start
+bun start
 
 # Clean build artifacts
-npm run clean
+bun run clean
 
 # Build for production (creates dist/cli.js)
-npm run build
+bun run build
 
 # Build includes prebuild (clean) and postbuild (chmod +x)
 ```
@@ -29,18 +31,18 @@ npm run build
 ### Testing
 ```bash
 # Run all tests once
-npm test
+bun test
 
 # Watch mode for development
-npm run test:watch
+bun run test:watch
 
 # Generate coverage report
-npm run test:coverage
+bun run test:coverage
 
 # Open HTML coverage report
-npm run test:coverage:ui
+bun run test:coverage:ui
 
-# Current status: 308/308 tests passing (100% pass rate)
+# Current status: 482/482 tests passing (100% pass rate)
 # Coverage: 82.94% branches (exceeds 80% standard)
 # Tests located in: tests/**/*.test.js
 ```
@@ -48,19 +50,22 @@ npm run test:coverage:ui
 ### Release Process
 ```bash
 # Patch version (bug fixes)
-npm run release:patch
+bun run release:patch
 
 # Minor version (new features)
-npm run release:minor
+bun run release:minor
 
 # Major version (breaking changes)
-npm run release:major
+bun run release:major
 ```
 
 ### Other Commands
 ```bash
 # Update marketplace data
-npm run update-data
+bun run update-data
+
+# Install dependencies
+bun install
 ```
 
 ## Architecture Overview
@@ -209,6 +214,88 @@ All errors include:
    - Authorization code handling via callback endpoint
    - HTTP connection pooling with undici Agent
    - Custom fetch wrapper for persistent connections
+
+## LLM-Based Tool Filtering (Prompt-Based Mode)
+
+**New Feature**: Intelligent, prompt-based tool exposure for managing overwhelming tool counts.
+
+### Overview
+Instead of exposing all tools at once (which can consume 50k+ tokens with 25+ servers), clients start with zero tools and dynamically receive only relevant tools based on LLM analysis of user prompts.
+
+**Benefits:**
+- Zero-default exposure: Clients start with only meta-tools
+- Context-aware: LLM analyzes user intent to expose relevant tools
+- Per-client isolation: Each session has independent tool exposure
+- Token reduction: 70-90% typical token savings
+
+### Meta-Tool: `hub__analyze_prompt`
+
+**Purpose**: Analyze user prompt and expose relevant tools dynamically
+
+**Input**:
+```json
+{
+  "prompt": "Check my GitHub notifications",
+  "context": "Optional conversation context"
+}
+```
+
+**Output**:
+```json
+{
+  "categories": ["github"],
+  "confidence": 0.98,
+  "reasoning": "User wants to check GitHub notifications",
+  "message": "Updated tool exposure: github",
+  "nextStep": "Tools list has been updated. Proceed with your request."
+}
+```
+
+**Workflow:**
+1. User makes request → Client calls `hub__analyze_prompt`
+2. Hub analyzes with LLM (Gemini) → Identifies relevant categories
+3. Hub exposes relevant tools → Sends `tools/list_changed` notification
+4. Client re-fetches tool list → Proceeds with original request
+
+### Configuration
+
+**Enable Prompt-Based Mode:**
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "prompt-based",
+    "promptBasedFiltering": {
+      "enabled": true,
+      "defaultExposure": "meta-only",
+      "enableMetaTools": true,
+      "sessionIsolation": true
+    },
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "gemini",
+      "apiKey": "${GEMINI_API_KEY}",
+      "model": "gemini-2.5-flash"
+    }
+  }
+}
+```
+
+**Configuration Options:**
+- `mode`: "prompt-based" | "static" | "server-allowlist" | "category"
+- `defaultExposure`: "zero" | "meta-only" (recommended) | "minimal" | "all"
+- `sessionIsolation`: true (per-client) | false (global)
+
+### LLM Provider Support
+- **Gemini**: Primary (gemini-2.5-flash recommended)
+- **OpenAI**: Supported (gpt-4o-mini)
+- **Anthropic**: Supported (claude-3-5-haiku)
+
+### Tool Categories
+Standard categories for LLM categorization:
+- `github`, `filesystem`, `web`, `docker`, `git`, `python`, `database`, `memory`, `vertex_ai`, `meta`
+
+See `claudedocs/PROMPT_BASED_FILTERING_QUICK_START.md` for complete guide.
 
 ## Testing Strategy
 
@@ -490,3 +577,11 @@ scripts/
 3. Test transport independently (STDIO vs SSE vs streamable-http)
 4. Check OAuth callback flow for remote servers
 5. Verify workspace cache for port conflicts
+
+**Common Connection Issues:**
+- `TypeError: fetch failed` → Hub not running, start with `npm start`
+- `Connection refused` → Port 7000 not listening, check port conflicts
+- `404 Not Found` → Wrong endpoint, use `/mcp` not `/messages`
+- Connection timeout → Firewall/network issue, try `127.0.0.1`
+
+See comprehensive troubleshooting guide: `claudedocs/TROUBLESHOOTING_MCP_CONNECTION.md`

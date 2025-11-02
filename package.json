@@ -28,23 +28,23 @@
     "mcp-hub": "dist/cli.js"
   },
   "scripts": {
-    "start": "node ./src/utils/cli.js --port 7000 --config ./mcp-servers.json",
+    "start": "bun ./src/utils/cli.js --port 7000 --config ./mcp-servers.json",
     "clean": "rm -rf dist",
-    "prebuild": "npm run clean",
-    "build": "node scripts/build.js",
+    "prebuild": "bun run clean",
+    "build": "bun scripts/build.js",
     "postbuild": "chmod +x dist/cli.js",
-    "test": "vitest run",
-    "test:watch": "vitest watch",
-    "test:coverage": "vitest run --coverage",
-    "test:coverage:ui": "vitest run --coverage --coverage.reporter=html",
-    "test:seq": "vitest run --no-file-parallelism --poolOptions.threads.singleThread=true --maxConcurrency=1",
-    "test:quality": "vitest run --no-file-parallelism --poolOptions.threads.singleThread=true --coverage --maxConcurrency=1",
-    "test:fast": "vitest run --no-file-parallelism=false --poolOptions.threads.singleThread=false --pool=threads --poolOptions.threads.maxThreads=4",
-    "update-data": "node scripts/update-data.js",
+    "test": "bun run vitest run",
+    "test:watch": "bun run vitest watch",
+    "test:coverage": "bun run vitest run --coverage",
+    "test:coverage:ui": "bun run vitest run --coverage --coverage.reporter=html",
+    "test:seq": "bun run vitest run --no-file-parallelism --poolOptions.threads.singleThread=true --maxConcurrency=1",
+    "test:quality": "bun run vitest run --no-file-parallelism --poolOptions.threads.singleThread=true --coverage --maxConcurrency=1",
+    "test:fast": "bun run vitest run --no-file-parallelism=false --poolOptions.threads.singleThread=false --pool=threads --poolOptions.threads.maxThreads=4",
+    "update-data": "bun scripts/update-data.js",
     "release:patch": "bash scripts/release.sh patch",
     "release:minor": "bash scripts/release.sh minor",
     "release:major": "bash scripts/release.sh major",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "bun run build"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
@@ -55,11 +55,11 @@
     "eslint": "^9.31.0",
     "express": "^5.1.0",
     "fast-deep-equal": "^3.1.3",
-    "globals": "^16.4.0",
+    "globals": "^16.2.0",
     "mock-fs": "^5.5.0",
-    "nock": "^14.0.10",
+    "nock": "^14.0.5",
     "nodemon": "^3.1.10",
-    "open": "^10.2.0",
+    "open": "^10.1.2",
     "reconnecting-eventsource": "^1.6.4",
     "supertest": "^7.1.1",
     "uuid": "^13.0.0",
@@ -67,9 +67,10 @@
     "yargs": "^18.0.0"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.68.0",
+    "@anthropic-ai/sdk": "^0.27.0",
+    "@google/generative-ai": "^0.24.1",
     "json5": "^2.2.3",
-    "openai": "^6.7.0",
+    "openai": "^4.104.0",
     "p-queue": "^9.0.0",
     "undici": "^7.16.0"
   }

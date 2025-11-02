@@ -49,18 +49,29 @@ describe("ConfigManager", () => {
 
   describe("constructor", () => {
     it("should initialize with config object", () => {
+      // ARRANGE: Valid config object
+      
+      // ACT: Create ConfigManager with object
       configManager = new ConfigManager(validConfig);
+      
+      // ASSERT: Verify config stored correctly
       expect(configManager.getConfig()).toEqual(validConfig);
     });
 
     it("should initialize with config path", () => {
+      // ARRANGE: Config file path
+      
+      // ACT: Create ConfigManager with path
       configManager = new ConfigManager("/path/to/config.json");
+      
+      // ASSERT: Verify path stored
       expect(configManager.configPaths).toEqual(["/path/to/config.json"]);
     });
   });
 
   describe("loadConfig", () => {
     it("should load and validate VS Code format config", async () => {
+      // ARRANGE: VS Code format config with mixed server types
       const vsCodeConfig = {
         servers: {
           github: {
@@ -76,8 +87,9 @@ describe("ConfigManager", () => {
         }
       };
       vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(vsCodeConfig));
-
       configManager = new ConfigManager("/path/to/config.json");
+
+      // ACT: Load config from file
       const result = await configManager.loadConfig();
 
       expect(result.config.mcpServers).toEqual({

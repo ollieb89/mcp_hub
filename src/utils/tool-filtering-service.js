@@ -2,8 +2,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import PQueue from 'p-queue';
 import logger from './logger.js';
-import { createLLMProvider } from './llm-provider.js';
 import { getStateDirectory } from './xdg-paths.js';
+import { createLLMProvider } from './llm-provider.js';
+import { envResolver } from './env-resolver.js';
 
 /**
  * Default category mappings for tool classification
@@ -163,21 +164,31 @@ class ToolFilteringService {
     this._llmCacheHits = 0;
     this._llmCacheMisses = 0;
 
-    // LLM error tracking for observability (Task 2.5)
-    this._llmErrorsByType = new Map(); // Track error types
-    this._llmRetryCount = 0;            // Track retry attempts
-
     // Initialize LLM client if enabled
     if (this.config.llmCategorization?.enabled) {
-      this._initializeLLM();
+      this._initializationPromise = this._initializeLLM().catch(err => {
+        logger.error('Failed to initialize LLM categorization:', err.message);
+        throw err; // Re-throw for waitForInitialization()
+      });
+    } else {
+      this._initializationPromise = Promise.resolve();
     }
+  }
+
+  /**
+   * Wait for async initialization to complete
+   * Useful for testing and ensuring LLM is ready before use
+   * @returns {Promise<void>}
+   */
+  async waitForInitialization() {
+    await this._initializationPromise;
   }
 
   /**
    * Initialize LLM client and cache
    * @private
    */
-  _initializeLLM() {
+  async _initializeLLM() {
     try {
       // Validate API key (Sprint 0.5)
       if (!this.config.llmCategorization.apiKey) {
@@ -186,16 +197,14 @@ class ToolFilteringService {
       }
 
       // Initialize LLM client
-      this.llmClient = this._createLLMClient();
+      this.llmClient = await this._createLLMClient();
 
       // Set up persistent cache location
       const stateDir = getStateDirectory();
       this.llmCacheFile = path.join(stateDir, 'tool-categories-llm.json');
 
-      // Load existing cache
-      this._loadLLMCache().catch(err => {
-        logger.warn('Failed to load LLM cache:', err.message);
-      });
+      // Load existing cache (await to ensure it completes before initialization finishes)
+      await this._loadLLMCache();
 
       // Periodic cache flush (30 seconds) (Sprint 0.2)
       this.llmCacheFlushInterval = setInterval(() => {
@@ -252,6 +261,11 @@ class ToolFilteringService {
         case 'hybrid':
           result = this._filterByServer(serverName) ||
                    this._filterByCategory(category);
+          break;
+        case 'prompt-based':
+          // In prompt-based mode, pass through all tools
+          // Filtering happens at MCP server level based on client sessions
+          result = true;
           break;
         default:
           logger.warn(`Unknown filtering mode: ${this.config.mode}, defaulting to disabled`);
@@ -438,28 +452,7 @@ class ToolFilteringService {
 
       return category;
     } catch (error) {
-      // Extract request_id if available (SDK adds it to error)
-      const requestId = error.request_id || 'unknown';
-      const errorType = error.constructor.name || 'Error';
-      
-      logger.warn(`LLM categorization failed for ${toolName}`, {
-        errorType,
-        requestId,
-        message: error.message,
-        status: error.status,
-        code: error.code
-      });
-      
-      // Track error type
-      this._llmErrorsByType.set(
-        errorType,
-        (this._llmErrorsByType.get(errorType) || 0) + 1
-      );
-      
-      // Track if retry occurred (SDK adds retry info)
-      if (error._retryCount) {
-        this._llmRetryCount += error._retryCount;
-      }
+      logger.warn(`LLM categorization failed for ${toolName}: ${error.message}`);
 
       // Fall back to 'other'
       return 'other';
@@ -497,7 +490,7 @@ class ToolFilteringService {
    * @param {string} serverName - Name of the server
    * @returns {string|null} Category name or null if no match
    */
-  _categorizeBySyntax(toolName) {
+  _categorizeBySyntax(toolName, serverName) {
     // Check custom mappings first (higher priority)
     for (const [pattern, category] of Object.entries(this.customMappings)) {
       if (this._matchesPattern(toolName, pattern)) {
@@ -619,23 +612,15 @@ class ToolFilteringService {
       const cacheObj = Object.fromEntries(this.llmCache);
       const tempFile = `${this.llmCacheFile}.tmp`;
 
+      // Ensure parent directory exists
+      const dir = path.dirname(this.llmCacheFile);
+      await fs.mkdir(dir, { recursive: true });
+
       // Write to temp file
       await fs.writeFile(tempFile, JSON.stringify(cacheObj, null, 2), 'utf-8');
 
-      // Atomic rename (crash-safe). If rename fails (ENOENT or other), attempt a fallback
-      try {
-        await fs.rename(tempFile, this.llmCacheFile);
-      } catch (renameErr) {
-        logger.warn(`Atomic rename failed (${renameErr.code || renameErr.message}), attempting fallback write`, renameErr);
-        try {
-          const data = await fs.readFile(tempFile, 'utf-8');
-          await fs.writeFile(this.llmCacheFile, data, 'utf-8');
-          await fs.unlink(tempFile).catch(() => {});
-        } catch (fallbackErr) {
-          // If fallback also fails, log and proceed without throwing to keep shutdown graceful
-          logger.warn('Failed to persist LLM cache via fallback method:', fallbackErr);
-        }
-      }
+      // Atomic rename (crash-safe)
+      await fs.rename(tempFile, this.llmCacheFile);
 
       this.llmCacheDirty = false;
       this.llmCacheWritesPending = 0;
@@ -643,8 +628,7 @@ class ToolFilteringService {
       logger.debug(`Flushed ${this.llmCache.size} entries to LLM cache`);
     } catch (error) {
       logger.error('Failed to flush LLM cache:', error);
-      // Do not re-throw - flushing is best-effort and should not crash consumers/tests
-      return;
+      throw error;
     }
   }
 
@@ -747,54 +731,55 @@ class ToolFilteringService {
       llmCacheHitRate: totalLLMCacheAccess > 0
         ? this._llmCacheHits / totalLLMCacheAccess
         : 0,
-      llm: {
-        cacheHits: this._llmCacheHits,
-        cacheMisses: this._llmCacheMisses,
-        errorsByType: Object.fromEntries(this._llmErrorsByType),
-        totalRetries: this._llmRetryCount
-      },
       allowedServers: this.config.serverFilter?.servers || [],
       allowedCategories: this.config.categoryFilter?.categories || []
     };
   }
 
   /**
-   * Create LLM client for categorization
+   * Create LLM client for categorization (Phase 3)
+   * Uses official OpenAI/Anthropic SDKs with retry logic and typed errors
    * @private
+   * @returns {LLMProvider} Configured LLM provider instance
    */
-  _createLLMClient() {
-    const llmCfg = this.config.llmCategorization || {};
-
-    // Build provider config for factory
-    const providerConfig = {
-      provider: llmCfg.provider,
-      apiKey: llmCfg.apiKey,
-      model: llmCfg.model,
-      baseURL: llmCfg.baseURL,
-      anthropicVersion: llmCfg.anthropicVersion
-    };
-
-    try {
-      const provider = createLLMProvider(providerConfig);
-
-      // Ensure provider exposes the expected categorize method
-      if (provider && typeof provider.categorize === 'function') {
-        logger.debug('LLM provider client created successfully');
-        return provider;
-      }
-
-      logger.warn('Created LLM provider does not implement categorize(), falling back to stub');
-    } catch (error) {
-      logger.error('Failed to create LLM provider client:', error);
+  async _createLLMClient() {
+    const config = this.config.llmCategorization;
+    
+    // Validate configuration
+    if (!config.provider) {
+      throw new Error('LLM provider not specified');
     }
+    
+    if (!config.apiKey) {
+      throw new Error(`API key required for ${config.provider} provider`);
+    }
+    
+    // Resolve environment variables in the configuration
+    const resolvedConfig = await envResolver.resolveConfig(config, ['apiKey', 'baseURL', 'model']);
 
-    // Fallback stub to keep the service functioning if provider creation fails
-    return {
-      categorize: async () => {
-        logger.debug('LLM categorization stub called');
-        return 'other';
+    // Validate API key format for OpenAI (Sprint 0.5)
+    if (resolvedConfig.provider === 'openai' && resolvedConfig.apiKey) {
+      if (!resolvedConfig.apiKey.startsWith('sk-')) {
+        logger.warn('OpenAI API key does not start with "sk-", may be invalid');
       }
-    };
+    }
+    
+    // Create provider using factory (supports OpenAI, Anthropic, and Gemini)
+    try {
+      const provider = createLLMProvider({
+        provider: resolvedConfig.provider,
+        apiKey: resolvedConfig.apiKey,
+        model: resolvedConfig.model,
+        baseURL: resolvedConfig.baseURL
+      });
+      
+      logger.info(`LLM categorization initialized: ${resolvedConfig.provider} (${resolvedConfig.model || 'default model'})`);
+      
+      return provider;
+    } catch (error) {
+      logger.error(`Failed to create LLM provider: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
