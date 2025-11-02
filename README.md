@@ -33,6 +33,46 @@ This dual-interface approach means you can manage servers through the Hub's UI w
 - **Zero Memory Leaks**: Comprehensive resource cleanup with idempotent patterns
 - **Enterprise Features**: HTTP connection pooling, tool filtering, workspace management, and real-time event streaming
 
+## 🧪 Beta Testing Program
+
+> **Status**: 🟢 **Applications Open** - Join our beta testing program to help shape the future of MCP Hub tool filtering!
+
+### What We're Testing
+We're seeking **5-10 beta testers** to validate our new **Tool Filtering** feature that reduces overwhelming tool counts from **3,000+ → 15-200 relevant tools**, freeing up to **50k tokens** for actual productivity.
+
+### Beta Program Benefits
+- ✅ **80-85% tool reduction** for focused workflows
+- ✅ **30-50k token savings** per session
+- ✅ **Real-time statistics** via REST API and dashboard
+- ✅ **Background LLM categorization** for smart filtering
+- ✅ **Zero breaking changes** to existing workflows
+
+### Who Should Apply
+We need diverse beta testers across these workflows:
+- 🎨 **Frontend Developers** (React/Vue/Angular) - 2 slots
+- ⚙️ **Backend Developers** (Node.js/Python) - 1-2 slots
+- 🌐 **Full-Stack Team Leads** - 1-2 slots
+- 🚢 **DevOps Engineers** - 1 slot (optional)
+
+### Application Requirements
+- ✅ MCP Hub user with **10+ servers configured**
+- ✅ Active GitHub account (for feedback and issues)
+- ✅ **2-week availability** for testing (Days 1-14)
+- ✅ Willingness to provide **structured feedback**
+
+### How to Apply
+**👉 [Apply Now in GitHub Discussions](https://github.com/ollieb89/mcp_hub/discussions/30) 👈**
+
+See our [Beta Onboarding Guide](./docs/BETA_ONBOARDING.md) for complete details.
+
+**Timeline**:
+- Days 1-2: Application review and enrollment
+- Days 3-7: Active testing and feedback
+- Days 8-10: Issue resolution and iteration
+- Days 11-14: Final synthesis and GA preparation
+
+---
+
 ## Feature Support & Maturity
 
 ### Production Readiness
