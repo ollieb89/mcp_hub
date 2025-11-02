@@ -917,7 +917,7 @@ inputs.mcp-hub.packages."${system}".default
 If you want to use mcphub.nvim without having mcp-hub server in your PATH you can link the server under the hood adding
 the mcp-hub nix store path to the `cmd` command in the plugin config like
 
-[Nixvim](https://github.com/nix-community/nixvim) example:
+Nixvim example:
 ```nix
 { mcphub-nvim, mcp-hub, ... }:
 {
@@ -945,7 +945,7 @@ the mcp-hub nix store path to the `cmd` command in the plugin config like
 
 ### Neovim Integration
 
-The [ravitemer/mcphub.nvim](https://github.com/ravitemer/mcphub.nvim) plugin provides seamless integration with Neovim, allowing direct interaction with MCP Hub from your editor:
+A Neovim plugin provides seamless integration with Neovim, allowing direct interaction with MCP Hub from your editor:
 
 - Execute MCP tools directly from Neovim
 - Access MCP resources within your editing workflow
@@ -1231,7 +1231,7 @@ Response:
       "name": "Example Server",
       "description": "Description here",
       "author": "example-author",
-      "url": "https://github.com/user/repo",
+      "url": "https://example.com/mcp-server",
       "category": "search",
       "tags": ["search", "ai"],
       "stars": 100,
@@ -1265,7 +1265,7 @@ Response:
     "name": "Example Server",
     "description": "Description here",
     "author": "example-author",
-    "url": "https://github.com/user/repo",
+    "url": "https://example.com/mcp-server",
     "category": "search",
     "tags": ["search", "ai"],
     "installations": [],
@@ -2020,15 +2020,14 @@ For detailed sprint retrospectives and development workflow, see [IMP_WF.md](./I
 
 ## MCP Registry
 
-MCP Hub now uses the [MCP Registry](https://github.com/ravitemer/mcp-registry) system for marketplace functionality. This provides:
+MCP Hub uses a registry system for marketplace functionality. This provides:
 
-- **Decentralized Server Discovery**: Registry hosted on GitHub Pages for better reliability
-- **Direct GitHub Integration**: README documentation fetched directly from repositories
-- **Enhanced Metadata**: Comprehensive server information including stars, categories, and installation instructions
-- **Better Caching**: Improved cache system with 1-hour TTL for frequent updates
+- **Server Discovery**: Centralized registry for discovering available MCP servers
+- **Comprehensive Metadata**: Server information including categories and installation instructions
+- **Caching**: Improved cache system with 1-hour TTL for frequent updates
 - **Fallback Support**: Automatic fallback to curl when fetch fails (useful for proxy/VPN environments)
 
-The registry is updated regularly with new servers and improvements to existing entries.
+The marketplace is updated regularly with new servers and improvements to existing entries.
 
 ## Roadmap
 
@@ -2061,4 +2060,4 @@ The registry is updated regularly with new servers and improvements to existing 
 
 ## Acknowledgements
 
-- [ravitemer/mcp-registry](https://github.com/ravitemer/mcp-registry) - For providing the MCP server marketplace endpoints that power MCP Hub's marketplace integration
+MCP Hub is built on the Model Context Protocol specification and integrates with various MCP servers to provide a unified management interface.

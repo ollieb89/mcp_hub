@@ -47,6 +47,24 @@ bun run test:coverage:ui
 # Tests located in: tests/**/*.test.js
 ```
 
+### Load & Performance Testing
+```bash
+# Basic load test (requires k6 installation)
+bun run test:load
+
+# Stress test (find breaking point)
+bun run test:load:stress
+
+# LLM filtering spike test
+bun run test:load:spike
+
+# CI/CD integration (JSON output)
+bun run test:load:ci
+
+# See tests/load/README.md for complete guide
+# See tests/load/INSTALL_K6.md for k6 installation
+```
+
 ### Release Process
 ```bash
 # Patch version (bug fixes)
@@ -299,7 +317,7 @@ See `claudedocs/PROMPT_BASED_FILTERING_QUICK_START.md` for complete guide.
 
 ## Testing Strategy
 
-**Current Status**: 311/311 tests passing (100% pass rate), 82.94% branches coverage
+**Current Status**: 482/482 tests passing (100% pass rate), 82.94% branches coverage
 
 **Test Files:**
 - `tests/MCPHub.test.js` - Hub orchestration logic
@@ -311,6 +329,7 @@ See `claudedocs/PROMPT_BASED_FILTERING_QUICK_START.md` for complete guide.
 - `tests/env-resolver.test.js` - Placeholder resolution
 - `tests/marketplace.test.js` - Marketplace integration
 - `tests/cli.test.js` - CLI argument parsing
+- `tests/pino-logger.test.js` - Pino logger API compatibility and SSE integration (26 tests)
 
 **Testing Tools:**
 - Vitest for test execution
@@ -497,12 +516,41 @@ Default timeout for MCP operations: 5 minutes
 - Prompt execution: 5 min
 
 ### Logging
-Structured JSON logging to:
-- Console (all levels)
+
+**Two Implementations Available** (via feature flag):
+
+**Pino Logger (Async, Opt-In)**:
+```bash
+ENABLE_PINO_LOGGER=true bun start
+```
+- 5-10x faster than legacy (on Node.js)
+- Async file I/O (non-blocking event loop)
+- Multistream architecture (console + file + SSE)
+- Full API compatibility with legacy logger
+- Status: Production-ready, opt-in via env var
+
+**Legacy Logger (Synchronous, Default)**:
+```bash
+ENABLE_PINO_LOGGER=false bun start  # OR just: bun start
+```
+- Synchronous fs.appendFileSync() (blocks event loop)
+- Simpler implementation
+- Proven stability
+- Status: Default, will be deprecated in future
+
+**Logging Output**:
+- Console: Structured JSON (all levels)
 - File: `$XDG_STATE_HOME/mcp-hub/logs/mcp-hub.log` (XDG-compliant)
 - Fallback: `~/.mcp-hub/logs/mcp-hub.log`
-- Rotation: Daily, 30-day retention
-- Integrated with SSEManager for real-time log events
+- SSE: Real-time log streaming to connected clients
+
+**Log Levels**: error (0), warn (1), info (2), debug (3)
+
+**Migration Guide**:
+1. Test with `ENABLE_PINO_LOGGER=true` in development
+2. Monitor for any issues (async behavior differences)
+3. If stable, use Pino in production for better performance
+4. Rollback: Set `ENABLE_PINO_LOGGER=false` anytime
 
 ## VS Code Compatibility
 
