@@ -95,7 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Marketplace API response now returns `servers` instead of `items`
   - Server objects use new schema with `id` instead of `mcpId`
   - Field names changed: `githubStars` → `stars`, `createdAt` → `lastCommit`
-  - New registry endpoint: `https://ravitemer.github.io/mcp-registry/registry.json`
+  - New registry endpoint: `https://ollieb89.github.io/mcp-registry/registry.json`
   - Server details now include `readmeContent` fetched directly from GitHub repositories
 
 ### Changed
@@ -572,7 +572,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `--version` flag returning unknown on bun ([#1](https://github.com/ravitemer/mcp-hub/issues/1))
+- `--version` flag returning unknown on bun ([#1](https://github.com/ollieb89/mcp_hub/issues/1))
 
 ## [1.4.0] - 2025-03-05
 
@@ -591,7 +591,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `shutdown-delay` CLI option to control delay before server shutdown when no clients are connected
 - Enhanced logging messages with improved clarity and context across all components
 - More descriptive server status messages and operation feedback
-- Integration example with ravitemer/mcphub.nvim Neovim plugin
+- Integration example with ollieb89/mcphub.nvim Neovim plugin
 
 ### Changed
 

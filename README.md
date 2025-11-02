@@ -941,7 +941,7 @@ Just add it to your NixOS flake.nix or home-manager:
 
 ```nix
 inputs = {
-  mcp-hub.url = "github:ravitemer/mcp-hub";
+  mcp-hub.url = "github:ollieb89/mcp_hub";
   ...
 }
 ```

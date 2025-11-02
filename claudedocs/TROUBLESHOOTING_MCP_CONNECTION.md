@@ -696,7 +696,7 @@ jq '.mcpServers | keys' mcp-servers.json
 
 ### Support Channels
 
-- GitHub Issues: https://github.com/ravitemer/mcp-hub/issues
+- GitHub Issues: https://github.com/ollieb89/mcp_hub/issues
 - Documentation: README.md, CLAUDE.md
 - Logs: `~/.local/state/mcp-hub/logs/mcp-hub.log`
 

@@ -562,7 +562,7 @@ MCP Hub supports VS Code's `.vscode/mcp.json` format:
 
 ## Marketplace Integration
 
-Uses [MCP Registry](https://github.com/ravitemer/mcp-registry) system:
+Uses [MCP Registry](https://github.com/ollieb89/mcp-registry) system:
 - Registry hosted on GitHub Pages
 - README documentation fetched directly from repositories
 - Comprehensive metadata: stars, categories, installation instructions

@@ -402,7 +402,7 @@ cat beta-metrics/metrics_$(date +%Y-%m-%d).json | jq
 ### GitHub CLI Commands
 ```bash
 # List beta applications
-gh search issues --repo=ravitemer/mcp-hub --label="beta" --state=open
+gh search issues --repo=ollieb89/mcp_hub --label="beta" --state=open
 
 # List open bugs
 gh issue list --label="beta-bug" --state=open

@@ -75,7 +75,15 @@
       "Bash(/tmp/faq_part2.txt)",
       "Bash(/tmp/integration_part1.txt)",
       "Bash(/tmp/integration_part2.txt)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(./scripts/beta_metrics.sh:*)",
+      "Bash(gh label create:*)",
+      "Bash(gh label list:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh repo edit:*)",
+      "Bash(git log:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": []
