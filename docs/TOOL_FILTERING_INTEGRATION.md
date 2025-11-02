@@ -975,123 +975,19 @@ class ToolFilteringService {
 }
 ```
 
+
 ## Troubleshooting
 
-### Debug Logging
+For comprehensive troubleshooting guidance including debug logging, performance profiling, and memory analysis, see the dedicated [Tool Filtering Troubleshooting Guide](./TOOL_FILTERING_TROUBLESHOOTING.md).
 
-Enable verbose logging:
+**Developer Resources:**
+- [Advanced Debugging](./TOOL_FILTERING_TROUBLESHOOTING.md#advanced-debugging)
+- [Configuration Validation](./TOOL_FILTERING_TROUBLESHOOTING.md#configuration-validation)
+- [Memory Profiling](./TOOL_FILTERING_TROUBLESHOOTING.md#memory-profiling)
+- [Performance Monitoring](./TOOL_FILTERING_TROUBLESHOOTING.md#scenario-5-high-performance-overhead)
 
-```javascript
-// src/utils/logger.js
-export const logger = {
-  debug: (message, context = {}) => {
-    if (process.env.DEBUG_TOOL_FILTERING === 'true') {
-      console.log(`[DEBUG] ${message}`, context);
-    }
-  }
-};
-```
+---
 
-**Usage:**
-
-```bash
-DEBUG_TOOL_FILTERING=true npm start
-```
-
-### Common Issues
-
-#### Issue: Tools Not Being Filtered
-
-**Diagnostic:**
-
-```javascript
-// Add debug logging to shouldIncludeTool
-shouldIncludeTool(toolName, serverName, toolDefinition = {}) {
-  logger.debug('Filtering decision', {
-    toolName,
-    serverName,
-    enabled: this.config.enabled,
-    mode: this.config.mode
-  });
-
-  if (!this.config.enabled) {
-    logger.debug('Filtering disabled, allowing all tools');
-    return true;
-  }
-
-  const result = /* filtering logic */;
-
-  logger.debug('Filtering result', { toolName, result });
-
-  return result;
-}
-```
-
-**Solution:**
-1. Verify `enabled: true` in config
-2. Check server names match exactly
-3. Restart MCP Hub after config changes
-
-#### Issue: High Memory Usage
-
-**Diagnostic:**
-
-```javascript
-getStats() {
-  return {
-    // ... existing stats
-    memory: {
-      categoryCache: this.categoryCache.size,
-      patternCache: this.patternCache.size,
-      llmInFlight: this.llmInFlight.size,
-      heapUsed: process.memoryUsage().heapUsed
-    }
-  };
-}
-```
-
-**Solution:**
-- Implement LRU cache with bounded size
-- Reduce `categoryCacheTTL` to expire entries faster
-- Disable LLM categorization if not needed
-
-#### Issue: LLM Categorization Errors
-
-**Diagnostic:**
-
-```javascript
-async _callLLM(toolName, toolDefinition) {
-  try {
-    const response = await fetch(/* LLM API */);
-
-    if (!response.ok) {
-      logger.error('LLM categorization failed', {
-        status: response.status,
-        statusText: response.statusText,
-        toolName
-      });
-      return 'other';  // Fail-safe default
-    }
-
-    const category = await response.json();
-    return category;
-  } catch (error) {
-    logger.error('LLM categorization error', {
-      error: error.message,
-      toolName
-    });
-    return 'other';  // Fail-safe default
-  }
-}
-```
-
-**Solution:**
-- Verify API key is valid
-- Check network connectivity
-- Monitor rate limits
-- Implement exponential backoff retry
-
-## Additional Resources
 
 - **Test Suite:** [tests/tool-filtering-service.test.js](../tests/tool-filtering-service.test.js)
 - **Integration Tests:** [tests/tool-filtering-integration.test.js](../tests/tool-filtering-integration.test.js)
