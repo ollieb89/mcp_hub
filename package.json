@@ -40,6 +40,10 @@
     "test:seq": "bun run vitest run --no-file-parallelism --poolOptions.threads.singleThread=true --maxConcurrency=1",
     "test:quality": "bun run vitest run --no-file-parallelism --poolOptions.threads.singleThread=true --coverage --maxConcurrency=1",
     "test:fast": "bun run vitest run --no-file-parallelism=false --poolOptions.threads.singleThread=false --pool=threads --poolOptions.threads.maxThreads=4",
+    "test:load": "k6 run tests/load/basic-mcp-endpoint.js",
+    "test:load:stress": "k6 run tests/load/stress-test.js",
+    "test:load:spike": "k6 run tests/load/spike-test-llm.js",
+    "test:load:ci": "k6 run --out json=test-results-load.json tests/load/basic-mcp-endpoint.js",
     "update-data": "bun scripts/update-data.js",
     "release:patch": "bash scripts/release.sh patch",
     "release:minor": "bash scripts/release.sh minor",
@@ -72,6 +76,9 @@
     "json5": "^2.2.3",
     "openai": "^4.104.0",
     "p-queue": "^9.0.0",
+    "pino": "^10.1.0",
+    "pino-pretty": "^13.1.2",
+    "pino-roll": "^4.0.0",
     "undici": "^7.16.0"
   }
 }

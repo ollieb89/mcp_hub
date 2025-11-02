@@ -1,0 +1,267 @@
+{
+  "version": "1.0.0",
+  "description": "Baseline performance metrics and thresholds for MCP Hub load testing",
+  "lastUpdated": "2025-11-02",
+  "environment": {
+    "runtime": "Bun",
+    "node_version": "Compatible with Node.js 18+",
+    "recommended_hardware": {
+      "cpu": "4+ cores",
+      "memory": "8GB+ RAM",
+      "storage": "SSD recommended"
+    }
+  },
+  "endpoints": {
+    "/mcp": {
+      "description": "Unified MCP server interface",
+      "priority": "critical",
+      "methods": {
+        "tools/list": {
+          "baseline": {
+            "p50_ms": 50,
+            "p95_ms": 200,
+            "p99_ms": 500,
+            "max_acceptable_ms": 1000
+          },
+          "thresholds": {
+            "warning": {
+              "p95_ms": 300,
+              "error_rate_percent": 1
+            },
+            "critical": {
+              "p95_ms": 500,
+              "error_rate_percent": 5
+            }
+          },
+          "load_capacity": {
+            "normal_users": 50,
+            "peak_users": 100,
+            "stress_limit_users": 300
+          }
+        },
+        "tools/call": {
+          "baseline": {
+            "p50_ms": 100,
+            "p95_ms": 500,
+            "p99_ms": 1000,
+            "max_acceptable_ms": 2000
+          },
+          "thresholds": {
+            "warning": {
+              "p95_ms": 700,
+              "error_rate_percent": 2
+            },
+            "critical": {
+              "p95_ms": 1000,
+              "error_rate_percent": 5
+            }
+          },
+          "notes": "Includes MCP server round-trip time"
+        },
+        "resources/list": {
+          "baseline": {
+            "p50_ms": 50,
+            "p95_ms": 200,
+            "p99_ms": 400,
+            "max_acceptable_ms": 800
+          }
+        },
+        "prompts/list": {
+          "baseline": {
+            "p50_ms": 50,
+            "p95_ms": 200,
+            "p99_ms": 400,
+            "max_acceptable_ms": 800
+          }
+        }
+      }
+    },
+    "/health": {
+      "description": "Health check endpoint",
+      "priority": "high",
+      "baseline": {
+        "p50_ms": 10,
+        "p95_ms": 50,
+        "p99_ms": 100,
+        "max_acceptable_ms": 200
+      },
+      "thresholds": {
+        "warning": {
+          "p95_ms": 75
+        },
+        "critical": {
+          "p95_ms": 150
+        }
+      }
+    },
+    "/servers": {
+      "description": "List all MCP servers",
+      "priority": "medium",
+      "baseline": {
+        "p50_ms": 30,
+        "p95_ms": 100,
+        "p99_ms": 200,
+        "max_acceptable_ms": 500
+      }
+    },
+    "/events": {
+      "description": "SSE event stream",
+      "priority": "high",
+      "baseline": {
+        "connection_time_ms": 100,
+        "heartbeat_interval_ms": 30000,
+        "max_concurrent_connections": 100
+      },
+      "thresholds": {
+        "warning": {
+          "connection_time_ms": 200,
+          "concurrent_connections": 75
+        },
+        "critical": {
+          "connection_time_ms": 500,
+          "concurrent_connections": 95
+        }
+      }
+    },
+    "/filtering/stats": {
+      "description": "Tool filtering statistics",
+      "priority": "medium",
+      "baseline": {
+        "p50_ms": 50,
+        "p95_ms": 150,
+        "p99_ms": 300,
+        "max_acceptable_ms": 500
+      }
+    }
+  },
+  "llm_operations": {
+    "hub__analyze_prompt": {
+      "description": "LLM-based tool categorization (Gemini 2.5 Flash)",
+      "priority": "critical",
+      "baseline": {
+        "p50_ms": 800,
+        "p95_ms": 2000,
+        "p99_ms": 3000,
+        "max_acceptable_ms": 5000
+      },
+      "thresholds": {
+        "warning": {
+          "p95_ms": 2500,
+          "error_rate_percent": 3
+        },
+        "critical": {
+          "p95_ms": 4000,
+          "error_rate_percent": 10
+        }
+      },
+      "notes": "Includes external Gemini API latency",
+      "rate_limits": {
+        "requests_per_minute": 60,
+        "concurrent_requests": 10
+      }
+    }
+  },
+  "system_resources": {
+    "memory": {
+      "baseline": {
+        "idle_mb": 100,
+        "normal_load_mb": 256,
+        "peak_load_mb": 512
+      },
+      "thresholds": {
+        "warning_mb": 400,
+        "critical_mb": 600
+      }
+    },
+    "cpu": {
+      "baseline": {
+        "idle_percent": 5,
+        "normal_load_percent": 30,
+        "peak_load_percent": 70
+      },
+      "thresholds": {
+        "warning_percent": 80,
+        "critical_percent": 95
+      }
+    },
+    "connection_pool": {
+      "default_max_connections": 50,
+      "default_keep_alive_ms": 60000,
+      "baseline": {
+        "active_connections": 10,
+        "peak_connections": 30
+      },
+      "thresholds": {
+        "warning_connections": 40,
+        "critical_connections": 48
+      }
+    }
+  },
+  "test_scenarios": {
+    "smoke_test": {
+      "duration": "1m",
+      "virtual_users": 5,
+      "purpose": "Quick validation after deployment"
+    },
+    "load_test": {
+      "duration": "10m",
+      "virtual_users_ramp": [20, 50],
+      "purpose": "Normal load testing"
+    },
+    "stress_test": {
+      "duration": "15m",
+      "virtual_users_max": 500,
+      "purpose": "Find breaking point"
+    },
+    "spike_test": {
+      "duration": "5m",
+      "spike_users": 100,
+      "purpose": "Test sudden traffic increases"
+    },
+    "endurance_test": {
+      "duration": "30m",
+      "virtual_users": 20,
+      "purpose": "Detect memory leaks and stability issues"
+    }
+  },
+  "acceptance_criteria": {
+    "availability": {
+      "uptime_percent": 99.9,
+      "max_error_rate_percent": 0.1
+    },
+    "performance": {
+      "tools_list_p95_ms": 500,
+      "tools_call_p95_ms": 1000,
+      "health_check_p95_ms": 100
+    },
+    "scalability": {
+      "min_concurrent_users": 50,
+      "target_concurrent_users": 100,
+      "stretch_concurrent_users": 200
+    },
+    "reliability": {
+      "max_consecutive_failures": 3,
+      "recovery_time_seconds": 5
+    }
+  },
+  "monitoring": {
+    "recommended_dashboards": [
+      "Grafana k6 Cloud Dashboard",
+      "Custom MCP Hub Performance Dashboard"
+    ],
+    "key_metrics_to_track": [
+      "http_req_duration (p50, p95, p99)",
+      "http_req_failed (error rate)",
+      "http_reqs (throughput)",
+      "vus (virtual users)",
+      "data_received (bandwidth)",
+      "iteration_duration",
+      "checks (success rate)"
+    ],
+    "alert_conditions": {
+      "p95_latency_threshold_ms": 500,
+      "error_rate_threshold_percent": 1,
+      "availability_threshold_percent": 99
+    }
+  }
+}
