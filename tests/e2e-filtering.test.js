@@ -380,12 +380,12 @@ describe("E2E: Tool Filtering System", () => {
       // ACT: Apply category filtering for full-stack workflow
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // ASSERT: 45-70% tool reduction while maintaining capability
+      // ASSERT: 45-70% tool reduction while maintaining broad capability
       const exposedTools = endpoint.registeredCapabilities.tools.size;
       const reductionRate = 1 - (exposedTools / totalTools);
       
-      expect(reductionRate).toBeGreaterThanOrEqual(0.45);
-      expect(reductionRate).toBeLessThanOrEqual(0.70);
+      expect(reductionRate).toBeGreaterThanOrEqual(0.45); // At least 45% reduction
+      expect(reductionRate).toBeLessThanOrEqual(0.70); // At most 70% reduction
     });
 
     it("should auto-enable filtering when threshold exceeded", () => {

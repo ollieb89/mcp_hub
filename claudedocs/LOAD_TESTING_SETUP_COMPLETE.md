@@ -365,6 +365,7 @@ bun run test:load
 - `tests/load/stress-test.js` - Stress test
 - `tests/load/spike-test-llm.js` - LLM spike test
 - `claudedocs/LOAD_TESTING_SETUP_COMPLETE.md` - This document
+- `claudedocs/LOAD_TESTING_TROUBLESHOOTING.md` - Troubleshooting guide (endpoint fixes)
 
 ### Updated Files
 - `package.json` - Added load testing scripts

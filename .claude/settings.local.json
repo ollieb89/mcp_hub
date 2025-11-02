@@ -63,7 +63,19 @@
       "Bash(sudo gpg:*)",
       "Bash(timeout 10 bun run test:load:*)",
       "Bash(K6_DURATION=10s bun run test:load:*)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(git --no-pager diff:*)",
+      "Bash(awk:*)",
+      "Bash(/tmp/troubleshooting_faq.txt)",
+      "Bash(/tmp/troubleshooting_integration.txt)",
+      "Bash(/tmp/examples_part1.txt)",
+      "Bash(/tmp/examples_part2.txt)",
+      "Bash(/home/ob/Development/Tools/mcp-hub/docs/tool-filtering-examples.md)",
+      "Bash(/tmp/faq_part1.txt)",
+      "Bash(/tmp/faq_part2.txt)",
+      "Bash(/tmp/integration_part1.txt)",
+      "Bash(/tmp/integration_part2.txt)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
