@@ -143,6 +143,18 @@ Connected services that:
 
 ## Installation
 
+### Using Bun (Recommended)
+
+```bash
+# Install Bun if you haven't already
+curl -fsSL https://bun.sh/install | bash
+
+# Install MCP Hub globally
+bun install -g mcp-hub
+```
+
+### Using npm
+
 ```bash
 npm install -g mcp-hub
 ```

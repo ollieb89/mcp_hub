@@ -12,16 +12,18 @@ The architecture enables users to manage MCP servers through the Hub's UI while 
 
 ## Development Commands
 
+> **Note**: This project uses Bun as the primary runtime. All commands use `bun` instead of `npm` for better performance.
+
 ### Build & Run
 ```bash
 # Development start with config file
-npm start
+bun start
 
 # Clean build artifacts
-npm run clean
+bun run clean
 
 # Build for production (creates dist/cli.js)
-npm run build
+bun run build
 
 # Build includes prebuild (clean) and postbuild (chmod +x)
 ```
@@ -29,18 +31,18 @@ npm run build
 ### Testing
 ```bash
 # Run all tests once
-npm test
+bun test
 
 # Watch mode for development
-npm run test:watch
+bun run test:watch
 
 # Generate coverage report
-npm run test:coverage
+bun run test:coverage
 
 # Open HTML coverage report
-npm run test:coverage:ui
+bun run test:coverage:ui
 
-# Current status: 308/308 tests passing (100% pass rate)
+# Current status: 482/482 tests passing (100% pass rate)
 # Coverage: 82.94% branches (exceeds 80% standard)
 # Tests located in: tests/**/*.test.js
 ```
@@ -48,19 +50,22 @@ npm run test:coverage:ui
 ### Release Process
 ```bash
 # Patch version (bug fixes)
-npm run release:patch
+bun run release:patch
 
 # Minor version (new features)
-npm run release:minor
+bun run release:minor
 
 # Major version (breaking changes)
-npm run release:major
+bun run release:major
 ```
 
 ### Other Commands
 ```bash
 # Update marketplace data
-npm run update-data
+bun run update-data
+
+# Install dependencies
+bun install
 ```
 
 ## Architecture Overview

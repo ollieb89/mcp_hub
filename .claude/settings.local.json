@@ -52,7 +52,9 @@
       "Bash(curl:*)",
       "Bash(kill:*)",
       "Bash(cat:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(bun:*)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []
