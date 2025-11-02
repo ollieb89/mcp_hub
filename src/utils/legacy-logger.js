@@ -2,10 +2,12 @@ import fs from "fs";
 import path from "path";
 import { getLogDirectory } from "./xdg-paths.js";
 
-// Legacy Logger class (synchronous file I/O)
+/**
+ * Logger class that handles both file and console logging with structured JSON output
+ */
+
 const LOG_DIR = getLogDirectory();
 const LOG_FILE = "mcp-hub.log";
-
 class Logger {
   constructor(options = {}) {
     this.logFile = options.logFile || path.join(LOG_DIR, LOG_FILE);
@@ -180,45 +182,10 @@ class Logger {
   }
 }
 
-// Import Pino logger for feature flag support
-import { PinoLogger } from './pino-logger.js';
-
-/**
- * Feature flag: ENABLE_PINO_LOGGER
- *
- * Set to 'true' to use high-performance Pino logger (5-10x faster)
- * Set to 'false' or unset to use legacy synchronous logger
- *
- * Examples:
- *   ENABLE_PINO_LOGGER=true bun start
- *   ENABLE_PINO_LOGGER=false bun start
- */
-const usePino = process.env.ENABLE_PINO_LOGGER === 'true';
-
-// Create logger instance based on feature flag
-const logger = usePino
-  ? new PinoLogger({ logLevel: "debug" })
-  : new Logger({ logLevel: "debug" });
-
-// Setup error handlers (once, globally)
-if (usePino) {
-  PinoLogger.setupErrorHandlers();
-}
-
-// Log which implementation is being used
-if (usePino) {
-  console.log(JSON.stringify({
-    type: 'info',
-    message: 'Using Pino logger (high-performance async)',
-    timestamp: new Date().toISOString()
-  }));
-} else {
-  console.log(JSON.stringify({
-    type: 'info',
-    message: 'Using legacy logger (synchronous)',
-    timestamp: new Date().toISOString()
-  }));
-}
+// Create logger instance
+const logger = new Logger({
+  logLevel: "debug",
+});
 
 // Handle unhandled errors
 process.on("uncaughtException", (error) => {
@@ -229,7 +196,7 @@ process.on("uncaughtException", (error) => {
   );
 });
 
-// Handle unhandled promise rejections
+// Handle unhandled promise rejections 
 process.on("unhandledRejection", (error) => {
   logger.error(
     "UNHANDLED_REJECTION",
