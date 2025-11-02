@@ -40,7 +40,7 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
 
   describe("Server-Allowlist Mode", () => {
     it("should filter tools using server allowlist", () => {
-      // Arrange: Configure server-allowlist mode
+      // ARRANGE: Configure server-allowlist mode with filesystem server allowed
       mcpHub.configManager.getConfig = () => ({
         toolFiltering: {
           enabled: true,
@@ -52,7 +52,6 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
         }
       });
 
-      // Create connections with tools
       const filesystemConn = {
         name: "filesystem",
         status: "connected",
@@ -80,10 +79,10 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
       mcpHub.connections.set("filesystem", filesystemConn);
       mcpHub.connections.set("github", githubConn);
 
-      // Act: Create endpoint (triggers syncCapabilities)
+      // ACT: Create endpoint which triggers syncCapabilities
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Only filesystem tools should be registered
+      // ASSERT: Only filesystem tools registered, github tools filtered out
       const registeredTools = endpoint.registeredCapabilities.tools;
       const toolNames = [...registeredTools.keys()];
 
@@ -101,7 +100,7 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
     });
 
     it("should filter tools using server denylist", () => {
-      // Arrange: Configure server denylist mode
+      // ARRANGE: Configure server denylist mode blocking untrusted server
       mcpHub.configManager.getConfig = () => ({
         toolFiltering: {
           enabled: true,
@@ -138,10 +137,10 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
       mcpHub.connections.set("trusted", trustedConn);
       mcpHub.connections.set("untrusted", untrustedConn);
 
-      // Act: Create endpoint
+      // ACT: Create endpoint to apply denylist filtering
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Only trusted tools should be registered
+      // ASSERT: Trusted tools registered, untrusted tools blocked
       const registeredTools = endpoint.registeredCapabilities.tools;
       const toolNames = [...registeredTools.keys()];
 
@@ -157,7 +156,7 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
 
   describe("Category Mode", () => {
     it("should filter tools using category filter", () => {
-      // Arrange: Configure category mode
+      // ARRANGE: Configure category mode filtering for file operations only
       mcpHub.configManager.getConfig = () => ({
         toolFiltering: {
           mode: "category",
@@ -182,10 +181,10 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
 
       mcpHub.connections.set("filesystem", filesystemConn);
 
-      // Act: Create endpoint
+      // ACT: Create endpoint to apply category filtering
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Only file operation tools should be registered
+      // ASSERT: File operation tools pass, web search tool filtered out
       const registeredTools = endpoint.registeredCapabilities.tools;
 
       // With keyword matching, read_file and write_file should pass
@@ -198,7 +197,7 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
     });
 
     it("should use custom mappings for category filter", () => {
-      // Arrange: Configure category mode with custom mappings
+      // ARRANGE: Configure category mode with custom tool-to-category mappings
       mcpHub.configManager.getConfig = () => ({
         toolFiltering: {
           mode: "category",
@@ -225,10 +224,10 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
 
       mcpHub.connections.set("custom", customConn);
 
-      // Act: Create endpoint
+      // ACT: Create endpoint to apply custom mapping
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Only custom_tool should be registered via mapping
+      // ASSERT: Custom tool passes via mapping, other tool filtered out
       const registeredTools = endpoint.registeredCapabilities.tools;
       expect(registeredTools.size).toBeGreaterThan(0);
 
@@ -239,7 +238,7 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
 
   describe("Hybrid Mode", () => {
     it("should apply both server and category filters", () => {
-      // Arrange: Configure hybrid mode
+      // ARRANGE: Configure hybrid mode with server allowlist and category filter
       mcpHub.configManager.getConfig = () => ({
         toolFiltering: {
           enabled: true,
@@ -280,13 +279,13 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
       mcpHub.connections.set("filesystem", filesystemConn);
       mcpHub.connections.set("github", githubConn);
 
-      // Act: Create endpoint
+      // ACT: Create endpoint to apply hybrid filtering
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Hybrid mode uses OR logic - tool passes if it matches EITHER filter
-      // read_file: filesystem server (✓ server) + file_operations (✓ category) = PASS
-      // search_web: filesystem server (✓ server) + web category (✗ category) = PASS (server match)
-      // read_repo: github server (✗ server) + unknown category (✗ category) = FAIL
+      // ASSERT: Hybrid OR logic - tools pass if matching either filter
+      // read_file: filesystem server (✓) + file_operations (✓) = PASS
+      // search_web: filesystem server (✓) + web category (✗) = PASS (server match)
+      // read_repo: github server (✗) + unknown category (✗) = FAIL
       const registeredTools = endpoint.registeredCapabilities.tools;
 
       const toolNames = [...registeredTools.keys()];
@@ -298,7 +297,7 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
 
   describe("Auto-Enable Threshold", () => {
     it("should auto-enable filtering when threshold exceeded", () => {
-      // Arrange: Configure with auto-enable threshold
+      // ARRANGE: Configure auto-enable threshold with multiple servers exceeding limit
       mcpHub.configManager.getConfig = () => ({
         toolFiltering: {
           mode: "category",
@@ -309,7 +308,6 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
         }
       });
 
-      // Create multiple servers with many tools (total > 5)
       const server1 = {
         name: "server1",
         status: "connected",
@@ -339,11 +337,10 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
       mcpHub.connections.set("server1", server1);
       mcpHub.connections.set("server2", server2);
 
-      // Act: Create endpoint (triggers syncCapabilities with auto-enable check)
+      // ACT: Create endpoint triggering auto-enable check (6 tools > 5 threshold)
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Filtering should be auto-enabled (verified via logs in implementation)
-      // The endpoint should have successfully created with filtering service active
+      // ASSERT: Filtering service active due to threshold exceeded
       expect(endpoint.filteringService).toBeDefined();
 
       // ToolFilteringService doesn't expose .enabled property
@@ -352,7 +349,7 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
     });
 
     it("should not auto-enable when below threshold", () => {
-      // Arrange: Configure with high threshold
+      // ARRANGE: Configure high auto-enable threshold with minimal tools
       mcpHub.configManager.getConfig = () => ({
         toolFiltering: {
           mode: "category",
@@ -376,10 +373,10 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
 
       mcpHub.connections.set("small", smallServer);
 
-      // Act: Create endpoint
+      // ACT: Create endpoint with tool count below threshold
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Filtering service exists but auto-enable not triggered
+      // ASSERT: Filtering service exists but auto-enable not triggered
       expect(endpoint.filteringService).toBeDefined();
 
       // ToolFilteringService doesn't expose .enabled property
@@ -389,7 +386,7 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
 
   describe("No Filtering", () => {
     it("should register all tools when filtering is not configured", () => {
-      // Arrange: No filtering configuration
+      // ARRANGE: No filtering configuration, all tools should pass through
       mcpHub.configManager.getConfig = () => ({
         toolFiltering: null
       });
@@ -420,10 +417,10 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
       mcpHub.connections.set("server1", conn1);
       mcpHub.connections.set("server2", conn2);
 
-      // Act: Create endpoint
+      // ACT: Create endpoint without any filtering
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: All tools should be registered
+      // ASSERT: All 3 tools registered from both servers
       const registeredTools = endpoint.registeredCapabilities.tools;
       expect(registeredTools.size).toBe(3);
     });
@@ -431,7 +428,7 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
 
   describe("Resources and Prompts (No Filtering)", () => {
     it("should not filter resources even with tool filtering enabled", () => {
-      // Arrange: Enable tool filtering but resources should pass through
+      // ARRANGE: Enable tool filtering, resources and prompts should pass unfiltered
       mcpHub.configManager.getConfig = () => ({
         toolFiltering: {
           enabled: true,
@@ -476,10 +473,10 @@ describe("Tool Filtering Integration Tests (Sprint 3)", () => {
       mcpHub.connections.set("allowed", allowedServer);
       mcpHub.connections.set("blocked", blockedServer);
 
-      // Act: Create endpoint
+      // ACT: Create endpoint with tool filtering active
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Tools are filtered, but resources and prompts are NOT
+      // ASSERT: Tools filtered by server, resources and prompts pass through
       const toolNames = [...endpoint.registeredCapabilities.tools.keys()];
 
       // Only allowed server tools should be present

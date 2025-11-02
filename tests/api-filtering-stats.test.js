@@ -30,7 +30,7 @@ describe("API: /api/filtering/stats endpoint", () => {
 
   describe("Success cases", () => {
     it("should return comprehensive statistics when filtering is enabled", async () => {
-      // Arrange: Create mock endpoint with filtering service
+      // ARRANGE: Mock endpoint with active filtering service and registered tools
       mockMcpServerEndpoint = {
         registeredCapabilities: {
           tools: new Map([
@@ -70,7 +70,7 @@ describe("API: /api/filtering/stats endpoint", () => {
 
       mockRequest.app.locals.mcpServerEndpoint = mockMcpServerEndpoint;
 
-      // Simulate the handler logic
+      // ACT: Call getStats and construct API response
       const stats = mockMcpServerEndpoint.toolFilteringService.getStats();
 
       const result = {
@@ -90,7 +90,7 @@ describe("API: /api/filtering/stats endpoint", () => {
         timestamp: new Date().toISOString()
       };
 
-      // Assert: Verify comprehensive statistics
+      // ASSERT: Verify all statistics fields populated correctly
       expect(result.enabled).toBe(true);
       expect(result.mode).toBe('category');
       expect(result.totalTools).toBe(100);
@@ -108,7 +108,7 @@ describe("API: /api/filtering/stats endpoint", () => {
     });
 
     it("should return statistics when filtering is disabled", async () => {
-      // Arrange: Create mock endpoint with disabled filtering
+      // ARRANGE: Mock endpoint with filtering disabled and zero stats
       mockMcpServerEndpoint = {
         registeredCapabilities: {
           tools: new Map([['tool1', {}]])
@@ -138,10 +138,10 @@ describe("API: /api/filtering/stats endpoint", () => {
 
       mockRequest.app.locals.mcpServerEndpoint = mockMcpServerEndpoint;
 
-      // Simulate the handler logic
+      // ACT: Retrieve stats from disabled filtering service
       const stats = mockMcpServerEndpoint.toolFilteringService.getStats();
 
-      // Assert: Should return stats with enabled=false
+      // ASSERT: All stats should reflect disabled state with zero values
       expect(stats.enabled).toBe(false);
       expect(stats.totalChecked).toBe(0);
       expect(stats.totalFiltered).toBe(0);
@@ -151,13 +151,13 @@ describe("API: /api/filtering/stats endpoint", () => {
 
   describe("Error cases", () => {
     it("should return 404 when MCP endpoint not initialized", async () => {
-      // Arrange: No mcpServerEndpoint
+      // ARRANGE: Request with null mcpServerEndpoint
       mockRequest.app.locals.mcpServerEndpoint = null;
 
-      // Simulate the handler logic
+      // ACT: Check endpoint initialization status
       const shouldReturn404 = !mockRequest.app.locals.mcpServerEndpoint;
 
-      // Assert
+      // ASSERT: Handler should return 404 error
       expect(shouldReturn404).toBe(true);
       // In actual implementation, would verify:
       // expect(mockResponse.status).toHaveBeenCalledWith(404);
@@ -168,7 +168,7 @@ describe("API: /api/filtering/stats endpoint", () => {
     });
 
     it("should return 404 when tool filtering service not initialized", async () => {
-      // Arrange: Endpoint exists but no filtering service
+      // ARRANGE: Endpoint exists but filtering service is null
       mockMcpServerEndpoint = {
         registeredCapabilities: {
           tools: new Map()
@@ -178,10 +178,10 @@ describe("API: /api/filtering/stats endpoint", () => {
 
       mockRequest.app.locals.mcpServerEndpoint = mockMcpServerEndpoint;
 
-      // Simulate the handler logic
+      // ACT: Check filtering service initialization
       const shouldReturn404 = !mockMcpServerEndpoint.toolFilteringService;
 
-      // Assert
+      // ASSERT: Handler should return 404 for missing service
       expect(shouldReturn404).toBe(true);
       // In actual implementation, would verify:
       // expect(mockResponse.status).toHaveBeenCalledWith(404);
@@ -192,7 +192,7 @@ describe("API: /api/filtering/stats endpoint", () => {
     });
 
     it("should handle errors gracefully and return 500", async () => {
-      // Arrange: Service throws error
+      // ARRANGE: Mock service that throws internal error
       mockMcpServerEndpoint = {
         registeredCapabilities: {
           tools: new Map()
@@ -207,7 +207,7 @@ describe("API: /api/filtering/stats endpoint", () => {
 
       mockRequest.app.locals.mcpServerEndpoint = mockMcpServerEndpoint;
 
-      // Act & Assert: Should throw error (caught by error handler)
+      // ACT & ASSERT: Verify error thrown and caught by middleware
       expect(() => {
         mockMcpServerEndpoint.toolFilteringService.getStats();
       }).toThrow('Internal service error');
@@ -218,7 +218,7 @@ describe("API: /api/filtering/stats endpoint", () => {
 
   describe("Edge cases", () => {
     it("should handle empty tool set gracefully", async () => {
-      // Arrange: No tools registered
+      // ARRANGE: Endpoint with zero registered tools
       mockMcpServerEndpoint = {
         registeredCapabilities: {
           tools: new Map()
@@ -247,18 +247,18 @@ describe("API: /api/filtering/stats endpoint", () => {
 
       mockRequest.app.locals.mcpServerEndpoint = mockMcpServerEndpoint;
 
-      // Simulate the handler logic
+      // ACT: Retrieve stats with empty tool set
       const stats = mockMcpServerEndpoint.toolFilteringService.getStats();
       const totalTools = mockMcpServerEndpoint.registeredCapabilities.tools.size;
 
-      // Assert: Should handle empty set without errors
+      // ASSERT: Stats should handle empty set with zero values
       expect(totalTools).toBe(0);
       expect(stats.totalChecked).toBe(0);
       expect(stats.filterRate).toBe(0);
     });
 
     it("should handle missing serverFilter config", async () => {
-      // Arrange: No serverFilter in config
+      // ARRANGE: Config with null serverFilter
       mockMcpServerEndpoint = {
         registeredCapabilities: {
           tools: new Map()
@@ -288,15 +288,15 @@ describe("API: /api/filtering/stats endpoint", () => {
 
       mockRequest.app.locals.mcpServerEndpoint = mockMcpServerEndpoint;
 
-      // Simulate serverFilterMode extraction
+      // ACT: Extract serverFilterMode with optional chaining
       const serverFilterMode = mockMcpServerEndpoint.toolFilteringService.config.serverFilter?.mode || null;
 
-      // Assert: Should return null when serverFilter is missing
+      // ASSERT: Should safely return null for missing serverFilter
       expect(serverFilterMode).toBeNull();
     });
 
     it("should include timestamp in response", async () => {
-      // Arrange
+      // ARRANGE: Mock endpoint with disabled filtering
       mockMcpServerEndpoint = {
         registeredCapabilities: {
           tools: new Map()
@@ -322,10 +322,10 @@ describe("API: /api/filtering/stats endpoint", () => {
 
       mockRequest.app.locals.mcpServerEndpoint = mockMcpServerEndpoint;
 
-      // Simulate timestamp generation
+      // ACT: Generate ISO timestamp for response
       const timestamp = new Date().toISOString();
 
-      // Assert: Timestamp should be valid ISO string
+      // ASSERT: Timestamp follows valid ISO 8601 format
       expect(timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     });
   });

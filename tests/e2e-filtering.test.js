@@ -150,7 +150,7 @@ describe("E2E: Tool Filtering System", () => {
 
   describe("Scenario 1: Start MCP Hub with 25 servers", () => {
     it("should successfully initialize with 25 connected servers", () => {
-      // Arrange
+      // ARRANGE: Create 25-server hub with filtering disabled
       const config = {
         toolFiltering: {
           enabled: false // Start with filtering disabled
@@ -159,10 +159,10 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
+      // ACT: Initialize endpoint with all servers
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert
+      // ASSERT: All 24 servers connected with 600+ tools registered
       expect(mcpHub.connections.size).toBe(24); // 24 servers in our mock (one less for simplicity)
       
       // Verify all tools are registered (no filtering)
@@ -175,7 +175,7 @@ describe("E2E: Tool Filtering System", () => {
     });
 
     it("should expose all tools when filtering is disabled", () => {
-      // Arrange
+      // ARRANGE: Hub with filtering explicitly disabled
       const config = {
         toolFiltering: {
           enabled: false
@@ -184,7 +184,7 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
+      // ACT: Create endpoint and count exposed tools
       endpoint = new MCPServerEndpoint(mcpHub);
 
       // Calculate expected tool count
@@ -193,7 +193,7 @@ describe("E2E: Tool Filtering System", () => {
         expectedTools += conn.tools.length;
       }
 
-      // Assert
+      // ASSERT: All tools from all servers exposed without filtering
       const actualTools = endpoint.registeredCapabilities.tools.size;
       expect(actualTools).toBe(expectedTools);
       
@@ -205,7 +205,7 @@ describe("E2E: Tool Filtering System", () => {
 
   describe("Scenario 2: Enable filtering with various configs", () => {
     it("should apply server-allowlist filtering", () => {
-      // Arrange: Only allow filesystem-related servers
+      // ARRANGE: Enable server allowlist with only serena and git (35 tools)
       const config = {
         toolFiltering: {
           enabled: true,
@@ -219,10 +219,10 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
+      // ACT: Create endpoint with allowlist filtering
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert
+      // ASSERT: Only 35 tools from allowed servers exposed
       const registeredTools = endpoint.registeredCapabilities.tools.size;
       expect(registeredTools).toBe(35); // Only serena (15) + git (20)
       
@@ -235,7 +235,7 @@ describe("E2E: Tool Filtering System", () => {
     });
 
     it("should apply server-denylist filtering", () => {
-      // Arrange: Block AI servers (heavy tool count)
+      // ARRANGE: Block high-volume servers (github, vertex-ai, hf-transformers)
       const config = {
         toolFiltering: {
           enabled: true,
@@ -249,7 +249,6 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Count tools that should be allowed (not in deny list)
       let expectedTools = 0;
       for (const [name, conn] of mcpHub.connections) {
         if (!["github", "vertex-ai", "hf-transformers"].includes(name)) {
@@ -257,10 +256,10 @@ describe("E2E: Tool Filtering System", () => {
         }
       }
 
-      // Act
+      // ACT: Create endpoint applying denylist
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Should filter out denied servers
+      // ASSERT: Blocked servers excluded, others exposed
       const registeredTools = endpoint.registeredCapabilities.tools.size;
       expect(registeredTools).toBe(expectedTools);
       expect(registeredTools).toBeGreaterThan(0);
@@ -268,7 +267,7 @@ describe("E2E: Tool Filtering System", () => {
     });
 
     it("should apply category-based filtering", () => {
-      // Arrange: Only filesystem and web categories
+      // ARRANGE: Enable category filter for filesystem, web, and search
       const config = {
         toolFiltering: {
           enabled: true,
@@ -280,15 +279,12 @@ describe("E2E: Tool Filtering System", () => {
       };
 
       mcpHub = createRealistic25ServerHub(config);
+      const expectedTools = 15 + 45 + 5 + 8 + 12; // 85 tools from matching categories
 
-      // Act
+      // ACT: Apply category filtering
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Calculate expected tools (servers with matching categories)
-      // serena (filesystem), playwright (web), fetch (web), shadcn-ui (web), augments (search)
-      const expectedTools = 15 + 45 + 5 + 8 + 12; // 85 tools
-
-      // Assert
+      // ASSERT: Only tools from matching categories exposed (85 tools)
       const registeredTools = endpoint.registeredCapabilities.tools.size;
       expect(registeredTools).toBe(expectedTools);
       
@@ -300,7 +296,7 @@ describe("E2E: Tool Filtering System", () => {
     });
 
     it("should apply hybrid mode filtering (server + category)", () => {
-      // Arrange: Combine server allowlist with category filter
+      // ARRANGE: Hybrid mode with playwright server and filesystem category
       const config = {
         toolFiltering: {
           enabled: true,
@@ -317,10 +313,10 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
+      // ACT: Apply hybrid filtering (OR logic)
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Should include tools from EITHER server allowlist OR category filter
+      // ASSERT: Tools from either server OR category exposed (60 total)
       const registeredTools = endpoint.registeredCapabilities.tools.size;
       expect(registeredTools).toBe(60); // playwright (45) + serena (15)
       
@@ -332,7 +328,7 @@ describe("E2E: Tool Filtering System", () => {
 
   describe("Scenario 3: Verify tool count reduction", () => {
     it("should achieve 80-95% reduction with minimal config", () => {
-      // Arrange: Frontend developer use case
+      // ARRANGE: Frontend developer config with only essential servers
       const config = {
         toolFiltering: {
           enabled: true,
@@ -346,16 +342,15 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Calculate baseline (no filtering)
       let totalTools = 0;
       for (const [, conn] of mcpHub.connections) {
         totalTools += conn.tools.length;
       }
 
-      // Act
+      // ACT: Apply aggressive server filtering
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert
+      // ASSERT: 80-95% tool reduction achieved for focused workflow
       const exposedTools = endpoint.registeredCapabilities.tools.size;
       const reductionRate = 1 - (exposedTools / totalTools);
       
@@ -368,7 +363,7 @@ describe("E2E: Tool Filtering System", () => {
     });
 
     it("should achieve 45-70% reduction with category filtering", () => {
-      // Arrange: Full-stack developer use case
+      // ARRANGE: Full-stack developer config with broad category filtering
       const config = {
         toolFiltering: {
           enabled: true,
@@ -381,16 +376,15 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Calculate baseline
       let totalTools = 0;
       for (const [, conn] of mcpHub.connections) {
         totalTools += conn.tools.length;
       }
 
-      // Act
+      // ACT: Apply category filtering for full-stack workflow
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert
+      // ASSERT: 45-70% tool reduction while maintaining broad capability
       const exposedTools = endpoint.registeredCapabilities.tools.size;
       const reductionRate = 1 - (exposedTools / totalTools);
       
@@ -413,16 +407,15 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
-      endpoint = new MCPServerEndpoint(mcpHub);
-
-      // Calculate total tools
       let totalTools = 0;
       for (const [, conn] of mcpHub.connections) {
         totalTools += conn.tools.length;
       }
 
-      // Assert: Auto-enable should activate because totalTools > 100
+      // ACT: Create endpoint triggering auto-enable check
+      endpoint = new MCPServerEndpoint(mcpHub);
+
+      // ASSERT: Filtering auto-enabled due to threshold exceeded
       expect(totalTools).toBeGreaterThan(100);
       
       const stats = endpoint.filteringService.getStats();
@@ -435,7 +428,7 @@ describe("E2E: Tool Filtering System", () => {
 
   describe("Scenario 6: Validate statistics accuracy", () => {
     it("should report accurate filtering statistics", () => {
-      // Arrange
+      // ARRANGE: Category filtering for filesystem and web
       const config = {
         toolFiltering: {
           enabled: true,
@@ -448,18 +441,16 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Calculate expected values
       let totalTools = 0;
-      
       for (const [, conn] of mcpHub.connections) {
         totalTools += conn.tools.length;
       }
 
-      // Act
+      // ACT: Apply filtering and retrieve statistics
       endpoint = new MCPServerEndpoint(mcpHub);
       const stats = endpoint.filteringService.getStats();
 
-      // Assert: Validate all stats fields
+      // ASSERT: All statistics fields accurate and valid
       expect(stats.enabled).toBe(true);
       expect(stats.mode).toBe("category");
       expect(stats.totalChecked).toBe(totalTools);
@@ -482,7 +473,7 @@ describe("E2E: Tool Filtering System", () => {
     });
 
     it("should accurately track cache performance", () => {
-      // Arrange
+      // ARRANGE: Category filtering with cache warm-up scenario
       const config = {
         toolFiltering: {
           enabled: true,
@@ -495,7 +486,7 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act: Initialize endpoint (triggers categorization)
+      // ACT: Initialize and perform repeated category lookups
       endpoint = new MCPServerEndpoint(mcpHub);
       
       // Check same tools multiple times (should hit cache)
@@ -510,7 +501,7 @@ describe("E2E: Tool Filtering System", () => {
 
       const stats = service.getStats();
 
-      // Assert: Cache should be populated
+      // ASSERT: Cache populated and hit rate within valid range
       expect(stats.categoryCacheSize).toBeGreaterThan(0);
       // Cache hit rate is variable depending on initialization
       expect(stats.cacheHitRate).toBeGreaterThanOrEqual(0);
@@ -518,7 +509,7 @@ describe("E2E: Tool Filtering System", () => {
     });
 
     it("should provide accurate server filter statistics", () => {
-      // Arrange
+      // ARRANGE: Server allowlist with three allowed servers
       const config = {
         toolFiltering: {
           enabled: true,
@@ -532,11 +523,11 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
+      // ACT: Apply server filtering and retrieve stats
       endpoint = new MCPServerEndpoint(mcpHub);
       const stats = endpoint.filteringService.getStats();
 
-      // Assert
+      // ASSERT: Server filter statistics accurate, only allowed servers exposed
       expect(stats.allowedServers).toEqual(["serena", "git", "playwright"]);
       expect(stats.mode).toBe("server-allowlist");
       
@@ -549,7 +540,7 @@ describe("E2E: Tool Filtering System", () => {
     });
 
     it("should handle empty/disabled state correctly", () => {
-      // Arrange
+      // ARRANGE: Filtering explicitly disabled
       const config = {
         toolFiltering: {
           enabled: false
@@ -558,11 +549,11 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
+      // ACT: Create endpoint with filtering disabled
       endpoint = new MCPServerEndpoint(mcpHub);
       const stats = endpoint.filteringService.getStats();
 
-      // Assert: Stats should reflect disabled state
+      // ASSERT: Stats show disabled, all tools registered
       expect(stats.enabled).toBe(false);
       
       // Verify all tools are registered when disabled
@@ -578,7 +569,7 @@ describe("E2E: Tool Filtering System", () => {
 
   describe("Edge Cases and Error Handling", () => {
     it("should handle invalid server names gracefully", () => {
-      // Arrange
+      // ARRANGE: Allowlist with nonexistent server names
       const config = {
         toolFiltering: {
           enabled: true,
@@ -592,10 +583,10 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
+      // ACT: Apply filtering with invalid server names
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Should filter out ALL tools (no matching servers)
+      // ASSERT: All tools filtered out, no matching servers
       const registeredTools = endpoint.registeredCapabilities.tools.size;
       expect(registeredTools).toBe(0);
       
@@ -604,7 +595,7 @@ describe("E2E: Tool Filtering System", () => {
     });
 
     it("should handle empty category list", () => {
-      // Arrange
+      // ARRANGE: Category filter with empty categories array
       const config = {
         toolFiltering: {
           enabled: true,
@@ -617,16 +608,16 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
+      // ACT: Apply filtering with no categories
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Should filter out ALL tools (no matching categories)
+      // ASSERT: All tools filtered out, no matching categories
       const registeredTools = endpoint.registeredCapabilities.tools.size;
       expect(registeredTools).toBe(0);
     });
 
     it("should handle hybrid mode with contradictory filters", () => {
-      // Arrange: Server allowlist has no tools matching categories
+      // ARRANGE: Hybrid with non-overlapping server and category filters
       const config = {
         toolFiltering: {
           enabled: true,
@@ -643,10 +634,10 @@ describe("E2E: Tool Filtering System", () => {
 
       mcpHub = createRealistic25ServerHub(config);
 
-      // Act
+      // ACT: Apply hybrid filtering with OR logic
       endpoint = new MCPServerEndpoint(mcpHub);
 
-      // Assert: Hybrid uses OR logic, so should include serena tools + ai/cloud tools
+      // ASSERT: Tools from either filter pass (serena + ai/cloud servers)
       const registeredTools = endpoint.registeredCapabilities.tools.size;
       expect(registeredTools).toBeGreaterThan(15); // At least serena (15) + some ai/cloud
     });

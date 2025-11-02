@@ -55,7 +55,15 @@
       "Bash(xargs:*)",
       "Bash(bun:*)",
       "Bash(cp:*)",
-      "Bash(tests/tool-filtering-service.test.js)"
+      "Bash(tests/tool-filtering-service.test.js)",
+      "Bash(ENABLE_PINO_LOGGER=true bun test:*)",
+      "Bash(chmod:*)",
+      "Bash(bunx pino-roll:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(sudo gpg:*)",
+      "Bash(timeout 10 bun run test:load:*)",
+      "Bash(K6_DURATION=10s bun run test:load:*)",
+      "Bash(git check-ignore:*)"
     ],
     "deny": [],
     "ask": []
