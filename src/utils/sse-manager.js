@@ -350,6 +350,24 @@ export class SSEManager extends EventEmitter {
   }
 
   /**
+   * Creates an SSE connection scoped to log events.
+   * Non-log events are ignored for this connection.
+   */
+  async streamLogs(req, res) {
+    const connection = await this.addConnection(req, res);
+    const originalSend = connection.send;
+
+    connection.send = (event, data) => {
+      if (event === EventTypes.LOG || event === `${EventTypes.LOG}_batch`) {
+        return originalSend(event, data);
+      }
+      return true;
+    };
+
+    return connection;
+  }
+
+  /**
    * Performs clean shutdown of all SSE connections
    */
   async shutdown() {

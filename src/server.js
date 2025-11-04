@@ -1,4 +1,5 @@
 import express from "express";
+import path from "node:path";
 import logger from "./utils/logger.js";
 import { MCPHub } from "./MCPHub.js";
 import { SSEManager, EventTypes, HubState, SubscriptionTypes } from "./utils/sse-manager.js";
@@ -15,6 +16,7 @@ import {
 import { getMarketplace } from "./marketplace.js";
 import { MCPServerEndpoint } from "./mcp/server.js";
 import { WorkspaceCacheManager } from "./utils/workspace-cache.js";
+import { writeConfigToDisk, loadRawConfig } from "./utils/config-persistence.js";
 
 const SERVER_ID = "mcp-hub";
 
@@ -22,8 +24,11 @@ const SERVER_ID = "mcp-hub";
 const app = express();
 app.use(express.json());
 
-// Serve static files from public directory
-app.use(express.static('public'));
+// Serve built UI assets first, fall back to legacy public assets
+const uiIndexPath = path.join(process.cwd(), "dist/ui/index.html");
+const legacyIndexPath = path.join(process.cwd(), "public/index.html");
+app.use(express.static("dist/ui"));
+app.use(express.static("public"));
 
 app.use("/api", router);
 
@@ -345,6 +350,23 @@ registerRoute("GET", "/events", "Subscribe to server events", async (req, res) =
   }
 });
 
+registerRoute("GET", "/logs", "Stream hub logs", async (req, res) => {
+  try {
+    if (!serviceManager?.sseManager) {
+      throw new ServerError("SSE manager not initialized");
+    }
+    await serviceManager.sseManager.streamLogs(req, res);
+  } catch (error) {
+    logger.error('LOG_SSE_ERROR', 'Failed to setup log stream', {
+      error: error.message,
+      stack: error.stack
+    });
+    if (!res.writableEnded) {
+      res.status(500).end();
+    }
+  }
+});
+
 // Register MCP SSE endpoint
 app.get("/mcp", async (req, res) => {
   try {
@@ -607,6 +629,107 @@ registerRoute(
   }
 );
 
+registerRoute(
+  "POST",
+  "/filtering/status",
+  "Toggle tool filtering enablement",
+  async (req, res) => {
+    const { enabled } = req.body;
+    if (typeof enabled !== "boolean") {
+      throw new ValidationError("enabled must be boolean", { enabled });
+    }
+
+    const config = serviceManager.mcpHub.configManager.getConfig() || {};
+    const currentFiltering = config.toolFiltering || {};
+    const nextConfig = {
+      ...config,
+      toolFiltering: {
+        ...currentFiltering,
+        enabled,
+      },
+    };
+
+    await writeConfigToDisk(serviceManager.mcpHub.configManager, nextConfig);
+    serviceManager.broadcastSubscriptionEvent(SubscriptionTypes.CONFIG_CHANGED, {
+      toolFiltering: nextConfig.toolFiltering,
+    });
+
+    res.json({
+      status: "ok",
+      toolFiltering: nextConfig.toolFiltering,
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
+registerRoute(
+  "POST",
+  "/filtering/mode",
+  "Update tool filtering mode",
+  async (req, res) => {
+    const { mode } = req.body;
+    const validModes = ["server-allowlist", "category", "hybrid", "prompt-based"];
+    if (!validModes.includes(mode)) {
+      throw new ValidationError("Invalid filtering mode", { mode, validModes });
+    }
+
+    const config = serviceManager.mcpHub.configManager.getConfig() || {};
+    const currentFiltering = config.toolFiltering || {};
+    const nextConfig = {
+      ...config,
+      toolFiltering: {
+        ...currentFiltering,
+        mode,
+      },
+    };
+
+    await writeConfigToDisk(serviceManager.mcpHub.configManager, nextConfig);
+    serviceManager.broadcastSubscriptionEvent(SubscriptionTypes.CONFIG_CHANGED, {
+      toolFiltering: nextConfig.toolFiltering,
+    });
+
+    res.json({
+      status: "ok",
+      toolFiltering: nextConfig.toolFiltering,
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
+registerRoute(
+  "GET",
+  "/config",
+  "Fetch raw MCP hub configuration",
+  async (_req, res) => {
+    const config = await loadRawConfig(serviceManager.mcpHub.configManager);
+    res.json({
+      config,
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
+registerRoute(
+  "POST",
+  "/config",
+  "Update hub configuration",
+  async (req, res) => {
+    const proposed = req.body;
+    if (!proposed || typeof proposed !== "object" || Array.isArray(proposed)) {
+      throw new ValidationError("Body must be config object");
+    }
+
+    await writeConfigToDisk(serviceManager.mcpHub.configManager, proposed);
+    await serviceManager.restartHub();
+
+    res.json({
+      status: "ok",
+      config: serviceManager.mcpHub.configManager.getConfig(),
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
 // Register server list endpoint
 registerRoute(
   "GET",
@@ -616,6 +739,39 @@ registerRoute(
     const servers = serviceManager.mcpHub.getAllServerStatuses();
     res.json({
       servers,
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
+registerRoute(
+  "GET",
+  "/tools",
+  "List aggregated MCP tools across servers",
+  async (_req, res) => {
+    const servers = serviceManager.mcpHub.getAllServerStatuses();
+    const tools = [];
+
+    for (const server of servers) {
+      const connection = serviceManager.mcpHub.connections.get(server.name);
+      if (!connection) {
+        continue;
+      }
+
+      for (const tool of connection.tools || []) {
+        tools.push({
+          server: server.name,
+          serverDisplayName: connection.displayName,
+          name: tool.name,
+          description: tool.description || "",
+          enabled: !connection.disabled,
+          categories: tool.metadata?.categories || [],
+        });
+      }
+    }
+
+    res.json({
+      tools,
       timestamp: new Date().toISOString(),
     });
   }
@@ -973,6 +1129,21 @@ registerRoute(
 
 
 
+app.get(/^\/(?!api|mcp|messages).*/, (req, res, next) => {
+  if (req.method !== "GET") {
+    return next();
+  }
+  res.sendFile(uiIndexPath, (error) => {
+    if (error) {
+      res.sendFile(legacyIndexPath, (legacyError) => {
+        if (legacyError) {
+          next(legacyError);
+        }
+      });
+    }
+  });
+});
+
 // Error handler middleware
 router.use((err, req, res) => {
   // Determine if it's our custom error or needs wrapping
@@ -1030,3 +1201,7 @@ export async function startServer(options = {}) {
 }
 
 export default app;
+
+export function __setServiceManager(mock) {
+  serviceManager = mock;
+}
