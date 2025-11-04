@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.node.json",
+  "include": ["src/ui/**/*"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["vitest", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@ui/*": ["src/ui/*"],
+      "@api/*": ["src/ui/api/*"],
+      "@components/*": ["src/ui/components/*"],
+      "@pages/*": ["src/ui/pages/*"],
+      "@hooks/*": ["src/ui/hooks/*"],
+      "@theme": ["src/ui/theme/index"],
+      "@theme/*": ["src/ui/theme/*"]
+    }
+  }
+}

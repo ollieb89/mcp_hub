@@ -21,3 +21,6 @@ __pycache__/
 
 # Serena MCP development memories (session-specific)
 .serena/memories/
+
+# Personal configuration (use mcp-servers.example.json as template)
+mcp-servers.json

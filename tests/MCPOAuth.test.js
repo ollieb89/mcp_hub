@@ -83,7 +83,7 @@ describe('MCPHubOAuthProvider - PKCE Authorization Flow', () => {
     expect(metadata.grant_types).toContain('refresh_token');
     expect(metadata.response_types).toEqual(['code']);
     expect(metadata.client_name).toBe('MCP Hub');
-    expect(metadata.client_uri).toBe('https://github.com/ravitemer/mcp-hub');
+    expect(metadata.client_uri).toBe('https://github.com/ollieb89/mcp_hub');
   });
 
   it('should store code verifier for PKCE flow', async () => {

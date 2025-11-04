@@ -34,7 +34,7 @@ HF_TOKEN=hf_your_token_here
 
 **Restart MCP Hub**:
 ```bash
-cd /home/ob/Development/Tools/mcp-hub
+cd ~/mcp-hub
 npm start
 ```
 
@@ -150,7 +150,7 @@ VERCEL_TOKEN=your_vercel_token_here
 
 **Restart MCP Hub**:
 ```bash
-cd /home/ob/Development/Tools/mcp-hub
+cd ~/mcp-hub
 npm start
 ```
 

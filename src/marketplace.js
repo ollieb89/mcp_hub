@@ -80,7 +80,7 @@ const CACHE_FILE = "registry.json";
 const DEFAULT_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
 
 // New MCP Registry Endpoint
-const REGISTRY_URL = "https://ravitemer.github.io/mcp-registry/registry.json";
+const REGISTRY_URL = "https://ollieb89.github.io/mcp-registry/registry.json";
 
 /**
  * @typedef {Object} McpRegistryParameter

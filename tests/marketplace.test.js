@@ -119,7 +119,7 @@ describe("Marketplace", () => {
       expect(result).toHaveLength(3);
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(
-        "https://ravitemer.github.io/mcp-registry/registry.json",
+        "https://ollieb89.github.io/mcp-registry/registry.json",
         {}
       );
 

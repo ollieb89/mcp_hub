@@ -30,7 +30,8 @@
       "apiKey": "${GEMINI_API_KEY}",
       "model": "gemini-2.5-flash",
       "comment": "Native Gemini provider. Options: 'gemini-2.5-flash' (fastest), 'gemini-2.0-flash' (fast), 'gemini-2.5-pro' (best quality). For OpenAI: provider 'openai', OPENAI_API_KEY, model 'gpt-4o-mini'. For Anthropic: provider 'anthropic', ANTHROPIC_API_KEY, model 'claude-3-haiku-20240307'"
-    }
+    },
+    "autoEnableThreshold": 0
   },
   "mcpServers": {
     "serena": {

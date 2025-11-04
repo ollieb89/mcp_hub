@@ -5,6 +5,7 @@
  * It imports helpers globally (if desired) and performs global test setup.
  */
 
+import '@testing-library/jest-dom/vitest';
 import { afterEach } from 'vitest';
 import { vi } from 'vitest';
 
@@ -58,4 +59,3 @@ vi.mock('@anthropic-ai/sdk', () => {
   // Export as default to match imports like `import Anthropic from '@anthropic-ai/sdk'`
   return { default: Anthropic, __esModule: true };
 });
-
