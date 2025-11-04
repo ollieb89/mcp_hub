@@ -21,8 +21,7 @@
         "fetch",
         "vertex-ai",
         "augments",
-        "playwright",
-        "docker"
+        "playwright"
       ]
     },
     "llmCategorization": {
@@ -74,8 +73,8 @@
       "args": ["mcp-server-docker"],
       "cwd": ".",
       "env": {},
-      "disabled": false,
-      "note": "Requires Docker daemon running. Start with: sudo systemctl start docker"
+      "disabled": true,
+      "note": "DISABLED: Requires Docker daemon running and user in docker group. Run: sudo usermod -aG docker $USER && newgrp docker"
     },
     "nanana": {
       "command": "npx",
