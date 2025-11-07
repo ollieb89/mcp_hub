@@ -133,6 +133,99 @@ Rules:
       reasoning: String(parsed.reasoning || 'No reasoning provided')
     };
   }
+
+  /**
+   * Analyze prompt with retry logic and heuristic fallback
+   * @param {string} prompt - User's request
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePromptWithFallback(prompt, context, validCategories) {
+    // Validation
+    if (!prompt || prompt.trim().length === 0) {
+      return {
+        categories: ['meta'],
+        confidence: 0.0,
+        reasoning: 'Empty prompt provided'
+      };
+    }
+
+    // Try LLM with retries
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const analysis = await this.analyzePrompt(prompt, context, validCategories);
+
+        // Log successful analysis
+        if (attempt > 0) {
+          logger.info({ attempt: attempt + 1 }, 'LLM analysis succeeded after retry');
+        }
+
+        return analysis;
+      } catch (error) {
+        lastError = error;
+        logger.warn({
+          attempt: attempt + 1,
+          error: error.message
+        }, 'LLM analysis attempt failed');
+
+        if (attempt < 2) {
+          // Exponential backoff: 1s, 2s
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+        }
+      }
+    }
+
+    // All retries failed, use heuristic fallback
+    logger.warn({
+      error: lastError?.message
+    }, 'LLM analysis failed, using heuristic fallback');
+
+    return this._heuristicFallback(prompt, validCategories);
+  }
+
+  /**
+   * Keyword-based category inference fallback
+   * @protected
+   * @param {string} prompt - User's request
+   * @param {string[]} validCategories - Valid category names
+   * @returns {{categories: string[], confidence: number, reasoning: string}}
+   */
+  _heuristicFallback(prompt, validCategories) {
+    const lowerPrompt = prompt.toLowerCase();
+    const matched = new Set();
+
+    const keywords = {
+      github: ['github', 'pull request', 'pr', 'issue', 'repository', 'repo', 'commit'],
+      filesystem: ['file', 'directory', 'folder', 'path', 'read', 'write', 'list'],
+      web: ['http', 'url', 'website', 'fetch', 'download', 'scrape'],
+      docker: ['docker', 'container', 'image', 'build', 'run'],
+      git: ['git', 'branch', 'merge', 'clone', 'push', 'pull'],
+      python: ['python', 'py', 'pip', 'pytest', 'test'],
+      database: ['database', 'db', 'sql', 'query', 'table', 'postgres', 'mysql'],
+      memory: ['remember', 'recall', 'memory', 'store', 'save'],
+      vertex_ai: ['vertex', 'ai', 'model', 'prediction', 'training']
+    };
+
+    for (const [category, words] of Object.entries(keywords)) {
+      if (!validCategories.includes(category)) continue;
+      if (words.some(word => lowerPrompt.includes(word))) {
+        matched.add(category);
+      }
+    }
+
+    // Default to meta if no matches
+    if (matched.size === 0) {
+      matched.add('meta');
+    }
+
+    return {
+      categories: Array.from(matched),
+      confidence: 0.6, // Medium confidence for heuristic
+      reasoning: 'Determined via keyword matching (LLM unavailable)'
+    };
+  }
 }
 
 /**
