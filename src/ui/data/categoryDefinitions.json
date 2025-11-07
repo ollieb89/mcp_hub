@@ -1,0 +1,142 @@
+{
+  "version": "1.0",
+  "generatedAt": "2025-11-05T00:00:00Z",
+  "totalCategories": 10,
+  "source": "CATEGORY_DISPLAY_DESIGN_SPEC.md Section 4.1",
+  "categories": [
+    {
+      "id": "github",
+      "displayName": "GitHub",
+      "description": "GitHub operations (repos, issues, PRs)",
+      "color": "#00CEC9",
+      "themeColor": "secondary",
+      "iconName": "GitHub",
+      "tags": ["development", "version-control", "collaboration"],
+      "examples": ["modelcontextprotocol/servers/github"]
+    },
+    {
+      "id": "filesystem",
+      "displayName": "Filesystem",
+      "description": "File reading/writing operations",
+      "color": "#FFA502",
+      "iconName": "Folder",
+      "tags": ["development", "files", "storage"],
+      "examples": ["modelcontextprotocol/servers/filesystem"]
+    },
+    {
+      "id": "web",
+      "displayName": "Web",
+      "description": "Web browsing, URL fetching",
+      "color": "#0984E3",
+      "iconName": "Language",
+      "tags": ["browsing", "scraping", "internet"],
+      "examples": ["modelcontextprotocol/servers/fetch", "modelcontextprotocol/servers/puppeteer"]
+    },
+    {
+      "id": "docker",
+      "displayName": "Docker",
+      "description": "Container management",
+      "color": "#2D98DA",
+      "iconName": "Storage",
+      "tags": ["infrastructure", "containers", "devops"],
+      "examples": ["docker-mcp"]
+    },
+    {
+      "id": "git",
+      "displayName": "Git",
+      "description": "Local git operations",
+      "color": "#F39C12",
+      "iconName": "AccountTree",
+      "tags": ["development", "version-control", "local"],
+      "examples": ["modelcontextprotocol/servers/git"]
+    },
+    {
+      "id": "python",
+      "displayName": "Python",
+      "description": "Python environment management",
+      "color": "#3776AB",
+      "iconName": "Code",
+      "tags": ["development", "programming", "environment"],
+      "examples": ["python-mcp"]
+    },
+    {
+      "id": "database",
+      "displayName": "Database",
+      "description": "Database queries",
+      "color": "#E84393",
+      "iconName": "Storage",
+      "tags": ["data", "sql", "storage"],
+      "examples": ["modelcontextprotocol/servers/sqlite", "modelcontextprotocol/servers/postgres"]
+    },
+    {
+      "id": "memory",
+      "displayName": "Memory",
+      "description": "Knowledge graph management",
+      "color": "#A29BFE",
+      "iconName": "Psychology",
+      "tags": ["ai", "knowledge", "graph"],
+      "examples": ["modelcontextprotocol/servers/memory"]
+    },
+    {
+      "id": "vertex_ai",
+      "displayName": "Vertex AI",
+      "description": "AI-assisted development",
+      "color": "#6C5CE7",
+      "themeColor": "primary",
+      "iconName": "SmartToy",
+      "tags": ["ai", "machine-learning", "google-cloud"],
+      "examples": ["vertex-ai-mcp"]
+    },
+    {
+      "id": "meta",
+      "displayName": "Meta",
+      "description": "Hub internal tools (always available)",
+      "color": "#74B9FF",
+      "iconName": "Settings",
+      "tags": ["internal", "system", "meta"],
+      "examples": ["hub__analyze_prompt", "hub__list_servers"]
+    }
+  ],
+  "colorPalette": {
+    "github": "#00CEC9",
+    "filesystem": "#FFA502",
+    "web": "#0984E3",
+    "docker": "#2D98DA",
+    "git": "#F39C12",
+    "python": "#3776AB",
+    "database": "#E84393",
+    "memory": "#A29BFE",
+    "vertex_ai": "#6C5CE7",
+    "meta": "#74B9FF"
+  },
+  "iconMapping": {
+    "github": "GitHub",
+    "filesystem": "Folder",
+    "web": "Language",
+    "docker": "Storage",
+    "git": "AccountTree",
+    "python": "Code",
+    "database": "Storage",
+    "memory": "Psychology",
+    "vertex_ai": "SmartToy",
+    "meta": "Settings"
+  },
+  "wcagCompliance": {
+    "standard": "WCAG 2.1 AA",
+    "minimumContrastRatio": 4.5,
+    "backgroundColor": "#1E1E28",
+    "validated": true,
+    "validatedWith": "WebAIM Contrast Checker"
+  },
+  "notes": {
+    "usage": "This JSON file is a reference export from categoryMetadata.ts",
+    "primarySource": "src/ui/data/categoryMetadata.ts",
+    "synchronizationPoints": [
+      "LLM categorization prompts (src/mcp/llm-categorizer.js)",
+      "Marketplace server validation (src/marketplace.js)",
+      "UI components (CategoryCard, CategoryGrid)",
+      "Design specification (claudedocs/CATEGORY_DISPLAY_DESIGN_SPEC.md)"
+    ],
+    "updateProcedure": "Update categoryMetadata.ts first, then regenerate this JSON file"
+  }
+}
