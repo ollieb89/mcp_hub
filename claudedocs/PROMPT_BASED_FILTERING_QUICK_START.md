@@ -21,7 +21,9 @@ When you connect to MCP Hub, you'll initially see only one tool:
 5. **Client receives** updated tool list
 6. **Client proceeds** with the original request using newly available tools
 
-### Example Conversation
+### Example Workflows
+
+#### Workflow 1: Simple GitHub Request
 
 ```
 User: "Check my GitHub notifications"
@@ -43,6 +45,79 @@ Client: [Re-fetches tool list, now sees GitHub tools]
 Client: github__list_notifications()
 ↓
 Done! ✅
+```
+
+#### Workflow 2: Multi-Category Request
+
+```
+User: "Read the Dockerfile, check GitHub for the latest image tag, and search web for deployment best practices"
+↓
+Client: hub__analyze_prompt({ prompt: "Read the Dockerfile..." })
+↓
+Hub Response: {
+  categories: ["filesystem", "github", "web", "docker"],
+  confidence: 0.95,
+  reasoning: "User needs file reading, GitHub integration, web search, and Docker operations",
+  message: "Updated tool exposure: filesystem, github, web, docker",
+  nextStep: "Tools list has been updated. Proceed with your request."
+}
+↓
+Client: [Receives tools/list_changed notification with 4 categories]
+↓
+Client: [Re-fetches tool list, now sees 10+ tools from all 4 categories]
+↓
+Client: filesystem__read_file({ path: "Dockerfile" })
+↓
+Client: github__search_repositories({ query: "image tags" })
+↓
+Client: web__search({ query: "Docker deployment best practices" })
+↓
+Done! ✅
+```
+
+#### Workflow 3: Additive Mode (Progressive Tool Exposure)
+
+```
+Session Start: Client sees only hub__analyze_prompt
+↓
+User Request 1: "List my GitHub repos"
+→ Categories exposed: [github]
+→ Tools available: 3 GitHub tools
+↓
+User Request 2: "Read the config.json file"
+→ Categories exposed: [github, filesystem] (accumulated!)
+→ Tools available: 3 GitHub + 3 filesystem = 6 tools
+↓
+User Request 3: "Search web for documentation"
+→ Categories exposed: [github, filesystem, web] (accumulated!)
+→ Tools available: 3 GitHub + 3 filesystem + 2 web = 8 tools
+↓
+Note: Categories accumulate throughout the session.
+      Tools are NEVER removed once exposed.
+```
+
+#### Workflow 4: Session Isolation
+
+```
+┌─────────────────────────────────────────────┐
+│ Client A (Claude Desktop)                   │
+├─────────────────────────────────────────────┤
+│ Request: "GitHub notifications"             │
+│ Categories: [github]                        │
+│ Tools visible: github__* (3 tools)          │
+└─────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────┐
+│ Client B (VS Code)                          │
+├─────────────────────────────────────────────┤
+│ Request: "Read package.json"                │
+│ Categories: [filesystem]                    │
+│ Tools visible: filesystem__* (3 tools)      │
+└─────────────────────────────────────────────┘
+
+Each client maintains independent tool exposure!
+Client A cannot see filesystem tools.
+Client B cannot see GitHub tools.
 ```
 
 ## Meta-Tool API
@@ -184,32 +259,194 @@ Edit `mcp-servers.json`:
 
 ## Troubleshooting
 
-### "LLM-based prompt analysis not available"
+### Scenario 1: "LLM-based prompt analysis not available"
+
+**Symptoms**:
+- `hub__analyze_prompt` returns error message
+- Error: "LLM client not available for prompt analysis"
 
 **Cause**: LLM provider not configured or missing API key
 
-**Fix**: 
-1. Check `mcp-servers.json` has `toolFiltering.llm` configured
-2. Verify Gemini API key in environment: `GEMINI_API_KEY`
-3. Restart MCP Hub
+**Debug Steps**:
+1. Check MCP Hub logs: `~/.mcp-hub/logs/mcp-hub.log`
+2. Look for: `"LLM categorization enabled: false"` or `"LLM client creation failed"`
 
-### Tools not updating after analyze_prompt
+**Fix**:
+```bash
+# 1. Verify configuration in mcp-servers.json
+{
+  "toolFiltering": {
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "gemini",
+      "apiKey": "${GEMINI_API_KEY}",
+      "model": "gemini-2.5-flash"
+    }
+  }
+}
+
+# 2. Set environment variable
+export GEMINI_API_KEY="your-api-key-here"
+
+# 3. Restart MCP Hub
+pkill -f mcp-hub && npm start
+```
+
+### Scenario 2: Tools not updating after analyze_prompt
+
+**Symptoms**:
+- `hub__analyze_prompt` succeeds
+- Returns categories in response
+- BUT tools/list stays the same
 
 **Cause**: Client not handling `tools/list_changed` notification
 
-**Fix**: Ensure MCP client supports dynamic tool lists (requires `listChanged: true` capability)
+**Debug Steps**:
+1. Check if client supports `listChanged` capability
+2. Monitor SSE events: `curl -N http://localhost:7000/events`
+3. Look for `tools/list_changed` notification being sent
 
-### Wrong tools exposed
+**Fix**:
+- Ensure MCP client implements `notifications/tools/list_changed` handler
+- Client must re-fetch tool list after receiving notification
+- Verify client session ID is being tracked properly
 
-**Cause**: LLM misunderstood user intent
+**Validation**:
+```javascript
+// MCP Client should implement:
+client.setNotificationHandler("notifications/tools/list_changed", async (params) => {
+  console.log("Tool list changed:", params);
+  // Re-fetch tools
+  const tools = await client.request("tools/list", {});
+  console.log("Updated tools:", tools);
+});
+```
 
-**Solution**: Call `hub__analyze_prompt` again with more context:
+### Scenario 3: Wrong tools exposed (LLM misunderstood)
+
+**Symptoms**:
+- User asks for GitHub operation
+- Hub exposes filesystem tools instead
+- Or no tools exposed at all
+
+**Cause**: LLM misunderstood user intent or ambiguous prompt
+
+**Debug Steps**:
+1. Check analyze_prompt response for `reasoning` field
+2. Review confidence score (should be > 0.7)
+3. Look at detected categories
+
+**Solution 1 - Add Context**:
 ```json
 {
   "prompt": "read package.json",
-  "context": "User is working on a Node.js project and needs to inspect dependencies"
+  "context": "User is working on a Node.js project and needs to inspect dependencies in the package manifest file"
 }
 ```
+
+**Solution 2 - Be More Specific**:
+```diff
+- "check my repos"
++ "list my GitHub repositories"
+
+- "read the file"
++ "read the package.json configuration file using filesystem tools"
+```
+
+**Solution 3 - Call Again** (Additive Mode):
+```javascript
+// First call exposed wrong category
+await hub__analyze_prompt({ prompt: "read file" });
+// → Categories: [filesystem]
+
+// Call again with more specific request
+await hub__analyze_prompt({ prompt: "I need GitHub repository tools" });
+// → Categories: [filesystem, github] (accumulated!)
+```
+
+### Scenario 4: Session isolation not working
+
+**Symptoms**:
+- Client A's tool changes affect Client B
+- Multiple clients seeing same tool exposure
+
+**Cause**: `sessionIsolation: false` or missing sessionId
+
+**Fix**:
+```json
+{
+  "toolFiltering": {
+    "promptBasedFiltering": {
+      "sessionIsolation": true  // ← Ensure this is true
+    }
+  }
+}
+```
+
+**Validation**:
+```bash
+# Connect 2 clients and check they have different tool lists
+# Client A exposes GitHub, Client B exposes filesystem
+# They should remain isolated
+```
+
+### Scenario 5: Performance degradation
+
+**Symptoms**:
+- analyze_prompt takes > 5 seconds
+- High LLM API usage
+
+**Cause**: LLM API latency or rate limiting
+
+**Debug**:
+```bash
+# Check MCP Hub logs for LLM call duration
+grep "LLM analysis complete" ~/.mcp-hub/logs/mcp-hub.log
+
+# Look for:
+# "duration": 1500  ← Good (1.5s)
+# "duration": 8000  ← Slow (8s)
+```
+
+**Fix**:
+1. **Switch to faster model**:
+   ```json
+   {
+     "model": "gemini-2.0-flash-lite"  // Faster, slightly less accurate
+   }
+   ```
+
+2. **Check API quotas**: Verify Gemini API quota hasn't been exceeded
+
+3. **Future**: Enable prompt caching (not yet implemented)
+
+### Scenario 6: Empty tool list after analyze_prompt
+
+**Symptoms**:
+- analyze_prompt succeeds
+- Returns categories: ["github"]
+- But tools/list returns empty array
+
+**Cause**: GitHub server not connected or disabled
+
+**Debug**:
+```bash
+# Check server status
+curl http://localhost:7000/api/servers | jq '.[] | select(.name=="github")'
+
+# Should show:
+# {
+#   "name": "github",
+#   "status": "connected",  ← Must be "connected"
+#   "disabled": false       ← Must be false
+# }
+```
+
+**Fix**:
+1. Check backend server configuration in `mcp-servers.json`
+2. Verify server is running: `curl http://localhost:7000/api/servers`
+3. Restart disconnected server
+4. Check server logs for connection errors
 
 ## Performance Notes
 

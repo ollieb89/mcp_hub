@@ -1,0 +1,298 @@
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "prompt-based",
+    "comment": "Modes: 'static' (all tools exposed), 'server-allowlist' (filter by server), 'prompt-based' (dynamic exposure via LLM)",
+    "promptBasedFiltering": {
+      "enabled": true,
+      "defaultExposure": "meta-only",
+      "comment": "defaultExposure options: 'zero' (no tools), 'meta-only' (only meta-tools), 'minimal' (core tools), 'all' (all tools)",
+      "enableMetaTools": true,
+      "sessionIsolation": true
+    },
+    "serverFilter": {
+      "mode": "allowlist",
+      "servers": [
+        "serena",
+        "git",
+        "github",
+        "sequential-thinking",
+        "memory",
+        "fetch",
+        "vertex-ai",
+        "augments",
+        "playwright"
+      ]
+    },
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "gemini",
+      "apiKey": "${GEMINI_API_KEY}",
+      "model": "gemini-2.5-flash",
+      "comment": "Native Gemini provider. Options: 'gemini-2.5-flash' (fastest), 'gemini-2.0-flash' (fast), 'gemini-2.5-pro' (best quality). For OpenAI: provider 'openai', OPENAI_API_KEY, model 'gpt-4o-mini'. For Anthropic: provider 'anthropic', ANTHROPIC_API_KEY, model 'claude-3-haiku-20240307'"
+    },
+    "autoEnableThreshold": 0
+  },
+  "mcpServers": {
+    "serena": {
+      "command": "uv",
+      "args": ["run", "--directory", "/home/ob/Development/Tools/mcps/serena", "serena-mcp-server"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false
+    },
+    "shadcn-ui": {
+      "command": "npx",
+      "args": ["-y", "@jpisnice/shadcn-ui-mcp-server"],
+      "cwd": ".",
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "disabled": false
+    },
+    "gemini": {
+      "command": "npx",
+      "args": ["-y", "gemini-mcp-tool"],
+      "cwd": ".",
+      "env": {
+        "GOOGLE_API_KEY": "${GEMINI_API_KEY}"
+      },
+      "disabled": false
+    },
+    "docker-hub": {
+      "command": "node",
+      "args": ["/home/ob/Development/Tools/mcps/hub-mcp/dist/index.js", "--transport", "stdio", "--username", "${DOCKER_HUB_USERNAME}"],
+      "cwd": ".",
+      "env": {
+        "HUB_PAT_TOKEN": "${DOCKER_HUB_PAT}"
+      },
+      "disabled": false,
+      "note": "Requires local installation. See: https://github.com/docker/hub-mcp"
+    },
+    "docker": {
+      "command": "uvx",
+      "args": ["mcp-server-docker"],
+      "cwd": ".",
+      "env": {},
+      "disabled": true,
+      "note": "DISABLED: Requires Docker daemon running and user in docker group. Run: sudo usermod -aG docker $USER && newgrp docker"
+    },
+    "nanana": {
+      "command": "npx",
+      "args": ["-y", "@nanana-ai/mcp-server-nano-banana"],
+      "cwd": ".",
+      "env": {
+        "NANANA_API_TOKEN": "${NANANA_API_TOKEN}"
+      },
+      "disabled": false,
+      "note": "Requires NANANA_API_TOKEN from nanana.app. Visit https://nanana.app to get your API token"
+    },
+    "imagen3": {
+      "command": "/home/ob/bin/imagen3-mcp",
+      "args": [],
+      "cwd": ".",
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "NO_COLOR": "1",
+        "CLICOLOR": "0",
+        "CLICOLOR_FORCE": "0"
+      },
+      "disabled": false,
+      "note": "Google Imagen 3.0 image generation using Gemini API. Binary installed at /home/ob/bin/imagen3-mcp"
+    },
+    "augments": {
+      "command": "uv",
+      "args": ["run", "--directory", "/home/ob/Development/Tools/mcps/augments-mcp-server", "augments-mcp-server"],
+      "cwd": ".",
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "disabled": false,
+      "note": "Framework documentation server for React and Next.js. Provides real-time access to framework docs via MCP. Local repo at /home/ob/Development/Tools/mcps/augments-mcp-server"
+    },
+    "neon": {
+      "command": "npx",
+      "args": ["-y", "@neondatabase/mcp-server-neon", "start", "${NEON_API_KEY}"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Neon database management server with 30+ tools for project/branch management, SQL execution, migrations, and performance tuning"
+    },
+    "vertex-ai": {
+      "command": "node",
+      "args": ["/home/ob/Development/Tools/mcps/vertex-ai-mcp-server/build/index.js"],
+      "cwd": "/home/ob/Development/Tools/mcps/vertex-ai-mcp-server",
+      "env": {
+        "AI_PROVIDER": "vertex",
+        "GOOGLE_CLOUD_PROJECT": "hopeful-sound-470614-r3",
+        "GOOGLE_CLOUD_LOCATION": "us-central1",
+        "VERTEX_MODEL_ID": "gemini-2.5-pro-exp-03-25",
+        "AI_TEMPERATURE": "0.0",
+        "AI_USE_STREAMING": "true",
+        "AI_MAX_OUTPUT_TOKENS": "65536",
+        "AI_MAX_RETRIES": "3",
+        "AI_RETRY_DELAY_MS": "1000"
+      },
+      "disabled": false,
+      "note": "Vertex AI MCP server with advanced coding assistance, filesystem operations, and query answering. Running from local installation with Vertex AI provider."
+    },
+    "github": {
+      "command": "/home/ob/Development/Tools/mcps/github-mcp-server/github-mcp-server",
+      "args": ["stdio"],
+      "cwd": "/home/ob/Development/Tools/mcps/github-mcp-server",
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "disabled": false,
+      "note": "GitHub's official MCP server with 260+ tools for repository management, issues, pull requests, code review, and more. Requires GitHub Personal Access Token."
+    },
+    "notion": {
+      "command": "npx",
+      "args": ["-y", "@notionhq/notion-mcp-server"],
+      "cwd": ".",
+      "env": {
+        "NOTION_TOKEN": "${NOTION_API_KEY}"
+      },
+      "disabled": false,
+      "note": "Official Notion MCP server for page management, database operations, comments, and content access. Requires Notion integration token."
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Memory server for persistent knowledge graphs. Stores entities, relations, and observations across sessions for cross-chat memory."
+    },
+    "time": {
+      "command": "uvx",
+      "args": ["mcp-server-time"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Time server for timezone-aware time operations. Get current time in any timezone and convert between timezones using IANA timezone names."
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Sequential Thinking server for structured problem-solving. Enables dynamic and reflective thinking with thought revision and branching capabilities."
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Fetch server for web content retrieval. Fetches URLs and converts HTML to markdown. Supports chunked reading with start_index."
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Official MCP Git server for repository operations. Provides tools for git status, diff, commit, branch management, and more."
+    },
+    "prometheus": {
+      "command": "uv",
+      "args": ["run", "--directory", "/home/ob/Development/Tools/mcps/prometheus-mcp-server", "prometheus-mcp-server"],
+      "cwd": "/home/ob/Development/Tools/mcps/prometheus-mcp-server",
+      "env": {
+        "PROMETHEUS_URL": "${PROMETHEUS_URL}"
+      },
+      "disabled": true,
+      "note": "Prometheus MCP server for metrics querying and analysis. Execute PromQL queries, list metrics, and analyze monitoring data. Add PROMETHEUS_URL to .env file to enable (e.g., http://localhost:9090)"
+    },
+    "pinecone": {
+      "command": "npx",
+      "args": ["-y", "@pinecone-database/mcp"],
+      "cwd": ".",
+      "env": {
+        "PINECONE_API_KEY": "${PINECONE_API_KEY}"
+      },
+      "disabled": false,
+      "note": "Pinecone Developer MCP server for vector database operations. Search docs, manage indexes, upsert/search records, and configure integrated inference models."
+    },
+    "redis": {
+      "command": "uv",
+      "args": ["run", "--directory", "/home/ob/Development/Tools/mcps/redis-mcp-server", "src/main.py"],
+      "cwd": "/home/ob/Development/Tools/mcps/redis-mcp-server",
+      "env": {
+        "REDIS_HOST": "localhost",
+        "REDIS_PORT": "6379",
+        "REDIS_DB": "0",
+        "REDIS_USERNAME": "default"
+      },
+      "disabled": false,
+      "note": "Official Redis MCP server for natural language Redis operations. Manage and search data in Redis with AI-driven workflows. Configured for localhost:6379 by default."
+    },
+    "terraform": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "TFE_ADDRESS", "-e", "TFE_TOKEN", "-e", "TFE_ORGANIZATION", "hashicorp/terraform-mcp-server:0.3.2"],
+      "cwd": ".",
+      "env": {
+        "TFE_ADDRESS": "${TFE_ADDRESS}",
+        "TFE_TOKEN": "${TFE_TOKEN}",
+        "TFE_ORGANIZATION": "${TFE_ORGANIZATION}"
+      },
+      "disabled": false,
+      "note": "Official HashiCorp Terraform MCP Server for Infrastructure as Code automation with Terraform Cloud integration."
+    },
+    "vercel": {
+      "type": "streamable-http",
+      "url": "https://mcp.vercel.com",
+      "headers": {
+        "Authorization": "Bearer ${VERCEL_TOKEN}"
+      },
+      "env": {
+        "VERCEL_TOKEN": "${VERCEL_TOKEN}"
+      },
+      "disabled": false,
+      "note": "Official Vercel MCP Server for deployment and project management via streamable-http. Requires VERCEL_TOKEN in .env. Get token from Vercel Settings > Tokens at https://vercel.com/account/tokens"
+    },
+    "grafana": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "mcp/grafana:latest", "-t", "stdio"],
+      "cwd": ".",
+      "env": {
+        "GRAFANA_URL": "${GRAFANA_URL}",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_SERVICE_ACCOUNT_TOKEN}"
+      },
+      "disabled": false,
+      "note": "Official Grafana MCP Server for monitoring, observability, and analytics. Configured with GRAFANA_URL and GRAFANA_SERVICE_ACCOUNT_TOKEN from .env"
+    },
+    "hf-transformers": {
+      "type": "streamable-http",
+      "url": "https://huggingface.co/mcp",
+      "disabled": false,
+      "note": "Hugging Face MCP Server via streamable-http. OAuth flow will open browser when needed. Supports model inference, datasets, and more."
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp"],
+      "cwd": ".",
+      "env": {},
+      "disabled": false,
+      "note": "Microsoft Playwright MCP server for browser automation. Provides 40+ tools for web page interaction, screenshots, PDF generation, form filling, and E2E testing. Automatically installs browsers when needed."
+    },
+    "pico-training-monitor": {
+      "command": "python",
+      "args": ["-m", "pico_training_monitor"],
+      "cwd": ".",
+      "env": {
+        "TRAINING_LOG_DIR": "${workspaceFolder}/training_logs",
+        "AWS_ACCESS_KEY_ID": "${env:AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${env:AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${env:AWS_REGION}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${env:GOOGLE_APPLICATION_CREDENTIALS}",
+        "GOOGLE_CLOUD_PROJECT": "${env:GOOGLE_CLOUD_PROJECT}",
+        "GOOGLE_CLOUD_LOCATION": "${env:GOOGLE_CLOUD_LOCATION}"
+      },
+      "disabled": true,
+      "note": "Training job monitor for ML workflows. Supports AWS SageMaker, Google Vertex AI, and local file tracking. Automatically detects configured platforms via environment variables. Add AWS_* variables for SageMaker or GOOGLE_* variables for Vertex AI in your .env file. Use 'pico__run_training_monitor' tool to check training status across all platforms."
+    }
+  }
+}
