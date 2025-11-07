@@ -401,6 +401,65 @@ export class AnthropicProvider extends LLMProvider {
   }
 
   /**
+   * Analyze user prompt to determine needed tool categories
+   * @param {string} prompt - User's request/prompt to analyze
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Array of valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePrompt(prompt, context, validCategories) {
+    const analysisPrompt = this._buildAnalysisPrompt(prompt, context, validCategories);
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model || 'claude-3-5-haiku-20241022',
+        max_tokens: 150,
+        temperature: 0.3,
+        system: 'You are an expert at analyzing user requests. Respond with ONLY valid JSON.',
+        messages: [
+          { role: 'user', content: analysisPrompt }
+        ]
+      });
+
+      const response = message.content[0]?.text;
+      if (!response) {
+        throw new Error('No response from Anthropic API');
+      }
+
+      return this._parseAnalysisResponse(response, validCategories);
+    } catch (error) {
+      // Anthropic-specific error handling
+      const errorType = error?.type || error?.error?.type;
+      const errorMessage = error?.message || String(error);
+
+      if (errorType === 'authentication_error' || errorMessage.includes('authentication')) {
+        logger.error(`Anthropic authentication error during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorType === 'rate_limit_error' || errorMessage.includes('rate_limit')) {
+        logger.warn(`Anthropic rate limit exceeded during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorType === 'overloaded_error' || errorMessage.includes('overloaded')) {
+        logger.warn(`Anthropic API overloaded during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorType === 'invalid_request_error') {
+        logger.error(`Anthropic invalid request during prompt analysis: ${errorMessage}`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else {
+        logger.error(`Anthropic prompt analysis failed: ${errorMessage}`, {
+          error: error?.stack,
+          prompt: prompt.substring(0, 100)
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * Build the prompt for tool categorization
    * @param {string} toolName - Name of the tool
    * @param {object} toolDefinition - Tool definition
