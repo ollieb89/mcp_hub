@@ -17,6 +17,7 @@ import { getMarketplace } from "./marketplace.js";
 import { MCPServerEndpoint } from "./mcp/server.js";
 import { WorkspaceCacheManager } from "./utils/workspace-cache.js";
 import { writeConfigToDisk, loadRawConfig } from "./utils/config-persistence.js";
+import { createVersionedResponse, verifyConfigVersion } from "./utils/config-versioning.js";
 
 const SERVER_ID = "mcp-hub";
 
@@ -702,10 +703,7 @@ registerRoute(
   "Fetch raw MCP hub configuration",
   async (_req, res) => {
     const config = await loadRawConfig(serviceManager.mcpHub.configManager);
-    res.json({
-      config,
-      timestamp: new Date().toISOString(),
-    });
+    res.json(createVersionedResponse(config));
   }
 );
 
@@ -714,18 +712,30 @@ registerRoute(
   "/config",
   "Update hub configuration",
   async (req, res) => {
-    const proposed = req.body;
+    const { config: proposed, expectedVersion } = req.body;
+
     if (!proposed || typeof proposed !== "object" || Array.isArray(proposed)) {
-      throw new ValidationError("Body must be config object");
+      throw new ValidationError("Body must contain config object");
+    }
+
+    // Concurrent write protection: verify version if provided
+    if (expectedVersion) {
+      const currentConfig = await loadRawConfig(serviceManager.mcpHub.configManager);
+      if (!verifyConfigVersion(currentConfig, expectedVersion)) {
+        throw new ValidationError("Config version mismatch - concurrent modification detected", {
+          expectedVersion,
+          hint: "Reload the current config and reapply your changes"
+        });
+      }
     }
 
     await writeConfigToDisk(serviceManager.mcpHub.configManager, proposed);
     await serviceManager.restartHub();
 
+    const updatedConfig = serviceManager.mcpHub.configManager.getConfig();
     res.json({
       status: "ok",
-      config: serviceManager.mcpHub.configManager.getConfig(),
-      timestamp: new Date().toISOString(),
+      ...createVersionedResponse(updatedConfig),
     });
   }
 );

@@ -19,6 +19,7 @@ import ConfigTabs from "@components/ConfigTabs";
 import CategoryListEditor from "@components/CategoryListEditor";
 import ServerAllowlistEditor from "@components/ServerAllowlistEditor";
 import RawJsonEditor from "@components/RawJsonEditor";
+import ConfigPreviewDialog from "@components/ConfigPreviewDialog";
 import type { FilteringMode } from "@components/FilteringCard";
 import { useSnackbar } from "@hooks/useSnackbar";
 
@@ -31,12 +32,15 @@ const filteringModes: FilteringMode[] = [
 
 const ConfigPage = () => {
   const [config, setConfig] = useState<HubConfig | null>(null);
+  const [configVersion, setConfigVersion] = useState<string>("");
   const [rawConfig, setRawConfig] = useState("");
   const [activeTab, setActiveTab] = useState(0);
   const [dirty, setDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewConfig, setPreviewConfig] = useState<HubConfig | null>(null);
   const { message, open, showSnackbar, closeSnackbar } = useSnackbar();
 
   const loadConfig = useCallback(async () => {
@@ -44,6 +48,7 @@ const ConfigPage = () => {
       setLoading(true);
       const response = await getConfig();
       setConfig(response.config);
+      setConfigVersion(response.version);
       setRawConfig(JSON.stringify(response.config, null, 2));
       setError(null);
       setDirty(false);
@@ -82,34 +87,63 @@ const ConfigPage = () => {
     if (!config) return;
     setSaving(true);
     try {
-      const response = await saveConfig(config);
+      const response = await saveConfig(config, configVersion);
       setConfig(response.config);
+      setConfigVersion(response.version);
       setRawConfig(JSON.stringify(response.config, null, 2));
       showSnackbar("Configuration saved successfully.");
       setDirty(false);
     } catch (err) {
-      setError((err as Error).message);
+      const errorMsg = (err as Error).message;
+      if (errorMsg.includes("version mismatch")) {
+        setError(
+          "Configuration was modified by another process. Please reload and reapply your changes."
+        );
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setSaving(false);
     }
-  }, [config, showSnackbar]);
+  }, [config, configVersion, showSnackbar]);
 
-  const handleRawSave = useCallback(async () => {
-    setSaving(true);
+  const handleRawPreview = useCallback(() => {
     try {
       const parsed = JSON.parse(rawConfig);
-      const response = await saveConfig(parsed);
+      setPreviewConfig(parsed);
+      setShowPreview(true);
+      setError(null);
+    } catch (err) {
+      setError(`Invalid JSON: ${(err as Error).message}`);
+    }
+  }, [rawConfig]);
+
+  const handleRawSave = useCallback(async () => {
+    if (!previewConfig) return;
+    setSaving(true);
+    try {
+      const response = await saveConfig(previewConfig, configVersion);
       setConfig(response.config);
+      setConfigVersion(response.version);
       setRawConfig(JSON.stringify(response.config, null, 2));
       showSnackbar("Raw configuration applied.");
       setDirty(false);
       setError(null);
+      setShowPreview(false);
     } catch (err) {
-      setError((err as Error).message);
+      const errorMsg = (err as Error).message;
+      if (errorMsg.includes("version mismatch")) {
+        setError(
+          "Configuration was modified by another process. Please reload and reapply your changes."
+        );
+        setShowPreview(false);
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setSaving(false);
     }
-  }, [rawConfig, showSnackbar]);
+  }, [previewConfig, configVersion, showSnackbar]);
 
   const generalContent = (
     <Stack spacing={3}>
@@ -217,17 +251,29 @@ const ConfigPage = () => {
 
   const rawContent = (
     <Stack spacing={2}>
-      <Typography variant="body2" color="text.secondary">
-        Edit the underlying configuration file. Ensure the JSON is valid before applying changes.
-      </Typography>
-      <RawJsonEditor value={rawConfig} onChange={setRawConfig} />
+      <Alert severity="info" sx={{ mb: 1 }}>
+        <Typography variant="body2" fontWeight={600} mb={0.5}>
+          Preview Changes Before Applying
+        </Typography>
+        <Typography variant="body2">
+          Raw JSON editing provides direct access to your configuration. A preview
+          dialog will show you exactly what changes will be made before applying them.
+        </Typography>
+      </Alert>
+      <RawJsonEditor
+        value={rawConfig}
+        onChange={(value) => {
+          setRawConfig(value);
+          setDirty(true);
+        }}
+      />
       <Button
         variant="contained"
-        onClick={handleRawSave}
-        disabled={saving}
+        onClick={handleRawPreview}
+        disabled={!dirty}
         sx={{ alignSelf: "flex-start" }}
       >
-        {saving ? <CircularProgress size={18} /> : "Apply JSON"}
+        Preview & Apply Changes
       </Button>
     </Stack>
   );
@@ -281,6 +327,16 @@ const ConfigPage = () => {
         onClose={closeSnackbar}
         message={message ?? ""}
       />
+
+      {config && previewConfig && (
+        <ConfigPreviewDialog
+          open={showPreview}
+          currentConfig={config}
+          proposedConfig={previewConfig}
+          onConfirm={handleRawSave}
+          onCancel={() => setShowPreview(false)}
+        />
+      )}
     </Box>
   );
 };

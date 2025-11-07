@@ -98,7 +98,9 @@ describe("API configuration endpoints", () => {
   it("POST /api/config writes config and restarts hub", async () => {
     const proposed = { mcpServers: {}, toolFiltering: { enabled: true } };
 
-    const response = await request(app).post("/api/config").send(proposed);
+    const response = await request(app)
+      .post("/api/config")
+      .send({ config: proposed });
 
     expect(response.status).toBe(200);
     expect(writeConfigToDisk).toHaveBeenCalledWith(

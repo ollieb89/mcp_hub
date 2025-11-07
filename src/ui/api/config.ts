@@ -8,12 +8,14 @@ export interface HubConfig {
 
 export interface ConfigResponse {
   config: HubConfig;
+  version: string;
   timestamp: string;
 }
 
 export interface ConfigMutationResponse {
   status: string;
   config: HubConfig;
+  version: string;
   timestamp: string;
 }
 
@@ -21,9 +23,12 @@ export function getConfig() {
   return request<ConfigResponse>("/api/config");
 }
 
-export function saveConfig(config: HubConfig) {
+export function saveConfig(config: HubConfig, expectedVersion?: string) {
   return request<ConfigMutationResponse>("/api/config", {
     method: "POST",
-    body: JSON.stringify(config),
+    body: JSON.stringify({
+      config,
+      expectedVersion,
+    }),
   });
 }
