@@ -35,6 +35,104 @@ export class LLMProvider {
   async analyzePrompt(prompt, context, validCategories) { // eslint-disable-line no-unused-vars
     throw new Error('Must implement analyzePrompt() method');
   }
+
+  /**
+   * Build prompt for analyzing user intent
+   * @protected
+   * @param {string} userPrompt - User's request
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Valid category names
+   * @returns {string} Formatted prompt for LLM
+   */
+  _buildAnalysisPrompt(userPrompt, context, validCategories) {
+    const contextSection = context ? `\nConversation Context: ${context}` : '';
+
+    return `You are an expert at analyzing user requests to determine which tool categories are needed.
+
+USER REQUEST:
+"${userPrompt}"${contextSection}
+
+AVAILABLE CATEGORIES:
+${validCategories.join(', ')}
+
+EXAMPLES:
+1. Request: "Check my GitHub pull requests"
+   Response: {"categories": ["github"], "confidence": 0.95, "reasoning": "User needs GitHub tools to check PRs"}
+
+2. Request: "List all Python files and run tests"
+   Response: {"categories": ["filesystem", "python"], "confidence": 0.90, "reasoning": "Needs filesystem for listing and python for testing"}
+
+3. Request: "What can you do?"
+   Response: {"categories": ["meta"], "confidence": 0.99, "reasoning": "Meta question about capabilities"}
+
+Analyze the user request and respond with ONLY a JSON object:
+{
+  "categories": ["category1", "category2"],
+  "confidence": 0.0-1.0,
+  "reasoning": "brief explanation"
+}
+
+Rules:
+- Only use categories from the AVAILABLE CATEGORIES list
+- Include ALL relevant categories (don't under-select)
+- Confidence 0.0-1.0 based on clarity of request
+- If unclear, default to ["meta"] with low confidence
+- Respond with JSON ONLY, no markdown formatting`;
+  }
+
+  /**
+   * Parse and validate LLM response
+   * @protected
+   * @param {string} response - Raw LLM response text
+   * @param {string[]} validCategories - Valid category names for validation
+   * @returns {{categories: string[], confidence: number, reasoning: string}}
+   * @throws {Error} If response cannot be parsed or validated
+   */
+  _parseAnalysisResponse(response, validCategories) {
+    // Step 1: Remove markdown code blocks
+    let jsonText = response.trim()
+      .replace(/^```(?:json)?\s*\n?/m, '')
+      .replace(/\n?```\s*$/m, '');
+
+    // Step 2: Extract JSON with nested brace support
+    const jsonMatch = jsonText.match(/\{(?:[^{}]|(\{(?:[^{}]|(\{[^{}]*\}))*\}))*\}/);
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in response');
+    }
+
+    // Step 3: Parse JSON
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      throw new Error(`JSON parse failed: ${error.message}`);
+    }
+
+    // Step 4: Validate structure
+    if (!parsed.categories || !Array.isArray(parsed.categories)) {
+      throw new Error('Response missing "categories" array');
+    }
+
+    // Step 5: Sanitize categories
+    const validatedCategories = parsed.categories
+      .map(cat => String(cat).toLowerCase().trim())
+      .filter(cat => validCategories.includes(cat));
+
+    // Step 6: Fallback to meta if all invalid
+    if (validatedCategories.length === 0) {
+      validatedCategories.push('meta');
+      parsed.confidence = Math.min(parsed.confidence || 0.3, 0.3);
+    }
+
+    // Step 7: Normalize confidence
+    const confidence = Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5));
+
+    return {
+      categories: validatedCategories,
+      confidence,
+      reasoning: String(parsed.reasoning || 'No reasoning provided')
+    };
+  }
 }
 
 /**
