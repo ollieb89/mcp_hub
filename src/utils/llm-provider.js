@@ -24,6 +24,208 @@ export class LLMProvider {
   async categorize(toolName, toolDefinition, validCategories) { // eslint-disable-line no-unused-vars
     throw new Error('Must implement categorize() method');
   }
+
+  /**
+   * Analyze user prompt and determine needed tool categories
+   * @param {string} prompt - User's request/prompt to analyze
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Array of valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePrompt(prompt, context, validCategories) { // eslint-disable-line no-unused-vars
+    throw new Error('Must implement analyzePrompt() method');
+  }
+
+  /**
+   * Build prompt for analyzing user intent
+   * @protected
+   * @param {string} userPrompt - User's request
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Valid category names
+   * @returns {string} Formatted prompt for LLM
+   */
+  _buildAnalysisPrompt(userPrompt, context, validCategories) {
+    const contextSection = context ? `\nConversation Context: ${context}` : '';
+
+    return `You are an expert at analyzing user requests to determine which tool categories are needed.
+
+USER REQUEST:
+"${userPrompt}"${contextSection}
+
+AVAILABLE CATEGORIES:
+${validCategories.join(', ')}
+
+EXAMPLES:
+1. Request: "Check my GitHub pull requests"
+   Response: {"categories": ["github"], "confidence": 0.95, "reasoning": "User needs GitHub tools to check PRs"}
+
+2. Request: "List all Python files and run tests"
+   Response: {"categories": ["filesystem", "python"], "confidence": 0.90, "reasoning": "Needs filesystem for listing and python for testing"}
+
+3. Request: "What can you do?"
+   Response: {"categories": ["meta"], "confidence": 0.99, "reasoning": "Meta question about capabilities"}
+
+Analyze the user request and respond with ONLY a JSON object:
+{
+  "categories": ["category1", "category2"],
+  "confidence": 0.0-1.0,
+  "reasoning": "brief explanation"
+}
+
+Rules:
+- Only use categories from the AVAILABLE CATEGORIES list
+- Include ALL relevant categories (don't under-select)
+- Confidence 0.0-1.0 based on clarity of request
+- If unclear, default to ["meta"] with low confidence
+- Respond with JSON ONLY, no markdown formatting`;
+  }
+
+  /**
+   * Parse and validate LLM response
+   * @protected
+   * @param {string} response - Raw LLM response text
+   * @param {string[]} validCategories - Valid category names for validation
+   * @returns {{categories: string[], confidence: number, reasoning: string}}
+   * @throws {Error} If response cannot be parsed or validated
+   */
+  _parseAnalysisResponse(response, validCategories) {
+    // Step 1: Remove markdown code blocks
+    let jsonText = response.trim()
+      .replace(/^```(?:json)?\s*\n?/m, '')
+      .replace(/\n?```\s*$/m, '');
+
+    // Step 2: Extract JSON with nested brace support
+    const jsonMatch = jsonText.match(/\{(?:[^{}]|(\{(?:[^{}]|(\{[^{}]*\}))*\}))*\}/);
+    if (!jsonMatch) {
+      throw new Error('No valid JSON found in response');
+    }
+
+    // Step 3: Parse JSON
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      throw new Error(`JSON parse failed: ${error.message}`);
+    }
+
+    // Step 4: Validate structure
+    if (!parsed.categories || !Array.isArray(parsed.categories)) {
+      throw new Error('Response missing "categories" array');
+    }
+
+    // Step 5: Sanitize categories
+    const validatedCategories = parsed.categories
+      .map(cat => String(cat).toLowerCase().trim())
+      .filter(cat => validCategories.includes(cat));
+
+    // Step 6: Fallback to meta if all invalid
+    if (validatedCategories.length === 0) {
+      validatedCategories.push('meta');
+      parsed.confidence = Math.min(parsed.confidence || 0.3, 0.3);
+    }
+
+    // Step 7: Normalize confidence
+    const confidence = Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5));
+
+    return {
+      categories: validatedCategories,
+      confidence,
+      reasoning: String(parsed.reasoning || 'No reasoning provided')
+    };
+  }
+
+  /**
+   * Analyze prompt with retry logic and heuristic fallback
+   * @param {string} prompt - User's request
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePromptWithFallback(prompt, context, validCategories) {
+    // Validation
+    if (!prompt || prompt.trim().length === 0) {
+      return {
+        categories: ['meta'],
+        confidence: 0.0,
+        reasoning: 'Empty prompt provided'
+      };
+    }
+
+    // Try LLM with retries
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const analysis = await this.analyzePrompt(prompt, context, validCategories);
+
+        // Log successful analysis
+        if (attempt > 0) {
+          logger.info({ attempt: attempt + 1 }, 'LLM analysis succeeded after retry');
+        }
+
+        return analysis;
+      } catch (error) {
+        lastError = error;
+        logger.warn({
+          attempt: attempt + 1,
+          error: error.message
+        }, 'LLM analysis attempt failed');
+
+        if (attempt < 2) {
+          // Exponential backoff: 1s, 2s
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+        }
+      }
+    }
+
+    // All retries failed, use heuristic fallback
+    logger.warn({
+      error: lastError?.message
+    }, 'LLM analysis failed, using heuristic fallback');
+
+    return this._heuristicFallback(prompt, validCategories);
+  }
+
+  /**
+   * Keyword-based category inference fallback
+   * @protected
+   * @param {string} prompt - User's request
+   * @param {string[]} validCategories - Valid category names
+   * @returns {{categories: string[], confidence: number, reasoning: string}}
+   */
+  _heuristicFallback(prompt, validCategories) {
+    const lowerPrompt = prompt.toLowerCase();
+    const matched = new Set();
+
+    const keywords = {
+      github: ['github', 'pull request', 'pr', 'issue', 'repository', 'repo', 'commit'],
+      filesystem: ['file', 'directory', 'folder', 'path', 'read', 'write', 'list'],
+      web: ['http', 'url', 'website', 'fetch', 'download', 'scrape'],
+      docker: ['docker', 'container', 'image', 'build', 'run'],
+      git: ['git', 'branch', 'merge', 'clone', 'push', 'pull'],
+      python: ['python', 'py', 'pip', 'pytest', 'test'],
+      database: ['database', 'db', 'sql', 'query', 'table', 'postgres', 'mysql'],
+      memory: ['remember', 'recall', 'memory', 'store', 'save'],
+      vertex_ai: ['vertex', 'ai', 'model', 'prediction', 'training']
+    };
+
+    for (const [category, words] of Object.entries(keywords)) {
+      if (!validCategories.includes(category)) continue;
+      if (words.some(word => lowerPrompt.includes(word))) {
+        matched.add(category);
+      }
+    }
+
+    // Default to meta if no matches
+    if (matched.size === 0) {
+      matched.add('meta');
+    }
+
+    return {
+      categories: Array.from(matched),
+      confidence: 0.6, // Medium confidence for heuristic
+      reasoning: 'Determined via keyword matching (LLM unavailable)'
+    };
+  }
 }
 
 /**
@@ -113,6 +315,67 @@ export class OpenAIProvider extends LLMProvider {
         logger.error(`OpenAI API call failed: ${error.message}`, {
           toolName,
           error: error.stack
+        });
+      }
+      
+      throw error;  // Re-throw for upstream handling
+    }
+  }
+
+  /**
+   * Analyze user prompt to determine needed tool categories
+   * @param {string} prompt - User's request
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Array of valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePrompt(prompt, context, validCategories) {
+    const analysisPrompt = this._buildAnalysisPrompt(prompt, context, validCategories);
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        model: this.model || 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at analyzing user requests. Respond with ONLY valid JSON.'
+          },
+          { role: 'user', content: analysisPrompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 150,
+        response_format: { type: 'json_object' }
+      });
+
+      const response = completion.choices[0]?.message?.content;
+      if (!response) {
+        throw new Error('No response from OpenAI API');
+      }
+
+      return this._parseAnalysisResponse(response, validCategories);
+    } catch (error) {
+      // Enhanced error handling with typed errors
+      if (error instanceof OpenAI.APIError) {
+        logger.error(`OpenAI API error during prompt analysis: ${error.status} - ${error.message}`, {
+          requestId: error.request_id,
+          code: error.code,
+          type: error.type,
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (error instanceof OpenAI.APIConnectionError) {
+        logger.error(`OpenAI connection error during prompt analysis: ${error.message}`, {
+          prompt: prompt.substring(0, 100),
+          cause: error.cause
+        });
+      } else if (error instanceof OpenAI.RateLimitError) {
+        logger.warn(`OpenAI rate limit exceeded during prompt analysis`, {
+          requestId: error.request_id,
+          retryAfter: error.headers?.['retry-after']
+        });
+      } else {
+        logger.error(`OpenAI prompt analysis failed: ${error.message}`, {
+          error: error.stack,
+          prompt: prompt.substring(0, 100)
         });
       }
       
@@ -231,6 +494,65 @@ export class AnthropicProvider extends LLMProvider {
   }
 
   /**
+   * Analyze user prompt to determine needed tool categories
+   * @param {string} prompt - User's request/prompt to analyze
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Array of valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePrompt(prompt, context, validCategories) {
+    const analysisPrompt = this._buildAnalysisPrompt(prompt, context, validCategories);
+
+    try {
+      const message = await this.client.messages.create({
+        model: this.model || 'claude-3-5-haiku-20241022',
+        max_tokens: 150,
+        temperature: 0.3,
+        system: 'You are an expert at analyzing user requests. Respond with ONLY valid JSON.',
+        messages: [
+          { role: 'user', content: analysisPrompt }
+        ]
+      });
+
+      const response = message.content[0]?.text;
+      if (!response) {
+        throw new Error('No response from Anthropic API');
+      }
+
+      return this._parseAnalysisResponse(response, validCategories);
+    } catch (error) {
+      // Anthropic-specific error handling
+      const errorType = error?.type || error?.error?.type;
+      const errorMessage = error?.message || String(error);
+
+      if (errorType === 'authentication_error' || errorMessage.includes('authentication')) {
+        logger.error(`Anthropic authentication error during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorType === 'rate_limit_error' || errorMessage.includes('rate_limit')) {
+        logger.warn(`Anthropic rate limit exceeded during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorType === 'overloaded_error' || errorMessage.includes('overloaded')) {
+        logger.warn(`Anthropic API overloaded during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorType === 'invalid_request_error') {
+        logger.error(`Anthropic invalid request during prompt analysis: ${errorMessage}`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else {
+        logger.error(`Anthropic prompt analysis failed: ${errorMessage}`, {
+          error: error?.stack,
+          prompt: prompt.substring(0, 100)
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  /**
    * Build the prompt for tool categorization
    * @param {string} toolName - Name of the tool
    * @param {object} toolDefinition - Tool definition
@@ -333,6 +655,77 @@ export class GeminiProvider extends LLMProvider {
         logger.error(`Gemini API call failed: ${errorMessage}`, {
           toolName,
           error: error?.stack
+        });
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Analyze user prompt to determine needed tool categories
+   * @param {string} prompt - User's request
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Array of valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePrompt(prompt, context, validCategories) {
+    const analysisPrompt = this._buildAnalysisPrompt(prompt, context, validCategories);
+
+    try {
+      // Get the generative model with JSON response format
+      const model = this.genAI.getGenerativeModel({
+        model: this.model || 'gemini-2.5-flash',
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 150,
+          responseMimeType: 'application/json'
+        }
+      });
+
+      // Generate content with retry logic
+      let lastError;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const result = await model.generateContent(analysisPrompt);
+          const response = await result.response;
+          const responseText = response.text();
+
+          if (!responseText) {
+            throw new Error('No response from Gemini API');
+          }
+
+          return this._parseAnalysisResponse(responseText, validCategories);
+        } catch (err) {
+          lastError = err;
+          if (attempt < 2) {
+            // Exponential backoff: 1s, 2s
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+          }
+        }
+      }
+
+      throw lastError;
+    } catch (error) {
+      // Enhanced error handling
+      const errorMessage = error?.message || String(error);
+      
+      if (errorMessage.includes('API_KEY_INVALID') || errorMessage.includes('invalid api key')) {
+        logger.error(`Gemini API key invalid during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+        logger.warn(`Gemini rate limit exceeded during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorMessage.includes('SAFETY') || errorMessage.includes('blocked')) {
+        logger.warn(`Gemini safety filter triggered during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else {
+        logger.error(`Gemini prompt analysis failed: ${errorMessage}`, {
+          error: error?.stack,
+          prompt: prompt.substring(0, 100)
         });
       }
       

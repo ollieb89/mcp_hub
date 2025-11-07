@@ -1,0 +1,356 @@
+# Task Status Tracker - YAML Format
+# Analyze Prompt Implementation Project
+# Machine-readable task status for automation
+
+project:
+  id: analyze_prompt_implementation
+  name: "Analyze Prompt Implementation"
+  created: 2025-11-07
+  status: ready
+  estimated_hours: 16
+  actual_hours: 0
+  progress_percent: 0
+
+phases:
+  - id: phase1
+    name: "LLM Provider Enhancement"
+    status: ready
+    estimated_hours: 4
+    actual_hours: 0
+    progress_percent: 0
+    tasks_total: 7
+    tasks_complete: 0
+
+  - id: phase2
+    name: "Tool Exposure Protocol"
+    status: pending
+    estimated_hours: 6
+    actual_hours: 0
+    progress_percent: 0
+    tasks_total: 7
+    tasks_complete: 0
+
+  - id: phase3
+    name: "Testing Infrastructure"
+    status: pending
+    estimated_hours: 4
+    actual_hours: 0
+    progress_percent: 0
+    tasks_total: 3
+    tasks_complete: 0
+
+  - id: phase4
+    name: "Documentation & Deployment"
+    status: pending
+    estimated_hours: 2
+    actual_hours: 0
+    progress_percent: 0
+    tasks_total: 4
+    tasks_complete: 0
+
+tasks:
+  # Phase 1: LLM Provider Enhancement
+  - id: TASK-001
+    title: "Add analyzePrompt() base method"
+    phase: phase1
+    status: todo
+    assigned: "AI Engineer"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: critical
+    dependencies: []
+    blocks: [TASK-002, TASK-003, TASK-004]
+
+  - id: TASK-002
+    title: "Implement analyzePrompt() in OpenAIProvider"
+    phase: phase1
+    status: todo
+    assigned: "AI Engineer"
+    estimated_hours: 0.75
+    actual_hours: 0
+    priority: high
+    dependencies: [TASK-001, TASK-005]
+    blocks: [TASK-008]
+
+  - id: TASK-003
+    title: "Implement analyzePrompt() in GeminiProvider"
+    phase: phase1
+    status: todo
+    assigned: "AI Engineer"
+    estimated_hours: 0.75
+    actual_hours: 0
+    priority: high
+    dependencies: [TASK-001, TASK-005]
+    blocks: [TASK-008]
+
+  - id: TASK-004
+    title: "Implement analyzePrompt() in AnthropicProvider"
+    phase: phase1
+    status: todo
+    assigned: "AI Engineer"
+    estimated_hours: 0.75
+    actual_hours: 0
+    priority: medium
+    dependencies: [TASK-001, TASK-005]
+    blocks: [TASK-008]
+
+  - id: TASK-005
+    title: "Add prompt building helper method"
+    phase: phase1
+    status: todo
+    assigned: "AI Engineer"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: high
+    dependencies: []
+    blocks: [TASK-002, TASK-003, TASK-004]
+
+  - id: TASK-006
+    title: "Add response parsing helper method"
+    phase: phase1
+    status: todo
+    assigned: "AI Engineer"
+    estimated_hours: 1.5
+    actual_hours: 0
+    priority: high
+    dependencies: []
+    blocks: [TASK-002, TASK-003, TASK-004]
+
+  - id: TASK-007
+    title: "Add fallback and retry logic"
+    phase: phase1
+    status: todo
+    assigned: "AI Engineer"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: medium
+    dependencies: [TASK-001, TASK-002, TASK-003, TASK-004]
+    blocks: [TASK-008]
+
+  # Phase 2: Tool Exposure Protocol
+  - id: TASK-008
+    title: "Fix handleAnalyzePrompt() implementation"
+    phase: phase2
+    status: todo
+    assigned: "Frontend Architect"
+    estimated_hours: 2
+    actual_hours: 0
+    priority: critical
+    dependencies: [TASK-001, TASK-002, TASK-007]
+    blocks: [TASK-015]
+
+  - id: TASK-009
+    title: "Add filterToolsBySessionCategories() method"
+    phase: phase2
+    status: todo
+    assigned: "Frontend Architect"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: critical
+    dependencies: [TASK-011]
+    blocks: [TASK-010]
+
+  - id: TASK-010
+    title: "Modify handleToolsList() for filtering"
+    phase: phase2
+    status: todo
+    assigned: "Frontend Architect"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: critical
+    dependencies: [TASK-009]
+    blocks: [TASK-015]
+
+  - id: TASK-011
+    title: "Add inferToolCategory() helper method"
+    phase: phase2
+    status: todo
+    assigned: "Frontend Architect"
+    estimated_hours: 0.5
+    actual_hours: 0
+    priority: high
+    dependencies: []
+    blocks: [TASK-009]
+
+  - id: TASK-012
+    title: "Enhance updateClientTools() method"
+    phase: phase2
+    status: todo
+    assigned: "Frontend Architect"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: high
+    dependencies: [TASK-008, TASK-013]
+    blocks: []
+
+  - id: TASK-013
+    title: "Send tools/list_changed notification"
+    phase: phase2
+    status: todo
+    assigned: "Frontend Architect"
+    estimated_hours: 0.5
+    actual_hours: 0
+    priority: medium
+    dependencies: [TASK-012]
+    blocks: []
+
+  - id: TASK-014
+    title: "Add debug logging checkpoints"
+    phase: phase2
+    status: todo
+    assigned: "Frontend Developer"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: medium
+    dependencies: [TASK-008, TASK-009, TASK-010, TASK-012]
+    blocks: [TASK-019]
+
+  # Phase 3: Testing Infrastructure
+  - id: TASK-015
+    title: "Create integration test suite"
+    phase: phase3
+    status: todo
+    assigned: "Frontend Developer"
+    estimated_hours: 3
+    actual_hours: 0
+    priority: high
+    dependencies: [TASK-001, TASK-002, TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012, TASK-013]
+    blocks: [TASK-016, TASK-017]
+
+  - id: TASK-016
+    title: "Create automated validation script"
+    phase: phase3
+    status: todo
+    assigned: "Frontend Developer"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: medium
+    dependencies: [TASK-015]
+    blocks: []
+
+  - id: TASK-017
+    title: "Create testing guide documentation"
+    phase: phase3
+    status: todo
+    assigned: "Frontend Developer"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: medium
+    dependencies: [TASK-015]
+    blocks: []
+
+  # Phase 4: Documentation & Deployment
+  - id: TASK-018
+    title: "Update configuration documentation"
+    phase: phase4
+    status: todo
+    assigned: "Technical Writer"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: medium
+    dependencies: [TASK-001, TASK-002, TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012, TASK-013, TASK-014, TASK-015, TASK-016, TASK-017]
+    blocks: [TASK-020]
+
+  - id: TASK-019
+    title: "Create troubleshooting guide"
+    phase: phase4
+    status: todo
+    assigned: "Technical Writer"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: medium
+    dependencies: [TASK-014]
+    blocks: [TASK-020]
+
+  - id: TASK-020
+    title: "Deploy to staging environment"
+    phase: phase4
+    status: todo
+    assigned: "DevOps"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: medium
+    dependencies: [TASK-001, TASK-002, TASK-003, TASK-004, TASK-005, TASK-006, TASK-007, TASK-008, TASK-009, TASK-010, TASK-011, TASK-012, TASK-013, TASK-014, TASK-015, TASK-016, TASK-017, TASK-018, TASK-019]
+    blocks: [TASK-021]
+
+  - id: TASK-021
+    title: "Production deployment"
+    phase: phase4
+    status: todo
+    assigned: "DevOps"
+    estimated_hours: 1
+    actual_hours: 0
+    priority: high
+    dependencies: [TASK-020]
+    blocks: []
+
+blockers: []
+
+risks:
+  - id: risk-001
+    title: "LLM API key unavailable"
+    probability: low
+    impact: high
+    mitigation: "Heuristic fallback implemented"
+    owner: "AI Engineer"
+    status: mitigated
+
+  - id: risk-002
+    title: "Integration issues between components"
+    probability: medium
+    impact: high
+    mitigation: "Incremental testing and integration"
+    owner: "Frontend Architect"
+    status: monitored
+
+  - id: risk-003
+    title: "Performance regression"
+    probability: low
+    impact: medium
+    mitigation: "Load testing and performance benchmarks"
+    owner: "Frontend Developer"
+    status: monitored
+
+  - id: risk-004
+    title: "Staging validation delays"
+    probability: medium
+    impact: low
+    mitigation: "Parallel documentation work"
+    owner: "DevOps"
+    status: monitored
+
+metrics:
+  tests_total: 23
+  tests_passing: 0
+  code_coverage_target: 90
+  code_coverage_actual: 0
+  bugs_found: 0
+  bugs_fixed: 0
+
+milestones:
+  - name: "Phase 1 Complete"
+    target_date: null
+    actual_date: null
+    status: pending
+
+  - name: "Phase 2 Complete"
+    target_date: null
+    actual_date: null
+    status: pending
+
+  - name: "Phase 3 Complete"
+    target_date: null
+    actual_date: null
+    status: pending
+
+  - name: "Staging Deployed"
+    target_date: null
+    actual_date: null
+    status: pending
+
+  - name: "Production Deployed"
+    target_date: null
+    actual_date: null
+    status: pending
+
+# Last updated: 2025-11-07

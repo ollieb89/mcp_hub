@@ -505,7 +505,7 @@ MCP Hub supports intelligent tool filtering to manage overwhelming tool counts f
 
 ### Filtering Modes
 
-MCP Hub provides three filtering strategies:
+MCP Hub provides four filtering strategies:
 
 #### 1. Server-Allowlist Mode (Recommended for Beginners)
 
@@ -591,6 +591,120 @@ MCP Hub provides three filtering strategies:
 **Expected outcome:** 30-80 tools | 50-70% token reduction
 
 **Best for:** Power users with complex, multi-server workflows
+
+#### 4. Prompt-Based Mode (🆕 Intelligent LLM-Driven Filtering)
+
+**Use when:** You want dynamic, context-aware tool exposure based on user intent
+
+**How it works:**
+1. Client starts with zero tools (or meta-tools only)
+2. User makes request: "Check my GitHub notifications"
+3. Client calls `hub__analyze_prompt` meta-tool
+4. Hub analyzes intent using LLM (Gemini/OpenAI/Anthropic)
+5. Hub exposes only relevant tools (e.g., GitHub tools)
+6. Client proceeds with correct tools available
+
+**Configuration:**
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "prompt-based",
+    "promptBasedFiltering": {
+      "enabled": true,
+      "defaultExposure": "meta-only",
+      "sessionIsolation": true
+    },
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "gemini",
+      "apiKey": "${GEMINI_API_KEY}",
+      "model": "gemini-2.5-flash"
+    }
+  }
+}
+```
+
+**Expected outcome:** 5-20 tools initially → 20-50 tools after analysis | 70-90% token reduction
+
+**Best for:**
+- Large tool collections (25+ servers, 3000+ tools)
+- Dynamic workflows with unpredictable tool needs
+- Token-constrained environments
+- Multi-tenant or multi-user scenarios
+
+**Requirements:**
+- LLM API key (Gemini, OpenAI, or Anthropic)
+- MCP client that supports `tools/list_changed` notifications
+
+**Environment Variables:**
+```bash
+# Choose one provider
+export GEMINI_API_KEY="your-gemini-key"        # Recommended (fast, cost-effective)
+export OPENAI_API_KEY="your-openai-key"        # Alternative
+export ANTHROPIC_API_KEY="your-anthropic-key"  # Alternative
+
+# Optional: Enable debug logging
+export DEBUG_TOOL_FILTERING=true
+```
+
+**Supported LLM Providers:**
+
+| Provider | Model | Speed | Cost | Recommended |
+|----------|-------|-------|------|-------------|
+| **Gemini** | gemini-2.5-flash | ⚡ Fast | 💰 Low | ✅ Yes |
+| OpenAI | gpt-4o-mini | ⚡ Fast | 💰 Medium | ⚠️ Alternative |
+| Anthropic | claude-3-5-haiku | ⚡ Fast | 💰 Medium | ⚠️ Alternative |
+
+**Testing:**
+```bash
+# Set API key
+export GEMINI_API_KEY="your-key-here"
+
+# Start Hub
+bun start
+
+# Test with validation script
+./scripts/test-analyze-prompt.sh "Check my GitHub issues"
+```
+
+**Advanced Configuration:**
+
+*OpenAI Provider:*
+```json
+{
+  "llmCategorization": {
+    "provider": "openai",
+    "apiKey": "${OPENAI_API_KEY}",
+    "model": "gpt-4o-mini"
+  }
+}
+```
+
+*Anthropic Provider:*
+```json
+{
+  "llmCategorization": {
+    "provider": "anthropic",
+    "apiKey": "${ANTHROPIC_API_KEY}",
+    "model": "claude-3-5-haiku-20241022"
+  }
+}
+```
+
+*Default Exposure Options:*
+```json
+{
+  "promptBasedFiltering": {
+    "defaultExposure": "zero",      // Start with no tools
+    "defaultExposure": "meta-only", // Start with meta-tools only (recommended)
+    "defaultExposure": "minimal",   // Start with essential tools
+    "defaultExposure": "all"        // Start with all tools (defeats purpose)
+  }
+}
+```
+
+**See also:** [Prompt-Based Filtering Guide](./claudedocs/PROMPT_BASED_FILTERING_QUICK_START.md) for complete documentation.
 
 ### Configuration Examples
 

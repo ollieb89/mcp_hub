@@ -232,7 +232,16 @@ export class MCPServerEndpoint {
       promptHistory: [],
       createdAt: new Date()
     });
-    
+
+    // Debug checkpoint: Session initialization
+    logger.debug({
+      sessionId,
+      initialCategories,
+      defaultExposure: this.promptBasedConfig.defaultExposure,
+      filteringMode: this.filteringMode,
+      promptBasedEnabled: this.filteringMode === 'prompt-based'
+    }, 'CHECKPOINT: Session initialized with tool exposure');
+
     // Build initial tool list based on categories
     this.updateClientTools(sessionId, initialCategories);
   }
@@ -282,38 +291,220 @@ export class MCPServerEndpoint {
   }
 
   /**
-   * Update tools exposed to a client based on analyzed categories
-   * @param {string} sessionId - Client session ID
+   * Update client's exposed tool categories with additive or replacement mode
+   * @param {string} sessionId - Session identifier
    * @param {string[]} categories - Categories to expose
-   * @param {boolean} additive - If true, add to existing categories; if false, replace
+   * @param {string|boolean} mode - 'additive' (default), 'replacement', or boolean (backward compat)
+   * @returns {Promise<{added: string[], total: string[]}>} Categories added and total exposed
    */
-  async updateClientTools(sessionId, categories, additive = false) {
+  async updateClientTools(sessionId, categories, mode = 'additive') {
+    // Backward compatibility: convert boolean to mode string
+    if (typeof mode === 'boolean') {
+      mode = mode ? 'additive' : 'replacement';
+    }
+
+    // Validate session exists
     if (!this.clientSessions.has(sessionId)) {
-      logger.warn(`Attempted to update tools for non-existent session: ${sessionId}`);
-      return;
+      logger.warn({ sessionId }, 'Attempted to update tools for non-existent session');
+      throw new Error(`Session ${sessionId} not found`);
     }
 
     const session = this.clientSessions.get(sessionId);
-    
-    // Update exposed categories
-    if (additive) {
-      categories.forEach(cat => session.exposedCategories.add(cat));
-    } else {
-      session.exposedCategories = new Set(['meta', ...categories]); // Always include meta
-    }
+    const addedCategories = [];
+    const previousSize = session.exposedCategories.size;
+    const previousCategories = Array.from(session.exposedCategories);
 
-    logger.info(`Updated client ${sessionId} tool exposure: ${Array.from(session.exposedCategories).join(', ')}`);
-
-    // Notify client that tool list has changed
-    const client = this.clients.get(sessionId);
-    if (client && client.server) {
-      try {
-        await client.server.sendToolListChanged();
-        logger.debug(`Sent tools/list_changed notification to client ${sessionId}`);
-      } catch (error) {
-        logger.error(`Failed to send tool list notification to ${sessionId}:`, error);
+    // Apply mode logic
+    if (mode === 'additive') {
+      // Additive mode: Add new categories, keep existing
+      for (const cat of categories) {
+        if (!session.exposedCategories.has(cat)) {
+          session.exposedCategories.add(cat);
+          addedCategories.push(cat);
+        }
       }
+
+      logger.debug({
+        sessionId,
+        mode,
+        requestedCategories: categories,
+        addedCategories,
+        alreadyExposed: categories.filter(cat => !addedCategories.includes(cat))
+      }, 'Additive mode: accumulating categories');
+
+    } else if (mode === 'replacement') {
+      // Replacement mode: Replace all categories (but always include meta)
+      const newCategories = new Set(['meta', ...categories]);
+
+      // Identify what was added
+      for (const cat of newCategories) {
+        if (!session.exposedCategories.has(cat)) {
+          addedCategories.push(cat);
+        }
+      }
+
+      session.exposedCategories = newCategories;
+
+      logger.debug({
+        sessionId,
+        mode,
+        previousCategories,
+        newCategories: Array.from(newCategories),
+        addedCategories
+      }, 'Replacement mode: reset categories');
+
+    } else {
+      throw new Error(`Invalid mode: ${mode}. Use 'additive' or 'replacement'`);
     }
+
+    // Track exposure history
+    if (!session.exposureHistory) {
+      session.exposureHistory = [];
+    }
+
+    session.exposureHistory.push({
+      timestamp: Date.now(),
+      operation: mode,
+      addedCategories: [...addedCategories],
+      totalCategories: Array.from(session.exposedCategories)
+    });
+
+    // Log the update
+    logger.info({
+      sessionId,
+      mode,
+      addedCategories,
+      totalCategories: Array.from(session.exposedCategories),
+      previousSize,
+      newSize: session.exposedCategories.size,
+      changed: addedCategories.length > 0
+    }, 'Updated client tool exposure');
+
+    // Send notification only if categories actually changed
+    if (addedCategories.length > 0) {
+      await this.sendToolsChangedNotification(sessionId, addedCategories, mode);
+    } else {
+      logger.debug({ sessionId },
+        'No new categories added, skipping notification');
+    }
+
+    // Return result for caller
+    return {
+      added: addedCategories,
+      total: Array.from(session.exposedCategories)
+    };
+  }
+
+  /**
+   * Send tools/list_changed notification to client
+   * @param {string} sessionId - Session identifier
+   * @param {string[]} addedCategories - Categories just added
+   * @param {string} mode - Operation mode ('additive' or 'replacement')
+   * @returns {Promise<void>}
+   */
+  async sendToolsChangedNotification(sessionId, addedCategories, mode) {
+    const client = this.clients.get(sessionId);
+
+    if (!client) {
+      logger.warn({ sessionId }, 'Cannot send notification: client not found');
+      return;
+    }
+
+    if (!client.server) {
+      logger.warn({ sessionId }, 'Cannot send notification: client.server not available');
+      return;
+    }
+
+    try {
+      // Send MCP notification via SDK method
+      await client.server.sendToolListChanged();
+
+      logger.info({
+        sessionId,
+        addedCategories,
+        mode,
+        categoriesCount: addedCategories.length
+      }, 'Sent tools/list_changed notification to client');
+    } catch (error) {
+      logger.error({
+        sessionId,
+        error: error.message,
+        stack: error.stack
+      }, 'Failed to send tools/list_changed notification');
+      // Don't throw - notification failure shouldn't break analysis
+    }
+  }
+
+  /**
+   * Infer category from tool object
+   * Extracts namespace prefix from namespaced tools: "github__search" -> "github"
+   * @param {Object} tool - Tool object with definition
+   * @returns {string} Category name or 'uncategorized'
+   */
+  inferToolCategory(tool) {
+    const toolName = tool?.definition?.name;
+
+    if (!toolName) {
+      logger.warn({ tool }, 'Tool missing name in definition');
+      return 'uncategorized';
+    }
+
+    // Check if it's a meta tool first
+    if (toolName.startsWith('hub__')) {
+      return 'meta';
+    }
+
+    // Extract namespace: "github__search" -> "github"
+    const match = toolName.match(/^([^_]+)__/);
+
+    if (match) {
+      return match[1].toLowerCase();
+    }
+
+    // No namespace found
+    logger.debug({ toolName }, 'Tool has no category namespace');
+    return 'uncategorized';
+  }
+
+  /**
+   * Filter tools by session's exposed categories
+   * @param {Object} session - Session object with exposedCategories Set
+   * @returns {Array} Filtered tools matching exposed categories
+   */
+  filterToolsBySessionCategories(session) {
+    const { exposedCategories } = session;
+    const allTools = Array.from(this.allCapabilities.tools.values());
+
+    // If no categories exposed, return empty (zero-default)
+    if (exposedCategories.size === 0) {
+      logger.debug({ sessionId: session.id }, 'No categories exposed, returning empty tool list');
+      return [];
+    }
+
+    // Filter tools by category
+    const filtered = allTools.filter(tool => {
+      const category = tool.category || this.inferToolCategory(tool);
+      const included = exposedCategories.has(category);
+
+      if (included) {
+        logger.debug({
+          tool: tool.definition?.name,
+          category,
+          sessionId: session.id
+        }, 'Tool included in filter');
+      }
+
+      return included;
+    });
+
+    logger.info({
+      sessionId: session.id,
+      totalTools: allTools.length,
+      filteredTools: filtered.length,
+      categories: Array.from(exposedCategories)
+    }, 'Filtered tools by session categories');
+
+    return filtered;
   }
 
   /**
@@ -433,80 +624,114 @@ export class MCPServerEndpoint {
    */
   async handleAnalyzePrompt(args, sessionId) {
     const { prompt, context } = args;
-    
+
+    // Debug checkpoint 1: Entry
+    logger.debug({ sessionId, prompt: prompt?.substring(0, 100), hasContext: !!context },
+      'CHECKPOINT 1: handleAnalyzePrompt entry');
+
+    // Validation: Check LLM availability
     if (!this.filteringService || !this.filteringService.llmClient) {
+      logger.warn({ sessionId }, 'LLM client not available for prompt analysis');
       return {
         content: [{
           type: 'text',
           text: JSON.stringify({
             error: 'LLM-based prompt analysis not available',
-            suggestion: 'Configure toolFiltering with LLM provider in mcp-servers.json'
+            suggestion: 'Configure toolFiltering.llmCategorization with a valid provider in mcp-servers.json'
           })
         }]
       };
     }
 
-    try {
-      // Use LLM to analyze user intent and determine needed tool categories
-      const analysisPrompt = `Analyze this user request and determine which MCP tool categories are needed.
-
-User request: "${prompt}"
-${context ? `Context: ${context}` : ''}
-
-Available tool categories:
-- github: GitHub repository management, issues, PRs
-- filesystem: File operations, reading/writing files
-- web: Web browsing, fetching web content
-- docker: Container management
-- git: Git operations (local)
-- python: Python environment management
-- database: Database operations
-- memory: Knowledge management
-- vertex_ai: AI-assisted development tasks
-
-Respond with ONLY a JSON object in this exact format:
-{
-  "categories": ["category1", "category2"],
-  "confidence": 0.95,
-  "reasoning": "Brief explanation"
-}`;
-
-      const response = await this.filteringService.llmClient.generateResponse(analysisPrompt);
-      
-      // Parse LLM response
-      let analysis;
-      try {
-        // Extract JSON from response (handle markdown code blocks)
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : { categories: [], confidence: 0, reasoning: 'Failed to parse response' };
-      } catch (e) {
-        logger.warn(`Failed to parse LLM analysis response: ${e.message}`);
-        analysis = { categories: [], confidence: 0, reasoning: 'Invalid response format' };
-      }
-
-      // Update client tools based on analysis
-      if (analysis.categories && analysis.categories.length > 0) {
-        await this.updateClientTools(sessionId, analysis.categories, false);
-      }
-
+    // Validation: Check prompt is non-empty
+    if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+      logger.warn({ sessionId }, 'Empty or invalid prompt provided to analyze_prompt');
       return {
         content: [{
           type: 'text',
           text: JSON.stringify({
-            ...analysis,
-            message: `Updated tool exposure: ${analysis.categories.join(', ')}`,
-            nextStep: 'Tools list has been updated. Please proceed with your request using the newly available tools.'
+            error: 'Invalid prompt',
+            message: 'Prompt must be a non-empty string'
           })
+        }],
+        isError: true
+      };
+    }
+
+    try {
+      // Define valid categories (should match tool-filtering-service.js)
+      const validCategories = [
+        'github', 'filesystem', 'web', 'docker', 'git',
+        'python', 'database', 'memory', 'vertex_ai', 'meta'
+      ];
+
+      // Debug checkpoint 2: Before LLM call
+      logger.debug({ sessionId, validCategories },
+        'CHECKPOINT 2: Calling analyzePromptWithFallback');
+
+      // Call LLM provider with retry and fallback logic
+      const analysis = await this.filteringService.llmClient.analyzePromptWithFallback(
+        prompt,
+        context,
+        validCategories
+      );
+
+      // Debug checkpoint 3: After LLM analysis
+      logger.debug({
+        sessionId,
+        categories: analysis.categories,
+        confidence: analysis.confidence
+      }, 'CHECKPOINT 3: LLM analysis complete');
+
+      // Update client tools based on analysis
+      if (analysis.categories && analysis.categories.length > 0) {
+        // Debug checkpoint 4: Before tool update
+        logger.debug({ sessionId, categories: analysis.categories },
+          'CHECKPOINT 4: Updating client tools');
+
+        await this.updateClientTools(sessionId, analysis.categories, false);
+
+        // Debug checkpoint 5: After tool update
+        logger.debug({ sessionId }, 'CHECKPOINT 5: Client tools updated');
+      } else {
+        logger.warn({ sessionId, analysis }, 'No categories identified by LLM analysis');
+      }
+
+      // Format successful response
+      const response = {
+        categories: analysis.categories,
+        confidence: analysis.confidence,
+        reasoning: analysis.reasoning,
+        message: `Updated tool exposure: ${analysis.categories.join(', ')}`,
+        nextStep: 'Tools list has been updated. Proceed with your request using the newly available tools.'
+      };
+
+      // Debug checkpoint 6: Response prepared
+      logger.debug({ sessionId, response },
+        'CHECKPOINT 6: Returning success response');
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify(response)
         }]
       };
+
     } catch (error) {
-      logger.error(`Error in analyze_prompt meta-tool: ${error.message}`);
+      // Debug checkpoint 7: Error occurred
+      logger.error({
+        sessionId,
+        error: error.message,
+        stack: error.stack
+      }, 'CHECKPOINT 7: Error in analyze_prompt meta-tool');
+
       return {
         content: [{
           type: 'text',
           text: JSON.stringify({
             error: 'Failed to analyze prompt',
-            details: error.message
+            details: error.message,
+            suggestion: 'Check LLM provider configuration and API key'
           })
         }],
         isError: true
@@ -562,10 +787,40 @@ Respond with ONLY a JSON object in this exact format:
 
       // Skip tools - already handled above with meta-tool support
       if (capId === CAPABILITY_TYPES.TOOLS.id) {
-        // Setup list handler only
+        // Setup list handler with prompt-based filtering support
         server.setRequestHandler(capType.listSchema, () => {
-          const capabilityMap = this.getClientCapabilities(sessionId, capId);
-          const capabilities = Array.from(capabilityMap.values()).map(item => item.definition);
+          const promptBasedEnabled = this.config.toolFiltering?.promptBasedFiltering?.enabled;
+
+          let toolsToExpose;
+
+          if (promptBasedEnabled && sessionId) {
+            // NEW: Filter by session categories
+            const session = this.clientSessions.get(sessionId);
+            if (session) {
+              toolsToExpose = this.filterToolsBySessionCategories(session);
+
+              logger.debug({
+                sessionId,
+                exposedCategories: Array.from(session.exposedCategories),
+                toolCount: toolsToExpose.length
+              }, 'Filtered tools by session categories');
+            } else {
+              // Session not found, return empty (zero-default)
+              logger.warn({ sessionId }, 'Session not found for tools/list, returning empty');
+              toolsToExpose = [];
+            }
+          } else {
+            // Existing behavior: return all tools
+            const capabilityMap = this.getClientCapabilities(sessionId, capId);
+            toolsToExpose = Array.from(capabilityMap.values());
+
+            logger.debug({
+              sessionId,
+              toolCount: toolsToExpose.length
+            }, 'Returning all tools (filtering disabled)');
+          }
+
+          const capabilities = toolsToExpose.map(item => item.definition);
           return { [capId]: capabilities };
         });
         return; // Skip call handler
