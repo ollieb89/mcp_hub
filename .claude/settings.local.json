@@ -87,7 +87,12 @@
       "Bash(node -c:*)",
       "Bash(./scripts/test-analyze-prompt.sh:*)",
       "Bash(/dev/null)",
-      "Bash(bash -n:*)"
+      "Bash(bash -n:*)",
+      "Bash(for section in \"Automated Testing\" \"Manual Testing\" \"Test Scenarios\" \"Validation Checklist\" \"Troubleshooting\" \"CI/CD\")",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(for criteria in \"automated testing\" \"manual testing\" \"test scenarios\" \"expected results\" \"troubleshooting\" \"test files\" \"well-formatted\")"
     ],
     "deny": [],
     "ask": []
