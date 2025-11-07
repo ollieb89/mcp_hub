@@ -84,7 +84,10 @@
       "Bash(gh repo edit:*)",
       "Bash(git log:*)",
       "Bash(git config:*)",
-      "Bash(node -c:*)"
+      "Bash(node -c:*)",
+      "Bash(./scripts/test-analyze-prompt.sh:*)",
+      "Bash(/dev/null)",
+      "Bash(bash -n:*)"
     ],
     "deny": [],
     "ask": []
