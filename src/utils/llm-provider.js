@@ -24,6 +24,17 @@ export class LLMProvider {
   async categorize(toolName, toolDefinition, validCategories) { // eslint-disable-line no-unused-vars
     throw new Error('Must implement categorize() method');
   }
+
+  /**
+   * Analyze user prompt and determine needed tool categories
+   * @param {string} prompt - User's request/prompt to analyze
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Array of valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePrompt(prompt, context, validCategories) { // eslint-disable-line no-unused-vars
+    throw new Error('Must implement analyzePrompt() method');
+  }
 }
 
 /**
