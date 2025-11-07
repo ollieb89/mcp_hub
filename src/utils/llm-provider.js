@@ -230,6 +230,67 @@ export class OpenAIProvider extends LLMProvider {
   }
 
   /**
+   * Analyze user prompt to determine needed tool categories
+   * @param {string} prompt - User's request
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Array of valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePrompt(prompt, context, validCategories) {
+    const analysisPrompt = this._buildAnalysisPrompt(prompt, context, validCategories);
+
+    try {
+      const completion = await this.client.chat.completions.create({
+        model: this.model || 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert at analyzing user requests. Respond with ONLY valid JSON.'
+          },
+          { role: 'user', content: analysisPrompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 150,
+        response_format: { type: 'json_object' }
+      });
+
+      const response = completion.choices[0]?.message?.content;
+      if (!response) {
+        throw new Error('No response from OpenAI API');
+      }
+
+      return this._parseAnalysisResponse(response, validCategories);
+    } catch (error) {
+      // Enhanced error handling with typed errors
+      if (error instanceof OpenAI.APIError) {
+        logger.error(`OpenAI API error during prompt analysis: ${error.status} - ${error.message}`, {
+          requestId: error.request_id,
+          code: error.code,
+          type: error.type,
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (error instanceof OpenAI.APIConnectionError) {
+        logger.error(`OpenAI connection error during prompt analysis: ${error.message}`, {
+          prompt: prompt.substring(0, 100),
+          cause: error.cause
+        });
+      } else if (error instanceof OpenAI.RateLimitError) {
+        logger.warn(`OpenAI rate limit exceeded during prompt analysis`, {
+          requestId: error.request_id,
+          retryAfter: error.headers?.['retry-after']
+        });
+      } else {
+        logger.error(`OpenAI prompt analysis failed: ${error.message}`, {
+          error: error.stack,
+          prompt: prompt.substring(0, 100)
+        });
+      }
+      
+      throw error;  // Re-throw for upstream handling
+    }
+  }
+
+  /**
    * Build the prompt for tool categorization
    * @param {string} toolName - Name of the tool
    * @param {object} toolDefinition - Tool definition
