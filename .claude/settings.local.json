@@ -83,7 +83,8 @@
       "Bash(gh repo view:*)",
       "Bash(gh repo edit:*)",
       "Bash(git log:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(node -c:*)"
     ],
     "deny": [],
     "ask": []
