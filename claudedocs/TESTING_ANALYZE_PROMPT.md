@@ -1,12 +1,251 @@
 # Testing and Debugging Guide: `hub__analyze_prompt` Feature
 
 ## Table of Contents
-1. [Manual Testing Guide](#manual-testing-guide)
-2. [Debug Logging](#debug-logging)
-3. [Web UI Integration](#web-ui-integration)
-4. [Test Scenarios](#test-scenarios)
-5. [Validation Commands](#validation-commands)
-6. [Troubleshooting](#troubleshooting)
+1. [Overview](#overview)
+2. [Automated Testing](#automated-testing)
+3. [Manual Testing Guide](#manual-testing-guide)
+4. [Debug Logging](#debug-logging)
+5. [Web UI Integration](#web-ui-integration)
+6. [Test Scenarios](#test-scenarios)
+7. [Validation Commands](#validation-commands)
+8. [Validation Checklist](#validation-checklist)
+9. [Troubleshooting](#troubleshooting)
+10. [CI/CD Integration](#cicd-integration)
+
+---
+
+## Overview
+
+### Purpose
+
+This guide provides comprehensive testing procedures for the `hub__analyze_prompt` meta-tool and prompt-based tool filtering system. The feature enables intelligent, LLM-driven tool exposure based on user intent analysis.
+
+### Test Coverage Goals
+
+- **Functional Coverage**: 100% of analyze_prompt workflow
+- **Integration Coverage**: All 3 critical bug fixes validated
+- **Scenario Coverage**: 10+ real-world usage scenarios
+- **Performance Coverage**: LLM response time, tool exposure latency
+- **Error Coverage**: All error paths and edge cases
+
+### Testing Tools
+
+| Tool | Purpose | Location |
+|------|---------|----------|
+| **Vitest** | Unit and integration tests | `bun test` |
+| **Validation Script** | End-to-end testing | `scripts/test-analyze-prompt.sh` |
+| **curl** | Manual API testing | Command line |
+| **Load Testing** | Performance validation | `bun run test:load` |
+
+---
+
+## Automated Testing
+
+### Running the Test Suite
+
+#### Complete Test Suite
+```bash
+# Run all analyze_prompt tests
+bun test tests/prompt-based-filtering.test.js
+
+# Expected output:
+# ✓ tests/prompt-based-filtering.test.js (23) 142ms
+#   ✓ Meta-tool Registration (2)
+#   ✓ Session Initialization (3)
+#   ✓ Tool Exposure Filtering (6)
+#   ✓ Session Isolation (3)
+#   ✓ LLM Analysis Workflow (6)
+#   ✓ Backward Compatibility (3)
+```
+
+#### Watch Mode (Development)
+```bash
+# Auto-rerun tests on file changes
+bun test --watch tests/prompt-based-filtering.test.js
+```
+
+#### Coverage Report
+```bash
+# Generate coverage report
+bun run test:coverage
+
+# View HTML report
+bun run test:coverage:ui
+```
+
+### Test Categories Explained
+
+#### 1. Meta-tool Registration (2 tests)
+**Purpose**: Verify `hub__analyze_prompt` is properly exposed
+
+**Tests**:
+- Meta-tool exists in initial tool list
+- Meta-tool has correct schema and parameters
+
+**Critical**: Must pass for feature to function
+
+#### 2. Session Initialization (3 tests)
+**Purpose**: Verify session-level state management
+
+**Tests**:
+- Each session starts with empty exposedCategories
+- Session IDs are unique and properly tracked
+- Session state persists across tool calls
+
+**Critical**: Required for per-client isolation
+
+#### 3. Tool Exposure Filtering (6 tests)
+**Purpose**: Verify tools/list filtering works correctly
+
+**Tests**:
+- Zero-default exposure (no categories = no tools)
+- Single category exposure
+- Multi-category exposure
+- Meta-tools always available
+- Category inference from tool names
+- Filtering respects session categories
+
+**Critical**: Core filtering functionality
+
+#### 4. Session Isolation (3 tests)
+**Purpose**: Verify per-client independence
+
+**Tests**:
+- Client A exposure doesn't affect Client B
+- Session categories are truly session-scoped
+- Concurrent sessions maintain independence
+
+**Critical**: Multi-client support
+
+#### 5. LLM Analysis Workflow (6 tests)
+**Purpose**: Verify end-to-end analyze_prompt flow
+
+**Tests**:
+- Prompt analysis returns categories
+- Categories are added to session state
+- tools/list_changed notification sent
+- Subsequent tools/list returns filtered tools
+- Multiple analyze_prompt calls work (additive)
+- Low confidence prompts handled gracefully
+
+**Critical**: Complete workflow validation
+
+#### 6. Backward Compatibility (3 tests)
+**Purpose**: Verify feature can be disabled
+
+**Tests**:
+- Disabled mode exposes all tools
+- Static mode works as before
+- Configuration changes respected
+
+**Critical**: Safe rollback capability
+
+### Expected Test Output
+
+#### Success Output
+```
+✓ tests/prompt-based-filtering.test.js (23) 142ms
+  ✓ Meta-tool Registration (2)
+  ✓ Session Initialization (3)
+  ✓ Tool Exposure Filtering (6)
+  ✓ Session Isolation (3)
+  ✓ LLM Analysis Workflow (6)
+  ✓ Backward Compatibility (3)
+
+Test Files  1 passed (1)
+Tests  23 passed (23)
+Duration  142ms
+```
+
+#### Failure Output Example
+```
+✗ tests/prompt-based-filtering.test.js > Tool Exposure Filtering > should filter tools by session categories
+  AssertionError: expected 0 to equal 1
+
+  Expected: 1
+  Received: 0
+
+  at tests/prompt-based-filtering.test.js:125:35
+```
+
+### Coverage Report Interpretation
+
+**Target Thresholds**:
+- **Branches**: ≥80% (currently 82.94%)
+- **Lines**: ≥80%
+- **Functions**: ≥80%
+- **Statements**: ≥80%
+
+**Coverage Gaps**: Acceptable for error paths and edge cases that are difficult to trigger in tests.
+
+### Using the Validation Script
+
+The validation script (`scripts/test-analyze-prompt.sh`) provides end-to-end testing with a real MCP Hub instance.
+
+#### Basic Usage
+```bash
+# Default test with standard prompt
+./scripts/test-analyze-prompt.sh
+
+# Custom prompt
+./scripts/test-analyze-prompt.sh "Check my GitHub notifications"
+
+# Verbose mode (detailed logging)
+./scripts/test-analyze-prompt.sh --verbose "Read config.json"
+
+# CI mode (JSON output)
+./scripts/test-analyze-prompt.sh --ci "Create a new file"
+```
+
+#### Interactive Test Output
+```
+==========================================
+  hub__analyze_prompt Test Script
+==========================================
+
+[INFO] Checking if MCP Hub is running...
+[SUCCESS] MCP Hub is running
+[SUCCESS] Prompt-based filtering enabled
+[SUCCESS] LLM provider: gemini
+
+[INFO] Starting test workflow...
+[SUCCESS] SSE connection established (PID: 12345)
+[SUCCESS] Initial tool count: 1
+
+[INFO] Calling hub__analyze_prompt with prompt:
+  "Check my GitHub notifications"
+[SUCCESS] Analysis completed in 1234ms
+
+Analysis Results:
+  Categories: github
+  Confidence: 0.98
+  Reasoning: User wants to check GitHub notifications
+
+[SUCCESS] Updated tool count: 25
+✓ github tools exposed
+
+==========================================
+  Test Summary
+==========================================
+Total Tests:   10
+Passed:       10
+Failed:        0
+Success Rate: 100.0%
+==========================================
+[SUCCESS] ALL TESTS PASSED (10/10)
+==========================================
+```
+
+#### CI/CD Mode Output
+```json
+{
+  "total": 10,
+  "passed": 10,
+  "failed": 0,
+  "success_rate": 100.00,
+  "exit_code": 0
+}
+```
 
 ---
 
@@ -648,6 +887,124 @@ chmod +x benchmark-prompt-analysis.sh
 
 ---
 
+## Validation Checklist
+
+### Pre-Deployment Validation
+
+Use this checklist before deploying the analyze_prompt feature to staging or production:
+
+- [ ] **All automated tests passing**
+  - Run: `bun test tests/prompt-based-filtering.test.js`
+  - Expected: 23/23 tests passing
+
+- [ ] **Validation script passes**
+  - Run: `./scripts/test-analyze-prompt.sh`
+  - Expected: 10/10 tests passing, exit code 0
+
+- [ ] **Code coverage meets threshold**
+  - Run: `bun run test:coverage`
+  - Expected: ≥80% branch coverage (currently 82.94%)
+
+- [ ] **Manual testing successful**
+  - Test with curl commands from this guide
+  - Verify tool exposure works correctly
+  - Test multiple scenarios from Test Scenarios section
+
+- [ ] **Client integration tested**
+  - Test with Claude Desktop or equivalent MCP client
+  - Verify analyze_prompt workflow end-to-end
+  - Confirm additive tool exposure works
+
+- [ ] **Performance benchmarks met**
+  - LLM analysis: <2000ms (p95)
+  - Tool exposure update: <10ms
+  - End-to-end flow: <3000ms
+
+- [ ] **Error handling verified**
+  - Test LLM timeout scenario
+  - Test invalid JSON response
+  - Test LLM provider failure
+  - Verify fallback mechanisms work
+
+- [ ] **Session isolation confirmed**
+  - Test with 2+ concurrent sessions
+  - Verify client A doesn't see client B's tools
+  - Confirm per-session category tracking
+
+- [ ] **Backward compatibility validated**
+  - Test with prompt-based mode disabled
+  - Verify static mode still works
+  - Confirm all tools exposed when disabled
+
+- [ ] **Debug logging comprehensive**
+  - Verify all 7 log checkpoints present
+  - Test log filtering and analysis commands
+  - Confirm structured logging format
+
+- [ ] **Configuration validated**
+  - Test all filtering modes work
+  - Verify LLM provider configuration
+  - Confirm environment variables resolved
+
+### Smoke Tests (Quick Validation)
+
+Run these quick tests after any deployment (< 2 minutes):
+
+```bash
+# 1. Hub health check
+curl -sf http://localhost:7000/health || echo "❌ FAIL: Hub not running"
+
+# 2. Prompt-based mode enabled
+jq -r '.toolFiltering.mode' mcp-servers.json | grep -q "prompt-based" || echo "❌ FAIL: Wrong mode"
+
+# 3. LLM provider configured
+jq -r '.toolFiltering.llmCategorization.enabled' mcp-servers.json | grep -q "true" || echo "❌ FAIL: LLM not enabled"
+
+# 4. Quick validation script run
+./scripts/test-analyze-prompt.sh --ci "Quick test" | jq -e '.exit_code == 0' || echo "❌ FAIL: Validation failed"
+
+# 5. Automated tests passing
+bun test tests/prompt-based-filtering.test.js --run || echo "❌ FAIL: Tests failed"
+```
+
+### Regression Tests
+
+Run these comprehensive tests before major releases (15-20 minutes):
+
+1. **All Test Scenarios**: Execute scenarios 1-10 from Test Scenarios section
+2. **Multi-Client Testing**: Test with 3+ concurrent sessions
+3. **Load Testing**: Run `bun run test:load` for performance validation
+4. **Configuration Variations**: Test all filtering modes
+   - prompt-based (primary mode)
+   - static (legacy)
+   - category (category-based)
+   - server-allowlist (allowlist-based)
+5. **Error Paths**: Trigger and verify all error scenarios
+6. **Backward Compatibility**: Test with feature disabled
+
+### Performance Benchmarks
+
+Track these metrics for performance monitoring:
+
+| Metric | Target | Measured | Status |
+|--------|--------|----------|--------|
+| LLM Analysis (p50) | <1000ms | _TBD_ | ⏳ |
+| LLM Analysis (p95) | <2000ms | _TBD_ | ⏳ |
+| Tool Exposure Update | <10ms | _TBD_ | ⏳ |
+| End-to-End Flow | <3000ms | _TBD_ | ⏳ |
+| Concurrent Sessions | 100+ | _TBD_ | ⏳ |
+
+**Measure with**:
+```bash
+# Run performance tests
+bun run test:load
+
+# Check results
+cat tests/load/results/summary.json | jq
+```
+
+---
+
 ## Troubleshooting
 
 ### Issue 1: Meta-tool not appearing in tool list
@@ -787,18 +1144,331 @@ Use this checklist when debugging issues:
 
 ---
 
+## CI/CD Integration
+
+### GitHub Actions Example
+
+Complete CI/CD workflow for testing the analyze_prompt feature:
+
+```yaml
+# .github/workflows/test-analyze-prompt.yml
+name: Test Analyze Prompt Feature
+
+on:
+  push:
+    branches: [main, develop, 'fix/analyze-prompt-*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Start MCP Hub
+        run: |
+          bun start &
+          sleep 5
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ENABLE_PINO_LOGGER: true
+
+      - name: Run Automated Tests
+        run: bun test tests/prompt-based-filtering.test.js
+
+      - name: Generate Coverage Report
+        run: bun run test:coverage
+
+      - name: Check Coverage Thresholds
+        run: |
+          jq -e '.total.branches.pct >= 80' coverage/coverage-summary.json || exit 1
+
+      - name: Run Validation Script
+        run: |
+          ./scripts/test-analyze-prompt.sh --ci "Test prompt" > results.json
+          cat results.json
+
+      - name: Verify Test Results
+        run: |
+          jq -e '.exit_code == 0' results.json || exit 1
+          jq '.success_rate >= 90' results.json || exit 1
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: |
+            results.json
+            coverage/
+
+      - name: Comment PR with Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('results.json', 'utf8'));
+            const body = `
+            ## 🧪 Test Results: analyze_prompt Feature
+
+            | Metric | Value |
+            |--------|-------|
+            | **Total Tests** | ${results.total} |
+            | **Passed** | ✅ ${results.passed} |
+            | **Failed** | ❌ ${results.failed} |
+            | **Success Rate** | ${results.success_rate}% |
+
+            ${results.exit_code === 0 ? '✅ All tests passed!' : '❌ Some tests failed'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+```
+
+### Coverage Thresholds Configuration
+
+Add coverage requirements to `vitest.config.js`:
+
+```javascript
+// vitest.config.js
+export default {
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'tests/',
+        '**/*.test.js'
+      ]
+    }
+  }
+}
+```
+
+### Test Failure Handling Strategies
+
+**Strategy 1: Fail Fast on Critical Failures**
+```yaml
+- name: Run Critical Tests
+  run: bun test tests/prompt-based-filtering.test.js
+  continue-on-error: false  # Fail pipeline immediately
+
+- name: Run Performance Tests
+  run: bun run test:load
+  continue-on-error: true   # Don't block on perf issues
+```
+
+**Strategy 2: Retry on Transient Failures**
+```yaml
+- name: Run Validation Script (with retry)
+  uses: nick-fields/retry@v2
+  with:
+    timeout_minutes: 5
+    max_attempts: 3
+    retry_on: error
+    command: ./scripts/test-analyze-prompt.sh --ci "Test"
+```
+
+### Deployment Gates
+
+#### Staging Gate Requirements
+- ✅ All automated tests passing (23/23)
+- ✅ Validation script passes (10/10)
+- ✅ Code coverage ≥80% branches
+- ✅ No critical security issues
+- ✅ Performance benchmarks met
+
+```yaml
+staging_deploy:
+  needs: test
+  if: github.ref == 'refs/heads/develop'
+  runs-on: ubuntu-latest
+  steps:
+    - name: Deploy to Staging
+      run: ./scripts/deploy-staging.sh
+    - name: Run Smoke Tests
+      run: ./scripts/test-analyze-prompt.sh --ci "Smoke test"
+```
+
+#### Production Gate Requirements
+- ✅ Staging validated for 24-48 hours
+- ✅ No critical issues reported
+- ✅ Performance metrics stable
+- ✅ Manual approval required
+
+```yaml
+production_deploy:
+  needs: staging_deploy
+  if: github.ref == 'refs/heads/main'
+  runs-on: ubuntu-latest
+  environment:
+    name: production
+    url: https://mcp-hub.example.com
+  steps:
+    - name: Manual Approval Gate
+      uses: trstringer/manual-approval@v1
+    - name: Deploy to Production
+      run: ./scripts/deploy-production.sh
+    - name: Verify Deployment
+      run: |
+        sleep 30
+        curl -sf https://mcp-hub.example.com/health || exit 1
+```
+
+### Monitoring Integration
+
+**Post-Deployment Monitoring:**
+```yaml
+- name: Setup Monitoring
+  run: |
+    # Send deployment event to monitoring
+    curl -X POST https://monitoring.example.com/events \
+      -d '{
+        "type": "deployment",
+        "service": "mcp-hub",
+        "feature": "analyze_prompt",
+        "version": "${{ github.sha }}"
+      }'
+
+- name: Track Error Rate
+  run: |
+    # Monitor error rate for 5 minutes
+    ./scripts/monitor-error-rate.sh --duration 300 --threshold 1
+```
+
+### Performance Regression Detection
+
+```yaml
+- name: Run Performance Tests
+  run: bun run test:load:ci > perf-results.json
+
+- name: Compare Performance
+  run: |
+    # Compare with baseline
+    BASELINE=$(cat baseline-perf.json | jq '.p95_latency')
+    CURRENT=$(cat perf-results.json | jq '.p95_latency')
+
+    if [ $(echo "$CURRENT > $BASELINE * 1.2" | bc) -eq 1 ]; then
+      echo "⚠️ Performance regression detected"
+      echo "Baseline: ${BASELINE}ms, Current: ${CURRENT}ms"
+      exit 1
+    fi
+```
+
+### Rollback Automation
+
+```yaml
+- name: Automatic Rollback on Failure
+  if: failure()
+  run: |
+    echo "🔄 Rolling back deployment"
+    ./scripts/rollback.sh
+    # Disable feature flag
+    curl -X POST https://mcp-hub.example.com/api/config \
+      -d '{"toolFiltering": {"mode": "static"}}'
+```
+
+### Notification Integration
+
+**Slack Notifications:**
+```yaml
+- name: Notify Slack on Success
+  if: success()
+  uses: slackapi/slack-github-action@v1
+  with:
+    payload: |
+      {
+        "text": "✅ analyze_prompt tests passed",
+        "blocks": [
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*analyze_prompt Feature Tests*\n✅ All tests passed\n📊 Coverage: 82.94%"
+            }
+          }
+        ]
+      }
+  env:
+    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+- name: Notify Slack on Failure
+  if: failure()
+  uses: slackapi/slack-github-action@v1
+  with:
+    payload: |
+      {
+        "text": "❌ analyze_prompt tests failed",
+        "blocks": [
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*analyze_prompt Feature Tests*\n❌ Tests failed\n🔗 <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Results>"
+            }
+          }
+        ]
+      }
+  env:
+    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+### Local CI Testing
+
+Test CI pipeline locally before pushing:
+
+```bash
+# Install act (GitHub Actions local runner)
+brew install act  # macOS
+# or
+curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+
+# Run workflow locally
+act -j test --secret GEMINI_API_KEY=your-key-here
+
+# Run specific job
+act -j staging_deploy
+
+# Dry run (show what would be executed)
+act --dryrun
+```
+
+---
+
 ## Next Steps
 
 **For Production Deployment:**
-1. Add comprehensive integration tests (see Test Scenarios section)
-2. Implement UI components (Prompt Tester + Session Viewer)
-3. Add performance monitoring (latency tracking, error rates)
+1. Configure CI/CD pipeline with GitHub Actions workflow above
+2. Set up monitoring and alerting for LLM failures
+3. Implement performance tracking and regression detection
 4. Create runbook for common issues (based on Troubleshooting section)
-5. Set up alerting for LLM failures and rate limits
+5. Set up automated rollback procedures
 
 **For Development:**
-1. Use manual testing guide to verify functionality
-2. Enable debug logging to understand flow
-3. Monitor logs during testing
+1. Use automated tests for rapid iteration (`bun test --watch`)
+2. Use validation script for end-to-end testing
+3. Enable debug logging to understand flow
 4. Test edge cases and failure scenarios
 5. Validate with multiple clients simultaneously
