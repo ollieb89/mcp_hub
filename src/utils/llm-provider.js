@@ -511,6 +511,77 @@ export class GeminiProvider extends LLMProvider {
   }
 
   /**
+   * Analyze user prompt to determine needed tool categories
+   * @param {string} prompt - User's request
+   * @param {string} [context] - Optional conversation context
+   * @param {string[]} validCategories - Array of valid category names
+   * @returns {Promise<{categories: string[], confidence: number, reasoning: string}>}
+   */
+  async analyzePrompt(prompt, context, validCategories) {
+    const analysisPrompt = this._buildAnalysisPrompt(prompt, context, validCategories);
+
+    try {
+      // Get the generative model with JSON response format
+      const model = this.genAI.getGenerativeModel({
+        model: this.model || 'gemini-2.5-flash',
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 150,
+          responseMimeType: 'application/json'
+        }
+      });
+
+      // Generate content with retry logic
+      let lastError;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const result = await model.generateContent(analysisPrompt);
+          const response = await result.response;
+          const responseText = response.text();
+
+          if (!responseText) {
+            throw new Error('No response from Gemini API');
+          }
+
+          return this._parseAnalysisResponse(responseText, validCategories);
+        } catch (err) {
+          lastError = err;
+          if (attempt < 2) {
+            // Exponential backoff: 1s, 2s
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+          }
+        }
+      }
+
+      throw lastError;
+    } catch (error) {
+      // Enhanced error handling
+      const errorMessage = error?.message || String(error);
+      
+      if (errorMessage.includes('API_KEY_INVALID') || errorMessage.includes('invalid api key')) {
+        logger.error(`Gemini API key invalid during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+        logger.warn(`Gemini rate limit exceeded during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else if (errorMessage.includes('SAFETY') || errorMessage.includes('blocked')) {
+        logger.warn(`Gemini safety filter triggered during prompt analysis`, {
+          prompt: prompt.substring(0, 100)
+        });
+      } else {
+        logger.error(`Gemini prompt analysis failed: ${errorMessage}`, {
+          error: error?.stack,
+          prompt: prompt.substring(0, 100)
+        });
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
    * Build the prompt for tool categorization
    * @param {string} toolName - Name of the tool
    * @param {object} toolDefinition - Tool definition
