@@ -83,7 +83,14 @@
       "Bash(gh repo view:*)",
       "Bash(gh repo edit:*)",
       "Bash(git log:*)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__take_screenshot",
+      "Bash(tree:*)",
+      "Bash(node scripts/test-category-service.js:*)",
+      "Bash(node scripts/test-category-mapper.js:*)"
     ],
     "deny": [],
     "ask": []

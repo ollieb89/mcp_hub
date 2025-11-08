@@ -155,10 +155,15 @@ class MarketplaceError extends MCPHubError {
  */
 export class Marketplace {
   /**
-   * @param {number} ttl - Cache time-to-live in milliseconds
+   * @param {Object} options - Configuration options
+   * @param {number} [options.ttl] - Cache time-to-live in milliseconds
+   * @param {Object} [options.logger] - Logger instance
+   * @param {Object} [options.categoryMapper] - CategoryMapper instance for automatic categorization
    */
-  constructor(ttl = DEFAULT_TTL) {
+  constructor({ ttl = DEFAULT_TTL, logger = console, categoryMapper = null } = {}) {
     this.ttl = ttl;
+    this.logger = logger;
+    this.categoryMapper = categoryMapper;
     this.cacheFile = path.join(CACHE_DIR, CACHE_FILE);
     /** @type {MarketplaceCacheData} */
     this.cache = {
@@ -373,7 +378,10 @@ export class Marketplace {
     if (!this.isCatalogValid()) {
       await this.fetchRegistry(); // Attempt to refresh if stale
     }
-    return this.queryCatalog(options);
+    const servers = this.queryCatalog(options);
+
+    // Enrich with categories
+    return await this.enrichWithCategories(servers);
   }
 
   /**
@@ -406,10 +414,55 @@ export class Marketplace {
       }
     }
 
-    return {
+    const serverWithReadme = {
       server: server,
       readmeContent: readmeContent,
     };
+
+    // Enrich server with category
+    const enrichedServers = await this.enrichWithCategories([server]);
+    serverWithReadme.server = enrichedServers[0];
+
+    return serverWithReadme;
+  }
+
+  /**
+   * Enrich servers with category information using CategoryMapper
+   * @param {Array} servers - Server objects to enrich
+   * @returns {Promise<Array>} Servers with category field added
+   * @private
+   */
+  async enrichWithCategories(servers) {
+    if (!this.categoryMapper || !Array.isArray(servers) || servers.length === 0) {
+      // No category mapper or empty array: return as-is with default category
+      return servers.map(s => ({ ...s, category: 'other' }));
+    }
+
+    try {
+      // Prepare servers for batch categorization
+      const serverData = servers.map(s => ({
+        name: s.name || '',
+        description: s.description || '',
+        toolNames: s.tools?.map(t => t.name) || []
+      }));
+
+      // Batch categorize for performance
+      const categories = await this.categoryMapper.categorizeBatch(serverData);
+
+      // Enrich servers with categories
+      return servers.map(server => ({
+        ...server,
+        category: categories.get(server.name) || 'other'
+      }));
+    } catch (error) {
+      this.logger.warn('[Marketplace] Category enrichment failed', {
+        error: error.message,
+        serverCount: servers.length
+      });
+
+      // Graceful degradation: return servers with 'other' category
+      return servers.map(s => ({ ...s, category: 'other' }));
+    }
   }
 
   /**
@@ -462,12 +515,18 @@ let instance = null;
 
 /**
  * Gets the singleton Marketplace instance
- * @param {number} [ttl] - Cache TTL in milliseconds
+ * @param {number|Object} [options] - Cache TTL (number) or options object
+ * @param {number} [options.ttl] - Cache TTL in milliseconds
+ * @param {Object} [options.logger] - Logger instance
+ * @param {Object} [options.categoryMapper] - CategoryMapper instance
  * @returns {Marketplace} Marketplace instance
  */
-export function getMarketplace(ttl = DEFAULT_TTL) {
-  if (!instance || (ttl && ttl !== instance.ttl)) {
-    instance = new Marketplace(ttl);
+export function getMarketplace(options = {}) {
+  // Support both old (ttl) and new (options object) signatures for backward compatibility
+  const opts = typeof options === 'number' ? { ttl: options } : options;
+
+  if (!instance || (opts.ttl && opts.ttl !== instance.ttl) || (opts.categoryMapper && opts.categoryMapper !== instance.categoryMapper)) {
+    instance = new Marketplace(opts);
   }
   return instance;
 }

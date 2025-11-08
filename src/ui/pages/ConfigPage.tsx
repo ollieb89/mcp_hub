@@ -83,6 +83,9 @@ const ConfigPage = () => {
     [config],
   );
 
+  // Show Categories tab for all modes (categories are used by prompt-based LLM categorization too)
+  const showCategoriesTab = true;
+
   const handleSave = useCallback(async () => {
     if (!config) return;
     setSaving(true);
@@ -214,21 +217,40 @@ const ConfigPage = () => {
   );
 
   const categoriesContent = (
-    <CategoryListEditor
-      categories={toolFiltering.categoryFilter?.categories ?? []}
-      onChange={(categories) =>
-        updateConfigState((prev) => ({
-          ...prev,
-          toolFiltering: {
-            ...toolFiltering,
-            categoryFilter: {
-              ...(toolFiltering.categoryFilter ?? {}),
-              categories,
+    <Stack spacing={2}>
+      <Alert severity="info">
+        <Typography variant="body2" fontWeight={600} mb={0.5}>
+          Tool Categories
+        </Typography>
+        <Typography variant="body2">
+          Categories group related tools together (e.g., github, filesystem, web).
+          Categories are used by multiple filtering modes:
+        </Typography>
+        <Typography variant="body2" component="ul" sx={{ mt: 1, mb: 1, pl: 2 }}>
+          <li><strong>category mode:</strong> Only tools from specified categories are exposed</li>
+          <li><strong>hybrid mode:</strong> Combines server and category filtering</li>
+          <li><strong>prompt-based mode:</strong> LLM uses categories to intelligently expose relevant tools</li>
+        </Typography>
+        <Typography variant="body2">
+          <strong>Standard categories:</strong> github, filesystem, web, docker, git, python, database, memory, vertex_ai, meta
+        </Typography>
+      </Alert>
+      <CategoryListEditor
+        categories={toolFiltering.categoryFilter?.categories ?? []}
+        onChange={(categories) =>
+          updateConfigState((prev) => ({
+            ...prev,
+            toolFiltering: {
+              ...toolFiltering,
+              categoryFilter: {
+                ...(toolFiltering.categoryFilter ?? {}),
+                categories,
+              },
             },
-          },
-        }))
-      }
-    />
+          }))
+        }
+      />
+    </Stack>
   );
 
   const serversContent = (
@@ -278,12 +300,23 @@ const ConfigPage = () => {
     </Stack>
   );
 
-  const tabs = [
-    { label: "General", content: generalContent },
-    { label: "Categories", content: categoriesContent },
-    { label: "Servers", content: serversContent },
-    { label: "Raw JSON", content: rawContent },
-  ];
+  const tabs = useMemo(() => {
+    const baseTabs = [
+      { label: "General", content: generalContent },
+    ];
+
+    // Only show Categories tab for category and hybrid modes
+    if (showCategoriesTab) {
+      baseTabs.push({ label: "Categories", content: categoriesContent });
+    }
+
+    baseTabs.push(
+      { label: "Servers", content: serversContent },
+      { label: "Raw JSON", content: rawContent }
+    );
+
+    return baseTabs;
+  }, [generalContent, categoriesContent, serversContent, rawContent, showCategoriesTab]);
 
   return (
     <Box>

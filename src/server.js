@@ -46,6 +46,7 @@ function getStatusCode(error) {
 
 let serviceManager = null;
 let marketplace = null;
+let categoryService = null;
 let mcpServerEndpoint = null;
 
 class ServiceManager {
@@ -119,9 +120,30 @@ class ServiceManager {
       this.broadcastSubscriptionEvent(SubscriptionTypes.WORKSPACES_UPDATED, { workspaces });
     });
 
-    // Initialize marketplace second
+    // Initialize CategoryService for category metadata management
+    logger.info("Initializing CategoryService");
+    const { CategoryService } = await import('./services/CategoryService.js');
+    categoryService = new CategoryService({
+      enableCache: true,
+      cacheTTL: 3600000, // 1 hour
+      logger
+    });
+    logger.info("CategoryService initialized");
+
+    // Initialize CategoryMapper for automatic server categorization
+    logger.info("Initializing CategoryMapper");
+    const { CategoryMapper } = await import('./services/CategoryMapper.js');
+    const categoryMapper = new CategoryMapper({
+      enableLLM: false,              // Conservative: no LLM by default (user opt-in via config)
+      enableCache: true,             // Enable memory cache for performance
+      enablePersistentCache: true,   // Enable cross-session persistent cache
+      logger
+    });
+    logger.info("CategoryMapper initialized");
+
+    // Initialize marketplace second (with CategoryMapper)
     logger.info("Initializing marketplace catalog");
-    marketplace = getMarketplace();
+    marketplace = getMarketplace({ categoryMapper });
     await marketplace.initialize();
     logger.info(`Marketplace initialized with ${marketplace.cache.registry?.servers?.length || 0}`);
 
@@ -447,6 +469,113 @@ registerRoute(
     } catch (error) {
       throw wrapError(error, "MARKETPLACE_ERROR", {
         mcpId: req.body.mcpId,
+      });
+    }
+  }
+);
+
+// Register category endpoints
+registerRoute(
+  "GET",
+  "/categories",
+  "Get all categories with optional filtering and sorting",
+  async (req, res) => {
+    const { sort, fields } = req.query;
+    try {
+      let categories = categoryService.getAllCategories();
+
+      // Apply sorting if specified
+      if (sort) {
+        const validSortFields = ['name', 'id', 'color'];
+        if (!validSortFields.includes(sort)) {
+          throw new ValidationError(`Invalid sort field. Must be one of: ${validSortFields.join(', ')}`, { sort });
+        }
+
+        categories = [...categories].sort((a, b) => {
+          const aVal = a[sort];
+          const bVal = b[sort];
+          return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        });
+      }
+
+      // Apply field filtering if specified
+      if (fields) {
+        const fieldList = fields.split(',').map(f => f.trim());
+        categories = categories.map(cat => {
+          const filtered = {};
+          fieldList.forEach(field => {
+            if (cat.hasOwnProperty(field)) {
+              filtered[field] = cat[field];
+            }
+          });
+          return filtered;
+        });
+      }
+
+      res.json({
+        categories,
+        count: categories.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      throw wrapError(error, "CATEGORY_ERROR", {
+        query: req.query,
+      });
+    }
+  }
+);
+
+// Register /stats BEFORE /:id to avoid route conflicts
+registerRoute(
+  "GET",
+  "/categories/stats",
+  "Get category service statistics",
+  async (req, res) => {
+    try {
+      const statistics = categoryService.getStatistics();
+      const health = categoryService.getHealth();
+
+      res.json({
+        statistics: {
+          ...statistics,
+          health
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      throw wrapError(error, "CATEGORY_ERROR", {});
+    }
+  }
+);
+
+registerRoute(
+  "GET",
+  "/categories/:id",
+  "Get single category by ID",
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      if (!id) {
+        throw new ValidationError("Missing category ID in path parameter");
+      }
+
+      // Check if category exists
+      if (!categoryService.categoryExists(id)) {
+        throw new ValidationError("Category not found", {
+          categoryId: id,
+          availableCategories: categoryService.getCategoryIds()
+        });
+      }
+
+      const category = categoryService.getCategory(id);
+
+      res.json({
+        category,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      throw wrapError(error, "CATEGORY_ERROR", {
+        categoryId: req.params.id,
       });
     }
   }
