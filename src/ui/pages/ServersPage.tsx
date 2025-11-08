@@ -1,53 +1,73 @@
 import { Alert, Box, Snackbar, Stack, Typography } from "@mui/material";
 import { useCallback } from "react";
-import { getServers, startServer, stopServer, type ServerInfo } from "@api/servers";
+import { useQueryClient } from "@tanstack/react-query";
+import { type ServerInfo } from "@api/servers";
+import { useServers } from "@api/hooks";
+import { useStartServer, useStopServer } from "@api/mutations";
+import { queryKeys } from "@utils/query-client";
 import ServersTable from "@components/ServersTable";
-import { usePolling } from "@hooks/usePolling";
 import { useSnackbar } from "@hooks/useSnackbar";
+import { useConfigUpdates } from "@hooks/useSSESubscription";
 
 const ServersPage = () => {
+  const queryClient = useQueryClient();
   const { message, open, showSnackbar, closeSnackbar } = useSnackbar();
-  const fetchServers = useCallback(async () => {
-    const response = await getServers();
-    return response.servers;
-  }, []);
 
-  const { data, error, loading, refresh } = usePolling(fetchServers, {
-    interval: 20000,
-  });
+  // React Query hooks - automatic caching and refetching
+  const { data: serversData, isLoading, error, refetch } = useServers();
+  const startServerMutation = useStartServer();
+  const stopServerMutation = useStopServer();
+
+  // SSE integration - invalidate queries on config changes
+  useConfigUpdates(
+    useCallback((event) => {
+      if (event.type === "config_changed" || event.type === "servers_updated") {
+        queryClient.invalidateQueries({ queryKey: queryKeys.servers.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.health });
+      }
+    }, [queryClient]),
+  );
 
   const handleToggle = useCallback(
-    async (server: ServerInfo, enabled: boolean) => {
-      try {
-        if (enabled) {
-          await startServer(server.name);
-          showSnackbar(`Started ${server.displayName || server.name}`);
-        } else {
-          await stopServer(server.name, true);
-          showSnackbar(`Disabled ${server.displayName || server.name}`);
-        }
-      } catch (err) {
-        showSnackbar((err as Error).message);
-      } finally {
-        await refresh();
+    (server: ServerInfo, enabled: boolean) => {
+      if (enabled) {
+        startServerMutation.mutate(server.name, {
+          onSuccess: () => {
+            showSnackbar(`Started ${server.displayName || server.name}`);
+          },
+          onError: (err) => {
+            showSnackbar(err.message);
+          },
+        });
+      } else {
+        stopServerMutation.mutate(
+          { serverName: server.name, disable: true },
+          {
+            onSuccess: () => {
+              showSnackbar(`Disabled ${server.displayName || server.name}`);
+            },
+            onError: (err) => {
+              showSnackbar(err.message);
+            },
+          },
+        );
       }
     },
-    [refresh, showSnackbar],
+    [startServerMutation, stopServerMutation, showSnackbar],
   );
 
   const handleRestart = useCallback(
     async (server: ServerInfo) => {
       try {
-        await stopServer(server.name, false);
-        await startServer(server.name);
+        // Stop first (without disable), then start
+        await stopServerMutation.mutateAsync({ serverName: server.name, disable: false });
+        await startServerMutation.mutateAsync(server.name);
         showSnackbar(`Restarted ${server.displayName || server.name}`);
       } catch (err) {
         showSnackbar((err as Error).message);
-      } finally {
-        await refresh();
       }
     },
-    [refresh, showSnackbar],
+    [startServerMutation, stopServerMutation, showSnackbar],
   );
 
   return (
@@ -63,14 +83,14 @@ const ServersPage = () => {
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+          {error.message}
         </Alert>
       )}
 
       <ServersTable
-        servers={data ?? []}
-        loading={loading}
-        onRefresh={refresh}
+        servers={serversData?.servers ?? []}
+        loading={isLoading}
+        onRefresh={refetch}
         onToggle={handleToggle}
         onRestart={handleRestart}
       />

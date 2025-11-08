@@ -1,16 +1,25 @@
 import { Alert, Box, Stack, Typography } from "@mui/material";
 import { useCallback } from "react";
-import { getTools } from "@api/tools";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTools } from "@api/hooks";
+import { queryKeys } from "@utils/query-client";
 import ToolsTable from "@components/ToolsTable";
-import { usePolling } from "@hooks/usePolling";
+import { useToolListUpdates } from "@hooks/useSSESubscription";
 
 const ToolsPage = () => {
-  const fetchTools = useCallback(async () => {
-    const response = await getTools();
-    return response.tools;
-  }, []);
+  const queryClient = useQueryClient();
 
-  const { data, error, loading } = usePolling(fetchTools, { interval: 20000 });
+  // React Query hooks - automatic caching and refetching
+  const { data: toolsData, isLoading, error } = useTools();
+
+  // SSE integration - invalidate queries on tool list changes
+  useToolListUpdates(
+    useCallback((event) => {
+      if (event.type === "tool_list_changed") {
+        queryClient.invalidateQueries({ queryKey: queryKeys.tools.all });
+      }
+    }, [queryClient]),
+  );
 
   return (
     <Box>
@@ -24,10 +33,10 @@ const ToolsPage = () => {
       </Stack>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+          {error.message}
         </Alert>
       )}
-      <ToolsTable tools={data ?? []} loading={loading} />
+      <ToolsTable tools={toolsData?.tools ?? []} loading={isLoading} />
     </Box>
   );
 };

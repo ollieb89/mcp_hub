@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -8,12 +9,9 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import {
-  getFilteringStats,
-  type FilteringStats,
-  setFilteringEnabled,
-  setFilteringMode,
-} from "@api/filtering";
+import { useFilteringStats } from "@api/hooks";
+import { useUpdateFilteringMode, useToggleFiltering } from "@api/mutations";
+import { queryKeys } from "@utils/query-client";
 import FilteringCard, {
   type FilteringMode,
 } from "@components/FilteringCard";
@@ -23,6 +21,7 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import ActiveFiltersCard from "@components/ActiveFiltersCard";
 import LogsPanel from "@components/LogsPanel";
 import { useLogsStream } from "@hooks/useLogsStream";
+import { useConfigUpdates } from "@hooks/useSSESubscription";
 import type { CacheHistoryPoint } from "@components/CacheLineChart";
 
 const ToolPieChart = lazy(() => import("@components/ToolPieChart"));
@@ -56,18 +55,27 @@ const CacheLineChartFallback = () => (
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<FilteringStats | null>(null);
+  const queryClient = useQueryClient();
+
+  // React Query hooks - automatic caching and refetching
+  const { data: stats, isLoading, error } = useFilteringStats();
+  const updateModeMutation = useUpdateFilteringMode();
+  const toggleFilteringMutation = useToggleFiltering();
+
+  // Local state for cache history chart
   const [history, setHistory] = useState<CacheHistoryPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  // Logs stream (unchanged)
   const { logs, connected } = useLogsStream({ limit: 40 });
-  
-  const appendHistory = useCallback((next: FilteringStats) => {
+
+  // Append to cache history when stats update
+  const appendHistory = useCallback((nextStats: typeof stats) => {
+    if (!nextStats) return;
+
     const point: CacheHistoryPoint = {
-      timestamp: next.timestamp,
-      cacheHitRate: next.cacheHitRate ?? 0,
-      llmCacheHitRate: next.llmCacheHitRate ?? 0,
+      timestamp: nextStats.timestamp,
+      cacheHitRate: nextStats.cacheHitRate ?? 0,
+      llmCacheHitRate: nextStats.llmCacheHitRate ?? 0,
     };
 
     setHistory((prev) => {
@@ -76,59 +84,48 @@ const DashboardPage = () => {
     });
   }, []);
 
-  const fetchStats = useCallback(async () => {
-    try {
-      setError(null);
-      const response = await getFilteringStats();
-      setStats(response);
-      appendHistory(response);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [appendHistory]);
-
+  // Update history when stats change
   useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
-  }, [fetchStats]);
+    if (stats) {
+      appendHistory(stats);
+    }
+  }, [stats, appendHistory]);
 
-  const handleToggle = useCallback(
-    async (enabled: boolean) => {
-      setPending(true);
-      try {
-        await setFilteringEnabled(enabled);
-        await fetchStats();
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setPending(false);
+  // SSE integration - invalidate queries on config changes
+  useConfigUpdates(
+    useCallback((event) => {
+      // Invalidate filtering stats query when config changes
+      if (event.type === "config_changed" || event.type === "servers_updated") {
+        queryClient.invalidateQueries({ queryKey: queryKeys.filtering.stats });
+        queryClient.invalidateQueries({ queryKey: queryKeys.tools.all });
       }
-    },
-    [fetchStats],
+    }, [queryClient]),
   );
 
-  const handleModeChange = useCallback(
-    async (mode: FilteringMode) => {
-      setPending(true);
-      try {
-        await setFilteringMode(mode);
-        await fetchStats();
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setPending(false);
-      }
+  // Handle toggle with mutation hook
+  const handleToggle = useCallback(
+    (enabled: boolean) => {
+      toggleFilteringMutation.mutate(enabled);
     },
-    [fetchStats],
+    [toggleFilteringMutation],
+  );
+
+  // Handle mode change with mutation hook
+  const handleModeChange = useCallback(
+    (mode: FilteringMode) => {
+      updateModeMutation.mutate(mode);
+    },
+    [updateModeMutation],
   );
 
   const handleEditFilters = useCallback(() => {
     navigate("/configuration");
   }, [navigate]);
 
+  // Mutation pending state
+  const pending = updateModeMutation.isPending || toggleFilteringMutation.isPending;
+
+  // Logs state (unchanged)
   const logsLoading = !connected && logs.length === 0;
   const derivedLogs = useMemo(() => logs.slice().reverse(), [logs]);
 
@@ -145,11 +142,11 @@ const DashboardPage = () => {
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+          {error.message}
         </Alert>
       )}
 
-      {loading && !stats ? (
+      {isLoading && !stats ? (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
           <CircularProgress color="primary" />
         </Box>
@@ -176,7 +173,7 @@ const DashboardPage = () => {
               <ToolPieChart stats={stats} />
             </Suspense>
             <Suspense fallback={<CacheLineChartFallback />}>
-              <CacheLineChart history={history} loading={loading} />
+              <CacheLineChart history={history} loading={isLoading} />
             </Suspense>
           </Box>
           <Box

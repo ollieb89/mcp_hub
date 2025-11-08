@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Alert,
   Box,
@@ -14,7 +15,10 @@ import {
   Typography,
   Select,
 } from "@mui/material";
-import { getConfig, saveConfig, type HubConfig } from "@api/config";
+import { type HubConfig } from "@api/config";
+import { useConfig } from "@api/hooks";
+import { useSaveConfig } from "@api/mutations";
+import { queryKeys } from "@utils/query-client";
 import ConfigTabs from "@components/ConfigTabs";
 import CategoryListEditor from "@components/CategoryListEditor";
 import ServerAllowlistEditor from "@components/ServerAllowlistEditor";
@@ -22,6 +26,7 @@ import RawJsonEditor from "@components/RawJsonEditor";
 import ConfigPreviewDialog from "@components/ConfigPreviewDialog";
 import type { FilteringMode } from "@components/FilteringCard";
 import { useSnackbar } from "@hooks/useSnackbar";
+import { useConfigUpdates } from "@hooks/useSSESubscription";
 
 const filteringModes: FilteringMode[] = [
   "server-allowlist",
@@ -31,37 +36,44 @@ const filteringModes: FilteringMode[] = [
 ];
 
 const ConfigPage = () => {
+  const queryClient = useQueryClient();
+  const { message, open, showSnackbar, closeSnackbar } = useSnackbar();
+
+  // React Query hooks - automatic caching and refetching
+  const { data: configData, isLoading, error: queryError } = useConfig();
+  const saveConfigMutation = useSaveConfig();
+
+  // Local state for form editing
   const [config, setConfig] = useState<HubConfig | null>(null);
   const [configVersion, setConfigVersion] = useState<string>("");
   const [rawConfig, setRawConfig] = useState("");
   const [activeTab, setActiveTab] = useState(0);
   const [dirty, setDirty] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [previewConfig, setPreviewConfig] = useState<HubConfig | null>(null);
-  const { message, open, showSnackbar, closeSnackbar } = useSnackbar();
 
-  const loadConfig = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await getConfig();
-      setConfig(response.config);
-      setConfigVersion(response.version);
-      setRawConfig(JSON.stringify(response.config, null, 2));
-      setError(null);
-      setDirty(false);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Sync query data to local state when loaded
   useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
+    if (configData) {
+      setConfig(configData.config);
+      setConfigVersion(configData.version);
+      setRawConfig(JSON.stringify(configData.config, null, 2));
+      if (!dirty) {
+        setError(null);
+      }
+    }
+  }, [configData, dirty]);
+
+  // SSE integration - invalidate queries on config changes
+  useConfigUpdates(
+    useCallback((event) => {
+      if (event.type === "config_changed" && !dirty) {
+        // Only auto-reload if user hasn't made local changes
+        queryClient.invalidateQueries({ queryKey: queryKeys.config });
+      }
+    }, [dirty, queryClient]),
+  );
 
   const updateConfigState = useCallback(
     (updater: (prev: HubConfig) => HubConfig) => {
@@ -83,29 +95,33 @@ const ConfigPage = () => {
     [config],
   );
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(() => {
     if (!config) return;
-    setSaving(true);
-    try {
-      const response = await saveConfig(config, configVersion);
-      setConfig(response.config);
-      setConfigVersion(response.version);
-      setRawConfig(JSON.stringify(response.config, null, 2));
-      showSnackbar("Configuration saved successfully.");
-      setDirty(false);
-    } catch (err) {
-      const errorMsg = (err as Error).message;
-      if (errorMsg.includes("version mismatch")) {
-        setError(
-          "Configuration was modified by another process. Please reload and reapply your changes."
-        );
-      } else {
-        setError(errorMsg);
+
+    saveConfigMutation.mutate(
+      { config, expectedVersion: configVersion },
+      {
+        onSuccess: (response) => {
+          setConfig(response.config);
+          setConfigVersion(response.version);
+          setRawConfig(JSON.stringify(response.config, null, 2));
+          showSnackbar("Configuration saved successfully.");
+          setDirty(false);
+          setError(null);
+        },
+        onError: (err) => {
+          const errorMsg = err.message;
+          if (errorMsg.includes("version mismatch")) {
+            setError(
+              "Configuration was modified by another process. Please reload and reapply your changes."
+            );
+          } else {
+            setError(errorMsg);
+          }
+        },
       }
-    } finally {
-      setSaving(false);
-    }
-  }, [config, configVersion, showSnackbar]);
+    );
+  }, [config, configVersion, saveConfigMutation, showSnackbar]);
 
   const handleRawPreview = useCallback(() => {
     try {
@@ -118,32 +134,35 @@ const ConfigPage = () => {
     }
   }, [rawConfig]);
 
-  const handleRawSave = useCallback(async () => {
+  const handleRawSave = useCallback(() => {
     if (!previewConfig) return;
-    setSaving(true);
-    try {
-      const response = await saveConfig(previewConfig, configVersion);
-      setConfig(response.config);
-      setConfigVersion(response.version);
-      setRawConfig(JSON.stringify(response.config, null, 2));
-      showSnackbar("Raw configuration applied.");
-      setDirty(false);
-      setError(null);
-      setShowPreview(false);
-    } catch (err) {
-      const errorMsg = (err as Error).message;
-      if (errorMsg.includes("version mismatch")) {
-        setError(
-          "Configuration was modified by another process. Please reload and reapply your changes."
-        );
-        setShowPreview(false);
-      } else {
-        setError(errorMsg);
+
+    saveConfigMutation.mutate(
+      { config: previewConfig, expectedVersion: configVersion },
+      {
+        onSuccess: (response) => {
+          setConfig(response.config);
+          setConfigVersion(response.version);
+          setRawConfig(JSON.stringify(response.config, null, 2));
+          showSnackbar("Raw configuration applied.");
+          setDirty(false);
+          setError(null);
+          setShowPreview(false);
+        },
+        onError: (err) => {
+          const errorMsg = err.message;
+          if (errorMsg.includes("version mismatch")) {
+            setError(
+              "Configuration was modified by another process. Please reload and reapply your changes."
+            );
+            setShowPreview(false);
+          } else {
+            setError(errorMsg);
+          }
+        },
       }
-    } finally {
-      setSaving(false);
-    }
-  }, [previewConfig, configVersion, showSnackbar]);
+    );
+  }, [previewConfig, configVersion, saveConfigMutation, showSnackbar]);
 
   const generalContent = (
     <Stack spacing={3}>
@@ -296,9 +315,9 @@ const ConfigPage = () => {
         </Typography>
       </Stack>
 
-      {error && (
+      {(error || queryError) && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+          {error || queryError?.message}
         </Alert>
       )}
 
@@ -306,14 +325,14 @@ const ConfigPage = () => {
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={saving || !dirty || !config}
-          startIcon={saving ? <CircularProgress size={18} /> : undefined}
+          disabled={saveConfigMutation.isPending || !dirty || !config}
+          startIcon={saveConfigMutation.isPending ? <CircularProgress size={18} /> : undefined}
         >
-          {saving ? "Saving…" : "Save Changes"}
+          {saveConfigMutation.isPending ? "Saving…" : "Save Changes"}
         </Button>
       </Stack>
 
-      {loading || !config ? (
+      {isLoading || !config ? (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
           <CircularProgress />
         </Box>
