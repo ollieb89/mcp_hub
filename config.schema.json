@@ -1,0 +1,554 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MCP Hub Configuration Schema",
+  "description": "Configuration schema for MCP Hub - a central coordinator for Model Context Protocol servers",
+  "type": "object",
+  "properties": {
+    "connectionPool": {
+      "description": "Global HTTP connection pooling configuration for remote MCP servers (SSE and streamable-http transports)",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable connection pooling globally. Improves remote server latency by 10-30%"
+        },
+        "keepAliveTimeout": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 600000,
+          "default": 60000,
+          "description": "Socket keep-alive timeout in milliseconds (1s - 10min). Default: 60000ms (60s)"
+        },
+        "keepAliveMaxTimeout": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 600000,
+          "default": 600000,
+          "description": "Maximum socket lifetime in milliseconds (1s - 10min). Default: 600000ms (10min)"
+        },
+        "maxConnections": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 50,
+          "description": "Maximum connections per host. Default: 50"
+        },
+        "maxFreeConnections": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 10,
+          "description": "Maximum idle connections per host kept for reuse. Default: 10"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 300000,
+          "default": 30000,
+          "description": "Socket timeout in milliseconds (1s - 5min). Default: 30000ms (30s)"
+        },
+        "pipelining": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 0,
+          "description": "Number of pipelined requests. Default: 0 (disabled for MCP request-response pattern)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "toolFiltering": {
+      "description": "Tool filtering configuration for managing tool exposure to MCP clients",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable tool filtering globally"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["static", "server-allowlist", "category", "hybrid", "prompt-based"],
+          "default": "static",
+          "description": "Filtering mode: 'static' (expose all), 'server-allowlist' (filter by server), 'category' (filter by category), 'hybrid' (server + category), 'prompt-based' (LLM-driven dynamic exposure)"
+        },
+        "serverFilter": {
+          "description": "Filter tools by server name (server-allowlist and hybrid modes)",
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["allowlist", "denylist"],
+              "default": "allowlist",
+              "description": "Filter mode: 'allowlist' (only expose listed servers) or 'denylist' (expose all except listed servers)"
+            },
+            "servers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of server names to allowlist or denylist",
+              "default": []
+            }
+          },
+          "required": ["mode", "servers"],
+          "additionalProperties": false
+        },
+        "categoryFilter": {
+          "description": "Filter tools by category (category and hybrid modes)",
+          "type": "object",
+          "properties": {
+            "categories": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "filesystem",
+                  "web",
+                  "search",
+                  "database",
+                  "version-control",
+                  "docker",
+                  "cloud",
+                  "development",
+                  "communication",
+                  "other"
+                ]
+              },
+              "description": "List of categories to expose. Valid categories: filesystem, web, search, database, version-control, docker, cloud, development, communication, other",
+              "default": []
+            },
+            "customMappings": {
+              "type": "object",
+              "patternProperties": {
+                ".*": {
+                  "type": "string"
+                }
+              },
+              "description": "Custom pattern-to-category mappings. Format: { \"pattern\": \"category\" }. Example: { \"myserver__*\": \"custom-category\" }",
+              "default": {}
+            }
+          },
+          "required": ["categories"],
+          "additionalProperties": false
+        },
+        "promptBasedFiltering": {
+          "description": "Prompt-based (LLM-driven) dynamic tool exposure configuration",
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable prompt-based filtering. Requires toolFiltering.mode = 'prompt-based'"
+            },
+            "defaultExposure": {
+              "type": "string",
+              "enum": ["zero", "meta-only", "minimal", "all"],
+              "default": "meta-only",
+              "description": "Default tool exposure level: 'zero' (no tools), 'meta-only' (only hub__analyze_prompt meta-tool), 'minimal' (core tools), 'all' (all tools)"
+            },
+            "enableMetaTools": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable meta-tools like hub__analyze_prompt for prompt analysis"
+            },
+            "sessionIsolation": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable per-client session isolation. Each client maintains independent tool exposure state"
+            }
+          },
+          "additionalProperties": false
+        },
+        "llmCategorization": {
+          "description": "LLM provider configuration for prompt-based filtering",
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable LLM-based prompt analysis and tool categorization"
+            },
+            "provider": {
+              "type": "string",
+              "enum": ["openai", "anthropic", "gemini"],
+              "default": "gemini",
+              "description": "LLM provider: 'openai', 'anthropic', or 'gemini'"
+            },
+            "apiKey": {
+              "type": "string",
+              "description": "API key for the LLM provider. Use ${ENV_VAR} syntax for environment variable resolution"
+            },
+            "model": {
+              "type": "string",
+              "description": "Model identifier. Examples: 'gemini-2.5-flash', 'gpt-4o-mini', 'claude-3-5-haiku-20241022'"
+            },
+            "temperature": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2,
+              "default": 0,
+              "description": "LLM temperature for categorization. Lower = more deterministic. Default: 0"
+            },
+            "maxRetries": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10,
+              "default": 3,
+              "description": "Maximum retry attempts for LLM API calls. Default: 3"
+            }
+          },
+          "required": ["enabled", "provider"],
+          "additionalProperties": false
+        },
+        "autoEnableThreshold": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Automatically enable filtering when total tool count exceeds this threshold. Set to 0 to disable auto-enable"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mcpServers": {
+      "description": "MCP server configurations. Each key is a unique server identifier",
+      "type": "object",
+      "patternProperties": {
+        "^[a-zA-Z0-9_-]+$": {
+          "oneOf": [
+            {
+              "description": "STDIO transport configuration (local script-based servers)",
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Command to execute (e.g., 'node', 'python', 'npx', 'uvx'). Supports ${ENV_VAR} and ${cmd: command} syntax"
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Command arguments. Supports ${ENV_VAR} and ${cmd: command} syntax",
+                  "default": []
+                },
+                "env": {
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "Environment variables for the server process. Supports ${ENV_VAR}, ${cmd: command}, ${workspaceFolder}, ${userHome}, etc.",
+                  "default": {}
+                },
+                "cwd": {
+                  "type": "string",
+                  "description": "Working directory for the server process. Supports ${workspaceFolder} and other predefined variables",
+                  "default": "."
+                },
+                "disabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Disable this server without removing configuration"
+                },
+                "dev": {
+                  "description": "Development mode configuration for hot-reload",
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "default": false,
+                      "description": "Enable development mode with file watching"
+                    },
+                    "watch": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Glob patterns for files to watch (e.g., ['**/*.js', '**/*.py'])",
+                      "default": ["**/*.js"]
+                    },
+                    "cwd": {
+                      "type": "string",
+                      "description": "Absolute path to watch directory (REQUIRED for dev mode)"
+                    }
+                  },
+                  "required": ["enabled", "cwd"],
+                  "additionalProperties": false
+                },
+                "connectionPool": {
+                  "description": "STDIO servers do not support connection pooling. This property is rejected for STDIO transport",
+                  "not": {}
+                },
+                "note": {
+                  "type": "string",
+                  "description": "Optional documentation note for this server configuration"
+                }
+              },
+              "required": ["command"],
+              "additionalProperties": false
+            },
+            {
+              "description": "SSE (Server-Sent Events) transport configuration",
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "sse",
+                  "description": "Transport type: 'sse' for Server-Sent Events"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Server URL (https://example.com/sse). Supports ${ENV_VAR} syntax"
+                },
+                "headers": {
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "HTTP headers for authentication. Supports ${ENV_VAR} syntax",
+                  "default": {}
+                },
+                "disabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Disable this server without removing configuration"
+                },
+                "connectionPool": {
+                  "description": "Per-server connection pool configuration (overrides global connectionPool settings)",
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Enable connection pooling for this server"
+                    },
+                    "keepAliveTimeout": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "maximum": 600000,
+                      "description": "Socket keep-alive timeout in milliseconds (1s - 10min)"
+                    },
+                    "keepAliveMaxTimeout": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "maximum": 600000,
+                      "description": "Maximum socket lifetime in milliseconds (1s - 10min)"
+                    },
+                    "maxConnections": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000,
+                      "description": "Maximum connections per host"
+                    },
+                    "maxFreeConnections": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "Maximum idle connections per host"
+                    },
+                    "timeout": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "maximum": 300000,
+                      "description": "Socket timeout in milliseconds (1s - 5min)"
+                    },
+                    "pipelining": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "Number of pipelined requests"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "note": {
+                  "type": "string",
+                  "description": "Optional documentation note for this server configuration"
+                }
+              },
+              "required": ["url"],
+              "additionalProperties": false
+            },
+            {
+              "description": "streamable-http transport configuration with OAuth support",
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "streamable-http",
+                  "description": "Transport type: 'streamable-http' for HTTP streaming with OAuth"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Server URL (https://example.com/mcp). Supports ${ENV_VAR} syntax"
+                },
+                "headers": {
+                  "type": "object",
+                  "patternProperties": {
+                    ".*": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "HTTP headers for authentication. Supports ${ENV_VAR} syntax",
+                  "default": {}
+                },
+                "disabled": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Disable this server without removing configuration"
+                },
+                "connectionPool": {
+                  "description": "Per-server connection pool configuration (overrides global connectionPool settings)",
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Enable connection pooling for this server"
+                    },
+                    "keepAliveTimeout": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "maximum": 600000,
+                      "description": "Socket keep-alive timeout in milliseconds (1s - 10min)"
+                    },
+                    "keepAliveMaxTimeout": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "maximum": 600000,
+                      "description": "Maximum socket lifetime in milliseconds (1s - 10min)"
+                    },
+                    "maxConnections": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 1000,
+                      "description": "Maximum connections per host"
+                    },
+                    "maxFreeConnections": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "Maximum idle connections per host"
+                    },
+                    "timeout": {
+                      "type": "integer",
+                      "minimum": 1000,
+                      "maximum": 300000,
+                      "description": "Socket timeout in milliseconds (1s - 5min)"
+                    },
+                    "pipelining": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "Number of pipelined requests"
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "note": {
+                  "type": "string",
+                  "description": "Optional documentation note for this server configuration"
+                }
+              },
+              "required": ["url"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "servers": {
+      "description": "VS Code compatibility alias for 'mcpServers'. If present, will be normalized to 'mcpServers'",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "environmentVariableSyntax": {
+      "description": "Environment variable resolution syntax",
+      "examples": [
+        "${ENV_VAR}",
+        "${env:ENV_VAR}",
+        "${cmd: command args}",
+        "${workspaceFolder}",
+        "${userHome}",
+        "${/}",
+        "${input:variable-id}"
+      ]
+    },
+    "predefinedVariables": {
+      "description": "VS Code-compatible predefined variables",
+      "enum": [
+        "${workspaceFolder}",
+        "${workspaceFolderBasename}",
+        "${userHome}",
+        "${/}",
+        "${pathSeparator}"
+      ]
+    }
+  },
+  "examples": [
+    {
+      "connectionPool": {
+        "enabled": true,
+        "keepAliveTimeout": 60000,
+        "maxConnections": 50
+      },
+      "toolFiltering": {
+        "enabled": true,
+        "mode": "prompt-based",
+        "promptBasedFiltering": {
+          "enabled": true,
+          "defaultExposure": "meta-only",
+          "enableMetaTools": true,
+          "sessionIsolation": true
+        },
+        "llmCategorization": {
+          "enabled": true,
+          "provider": "gemini",
+          "apiKey": "${GEMINI_API_KEY}",
+          "model": "gemini-2.5-flash"
+        }
+      },
+      "mcpServers": {
+        "filesystem": {
+          "command": "npx",
+          "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+          "env": {}
+        },
+        "github": {
+          "command": "npx",
+          "args": ["-y", "@modelcontextprotocol/server-github"],
+          "env": {
+            "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+          }
+        },
+        "vercel": {
+          "type": "streamable-http",
+          "url": "https://mcp.vercel.com",
+          "headers": {
+            "Authorization": "Bearer ${VERCEL_TOKEN}"
+          }
+        },
+        "custom-server": {
+          "command": "node",
+          "args": ["server.js"],
+          "cwd": "${workspaceFolder}/server",
+          "env": {
+            "API_KEY": "${cmd: op read op://vault/key}"
+          },
+          "dev": {
+            "enabled": true,
+            "watch": ["**/*.js"],
+            "cwd": "/absolute/path/to/server"
+          }
+        }
+      }
+    }
+  ]
+}
