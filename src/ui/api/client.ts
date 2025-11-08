@@ -1,8 +1,39 @@
+import { z } from 'zod';
+import { ErrorResponseSchema } from './schemas/common.schema';
+
 const defaultHeaders = {
   "Content-Type": "application/json",
 } as const;
 
-export async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/**
+ * Custom API Error class with structured error information
+ */
+export class APIError extends Error {
+  constructor(
+    public code: string,
+    message: string,
+    public details?: Record<string, unknown>,
+    public requestId?: string
+  ) {
+    super(message);
+    this.name = 'APIError';
+  }
+}
+
+/**
+ * Type-safe API request wrapper with Zod validation
+ *
+ * @param path - API endpoint path
+ * @param schema - Zod schema for response validation
+ * @param init - Fetch request options
+ * @returns Validated response data
+ * @throws APIError for API errors or validation failures
+ */
+export async function request<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  init?: RequestInit
+): Promise<T> {
   const response = await fetch(path, {
     ...init,
     headers: {
@@ -11,17 +42,39 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    const errorBody = await response
-      .json()
-      .catch(() => ({ message: response.statusText }));
-    const error = new Error(
-      typeof errorBody.error === "string"
-        ? errorBody.error
-        : errorBody.message ?? `Request failed: ${response.status}`,
+    // Validate error response
+    const errorResult = ErrorResponseSchema.safeParse(data);
+
+    if (errorResult.success) {
+      throw new APIError(
+        errorResult.data.error.code,
+        errorResult.data.error.message,
+        errorResult.data.error.details,
+        errorResult.data.error.requestId
+      );
+    }
+
+    // Fallback for non-standard errors
+    throw new APIError(
+      'UNKNOWN_ERROR',
+      data.message || response.statusText,
+      data
     );
-    throw error;
   }
 
-  return response.json() as Promise<T>;
+  // Validate success response
+  const result = schema.safeParse(data);
+
+  if (!result.success) {
+    throw new APIError(
+      'VALIDATION_ERROR',
+      'Response validation failed',
+      { errors: result.error.errors }
+    );
+  }
+
+  return result.data;
 }

@@ -19,6 +19,8 @@
   ],
   "files": [
     "dist/cli.js",
+    "config.schema.json",
+    "config.schema.d.ts",
     "LICENSE.md",
     "README.md"
   ],
@@ -48,6 +50,8 @@
     "release:patch": "bash scripts/release.sh patch",
     "release:minor": "bash scripts/release.sh minor",
     "release:major": "bash scripts/release.sh major",
+    "validate:config": "bun scripts/validate-config.js",
+    "validate:schema": "node -e \"const schema = require('./config.schema.json'); console.log('✅ Schema is valid JSON')\"",
     "prepublishOnly": "bun run build",
     "dev:ui": "vite dev",
     "build:ui": "vite build",
@@ -56,6 +60,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.0",
     "@modelcontextprotocol/sdk": "^1.20.2",
+    "@tanstack/react-query-devtools": "^5.90.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -89,8 +94,9 @@
     "@monaco-editor/react": "^4.7.0",
     "@mui/icons-material": "^7.3.4",
     "@mui/material": "^7.3.4",
-    "@mui/x-charts": "^8.16.0",
+    "@mui/x-charts": "^8.17.0",
     "@pinecone-database/pinecone": "^6.1.3",
+    "@tanstack/react-query": "^5.90.7",
     "diff": "^8.0.2",
     "json5": "^2.2.3",
     "monaco-editor": "^0.54.0",
@@ -104,6 +110,8 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
     "recharts": "^3.3.0",
-    "undici": "^7.16.0"
+    "undici": "^7.16.0",
+    "zod": "^4.1.12",
+    "zustand": "^5.0.8"
   }
 }
