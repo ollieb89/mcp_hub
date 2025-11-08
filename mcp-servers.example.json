@@ -36,8 +36,13 @@
   "mcpServers": {
     "serena": {
       "command": "uv",
-      "args": ["run", "--directory", "${HOME}/mcps/serena", "serena-mcp-server"],
-      "cwd": ".",
+      "args": [
+        "run",
+        "--directory",
+        "${HOME}/Development/Tools/mcps/serena",
+        "serena-mcp-server"
+      ],
+      "cwd": "${HOME}/Development/Tools/mcps/serena",
       "env": {},
       "disabled": false
     },
@@ -61,7 +66,13 @@
     },
     "docker-hub": {
       "command": "node",
-      "args": ["${HOME}/mcps/hub-mcp/dist/index.js", "--transport", "stdio", "--username", "${DOCKER_HUB_USERNAME}"],
+      "args": [
+        "${HOME}/Development/Tools/mcps/hub-mcp/dist/index.js",
+        "--transport",
+        "stdio",
+        "--username",
+        "${DOCKER_HUB_USERNAME}"
+      ],
       "cwd": ".",
       "env": {
         "HUB_PAT_TOKEN": "${DOCKER_HUB_PAT}"
@@ -102,7 +113,12 @@
     },
     "augments": {
       "command": "uv",
-      "args": ["run", "--directory", "${HOME}/mcps/augments-mcp-server", "augments-mcp-server"],
+      "args": [
+        "run",
+        "--directory",
+        "${HOME}/Development/Tools/mcps/augments-mcp-server",
+        "augments-mcp-server"
+      ],
       "cwd": ".",
       "env": {
         "GITHUB_TOKEN": "${GITHUB_TOKEN}"
@@ -112,7 +128,12 @@
     },
     "neon": {
       "command": "npx",
-      "args": ["-y", "@neondatabase/mcp-server-neon", "start", "${NEON_API_KEY}"],
+      "args": [
+        "-y",
+        "@neondatabase/mcp-server-neon",
+        "start",
+        "${NEON_API_KEY}"
+      ],
       "cwd": ".",
       "env": {},
       "disabled": false,
@@ -120,8 +141,10 @@
     },
     "vertex-ai": {
       "command": "node",
-      "args": ["${HOME}/mcps/vertex-ai-mcp-server/build/index.js"],
-      "cwd": "${HOME}/mcps/vertex-ai-mcp-server",
+      "args": [
+        "${HOME}/Development/Tools/mcps/vertex-ai-mcp-server/build/index.js"
+      ],
+      "cwd": "${HOME}/Development/Tools/mcps/vertex-ai-mcp-server",
       "env": {
         "AI_PROVIDER": "vertex",
         "GOOGLE_CLOUD_PROJECT": "${GOOGLE_CLOUD_PROJECT}",
@@ -137,9 +160,9 @@
       "note": "Vertex AI MCP server with advanced coding assistance, filesystem operations, and query answering. Set GOOGLE_CLOUD_PROJECT to your GCP project ID"
     },
     "github": {
-      "command": "${HOME}/mcps/github-mcp-server/github-mcp-server",
+      "command": "${HOME}/Development/Tools/mcps/github-mcp-server/github-mcp-server",
       "args": ["stdio"],
-      "cwd": "${HOME}/mcps/github-mcp-server",
+      "cwd": "${HOME}/Development/Tools/mcps/github-mcp-server",
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
       },
@@ -198,8 +221,13 @@
     },
     "prometheus": {
       "command": "uv",
-      "args": ["run", "--directory", "${HOME}/mcps/prometheus-mcp-server", "prometheus-mcp-server"],
-      "cwd": "${HOME}/mcps/prometheus-mcp-server",
+      "args": [
+        "run",
+        "--directory",
+        "${HOME}/Development/Tools/mcps/prometheus-mcp-server",
+        "prometheus-mcp-server"
+      ],
+      "cwd": "${HOME}/Development/Tools/mcps/prometheus-mcp-server",
       "env": {
         "PROMETHEUS_URL": "${PROMETHEUS_URL}"
       },
@@ -218,8 +246,13 @@
     },
     "redis": {
       "command": "uv",
-      "args": ["run", "--directory", "${HOME}/mcps/redis-mcp-server", "src/main.py"],
-      "cwd": "${HOME}/mcps/redis-mcp-server",
+      "args": [
+        "run",
+        "--directory",
+        "${HOME}/Development/Tools/mcps/redis-mcp-server",
+        "src/main.py"
+      ],
+      "cwd": "${HOME}/Development/Tools/mcps/redis-mcp-server",
       "env": {
         "REDIS_HOST": "localhost",
         "REDIS_PORT": "6379",
@@ -231,7 +264,18 @@
     },
     "terraform": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "TFE_ADDRESS", "-e", "TFE_TOKEN", "-e", "TFE_ORGANIZATION", "hashicorp/terraform-mcp-server:0.3.2"],
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "TFE_ADDRESS",
+        "-e",
+        "TFE_TOKEN",
+        "-e",
+        "TFE_ORGANIZATION",
+        "hashicorp/terraform-mcp-server:0.3.2"
+      ],
       "cwd": ".",
       "env": {
         "TFE_ADDRESS": "${TFE_ADDRESS}",

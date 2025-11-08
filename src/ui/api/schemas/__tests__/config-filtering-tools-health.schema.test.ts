@@ -7,15 +7,12 @@ import {
 import {
   FilteringModeSchema,
   FilteringStatsSchema,
-  FilteringStatsResponseSchema,
-  FilteringModeUpdateRequestSchema,
 } from '../filtering.schema';
 import {
   ToolSummarySchema,
   ToolsResponseSchema,
 } from '../tools.schema';
 import {
-  HealthDataSchema,
   HealthResponseSchema,
 } from '../health.schema';
 
@@ -66,19 +63,13 @@ describe('ConfigDataSchema', () => {
 describe('ConfigResponseSchema', () => {
   it('should validate config response', () => {
     const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-      },
-      data: {
-        config: {
-          mcpServers: {
-            github: { command: 'github-server' },
-          },
+      config: {
+        mcpServers: {
+          github: { command: 'github-server' },
         },
-        version: 1,
-        path: '/path/to/config.json',
       },
+      version: '1.0.0',
+      timestamp: '2025-01-08T12:00:00.000Z',
     };
 
     expect(() => ConfigResponseSchema.parse(response)).not.toThrow();
@@ -86,25 +77,28 @@ describe('ConfigResponseSchema', () => {
 });
 
 describe('ConfigSaveRequestSchema', () => {
-  it('should validate save request with version', () => {
+  it('should validate save request', () => {
     const request = {
       config: {
         mcpServers: {},
       },
-      version: 1,
     };
 
     expect(() => ConfigSaveRequestSchema.parse(request)).not.toThrow();
   });
 
-  it('should reject save request without version', () => {
+  it('should validate save request with toolFiltering', () => {
     const request = {
       config: {
         mcpServers: {},
+        toolFiltering: {
+          enabled: true,
+          mode: 'static' as const,
+        },
       },
     };
 
-    expect(() => ConfigSaveRequestSchema.parse(request)).toThrow();
+    expect(() => ConfigSaveRequestSchema.parse(request)).not.toThrow();
   });
 });
 
@@ -127,28 +121,64 @@ describe('FilteringModeSchema', () => {
 });
 
 describe('FilteringStatsSchema', () => {
-  it('should validate minimal stats', () => {
+  it('should validate minimal stats (static mode)', () => {
     const stats = {
+      enabled: true,
       mode: 'static' as const,
       totalTools: 100,
+      filteredTools: 50,
       exposedTools: 50,
+      filterRate: 0.5,
+      serverFilterMode: 'allowlist' as const,
+      allowedServers: [],
+      allowedCategories: [],
+      categoryCacheSize: 0,
+      cacheHitRate: 0,
+      llmCacheSize: 0,
+      llmCacheHitRate: 0,
+      timestamp: '2025-01-08T12:00:00.000Z',
     };
 
     expect(() => FilteringStatsSchema.parse(stats)).not.toThrow();
   });
 
-  it('should validate complete stats', () => {
+  it('should validate stats with server allowlist', () => {
     const stats = {
-      mode: 'category' as const,
-      totalTools: 100,
+      enabled: true,
+      mode: 'server-allowlist' as const,
+      totalTools: 150,
+      filteredTools: 100,
       exposedTools: 50,
-      categorizedTools: 80,
-      categories: {
-        filesystem: 10,
-        github: 20,
-        web: 15,
-      },
-      serverAllowlist: ['filesystem', 'github'],
+      filterRate: 0.67,
+      serverFilterMode: 'allowlist' as const,
+      allowedServers: ['filesystem', 'github'],
+      allowedCategories: [],
+      categoryCacheSize: 50,
+      cacheHitRate: 0.8,
+      llmCacheSize: 20,
+      llmCacheHitRate: 0.9,
+      timestamp: '2025-01-08T12:00:00.000Z',
+    };
+
+    expect(() => FilteringStatsSchema.parse(stats)).not.toThrow();
+  });
+
+  it('should validate stats with categories', () => {
+    const stats = {
+      enabled: true,
+      mode: 'category' as const,
+      totalTools: 200,
+      filteredTools: 120,
+      exposedTools: 80,
+      filterRate: 0.6,
+      serverFilterMode: 'blocklist' as const,
+      allowedServers: [],
+      allowedCategories: ['filesystem', 'github', 'web'],
+      categoryCacheSize: 100,
+      cacheHitRate: 0.85,
+      llmCacheSize: 50,
+      llmCacheHitRate: 0.92,
+      timestamp: '2025-01-08T12:00:00.000Z',
     };
 
     expect(() => FilteringStatsSchema.parse(stats)).not.toThrow();
@@ -156,60 +186,23 @@ describe('FilteringStatsSchema', () => {
 
   it('should reject negative tool counts', () => {
     const stats = {
+      enabled: true,
       mode: 'static' as const,
       totalTools: -1,
+      filteredTools: 50,
       exposedTools: 50,
+      filterRate: 0.5,
+      serverFilterMode: 'allowlist' as const,
+      allowedServers: [],
+      allowedCategories: [],
+      categoryCacheSize: 0,
+      cacheHitRate: 0,
+      llmCacheSize: 0,
+      llmCacheHitRate: 0,
+      timestamp: '2025-01-08T12:00:00.000Z',
     };
 
     expect(() => FilteringStatsSchema.parse(stats)).toThrow();
-  });
-});
-
-describe('FilteringStatsResponseSchema', () => {
-  it('should validate filtering stats response', () => {
-    const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-      },
-      data: {
-        mode: 'prompt-based' as const,
-        totalTools: 150,
-        exposedTools: 30,
-      },
-    };
-
-    expect(() => FilteringStatsResponseSchema.parse(response)).not.toThrow();
-  });
-});
-
-describe('FilteringModeUpdateRequestSchema', () => {
-  it('should validate mode update to static', () => {
-    const request = {
-      mode: 'static' as const,
-    };
-
-    expect(() => FilteringModeUpdateRequestSchema.parse(request)).not.toThrow();
-  });
-
-  it('should validate mode update with category config', () => {
-    const request = {
-      mode: 'category' as const,
-      categoryConfig: {
-        exposedCategories: ['filesystem', 'github'],
-      },
-    };
-
-    expect(() => FilteringModeUpdateRequestSchema.parse(request)).not.toThrow();
-  });
-
-  it('should validate mode update with server allowlist', () => {
-    const request = {
-      mode: 'server-allowlist' as const,
-      serverAllowlist: ['filesystem', 'github', 'web'],
-    };
-
-    expect(() => FilteringModeUpdateRequestSchema.parse(request)).not.toThrow();
   });
 });
 
@@ -218,28 +211,27 @@ describe('FilteringModeUpdateRequestSchema', () => {
 // ============================================================================
 
 describe('ToolSummarySchema', () => {
-  it('should validate minimal tool summary', () => {
+  it('should validate complete tool summary', () => {
     const tool = {
+      server: 'filesystem',
+      serverDisplayName: 'Filesystem',
       name: 'read_file',
-      serverName: 'filesystem',
+      description: 'Read file contents',
+      enabled: true,
+      categories: ['filesystem'],
     };
 
     expect(() => ToolSummarySchema.parse(tool)).not.toThrow();
   });
 
-  it('should validate complete tool summary', () => {
+  it('should validate tool with multiple categories', () => {
     const tool = {
+      server: 'github',
+      serverDisplayName: 'GitHub',
       name: 'create_issue',
       description: 'Create a new GitHub issue',
-      serverName: 'github',
-      category: 'github',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          title: { type: 'string' },
-          body: { type: 'string' },
-        },
-      },
+      enabled: true,
+      categories: ['github', 'issues'],
     };
 
     expect(() => ToolSummarySchema.parse(tool)).not.toThrow();
@@ -249,11 +241,8 @@ describe('ToolSummarySchema', () => {
 describe('ToolsResponseSchema', () => {
   it('should validate empty tools list', () => {
     const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-      },
-      data: [],
+      tools: [],
+      timestamp: '2025-01-08T12:00:00.000Z',
     };
 
     expect(() => ToolsResponseSchema.parse(response)).not.toThrow();
@@ -261,26 +250,33 @@ describe('ToolsResponseSchema', () => {
 
   it('should validate tools response with multiple tools', () => {
     const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-      },
-      data: [
+      tools: [
         {
+          server: 'filesystem',
+          serverDisplayName: 'Filesystem',
           name: 'read_file',
-          serverName: 'filesystem',
           description: 'Read file contents',
+          enabled: true,
+          categories: ['filesystem'],
         },
         {
+          server: 'filesystem',
+          serverDisplayName: 'Filesystem',
           name: 'write_file',
-          serverName: 'filesystem',
+          description: 'Write file contents',
+          enabled: true,
+          categories: ['filesystem'],
         },
         {
+          server: 'web',
+          serverDisplayName: 'Web Search',
           name: 'search',
-          serverName: 'web',
-          category: 'web',
+          description: 'Search the web',
+          enabled: false,
+          categories: ['web', 'search'],
         },
       ],
+      timestamp: '2025-01-08T12:00:00.000Z',
     };
 
     expect(() => ToolsResponseSchema.parse(response)).not.toThrow();
@@ -291,83 +287,196 @@ describe('ToolsResponseSchema', () => {
 // Health Schema Tests
 // ============================================================================
 
-describe('HealthDataSchema', () => {
-  it('should validate minimal health data', () => {
-    const health = {
-      status: 'ready' as const,
-      uptime: 12345,
-      servers: [],
-    };
-
-    expect(() => HealthDataSchema.parse(health)).not.toThrow();
-  });
-
-  it('should validate all health statuses', () => {
-    const statuses = ['starting', 'ready', 'restarting', 'stopped'];
-
-    statuses.forEach((status) => {
-      const health = {
-        status,
-        uptime: 0,
-        servers: [],
-      };
-      expect(() => HealthDataSchema.parse(health)).not.toThrow();
-    });
-  });
-
-  it('should validate complete health data', () => {
-    const health = {
-      status: 'ready' as const,
-      uptime: 123456,
-      servers: [
-        { name: 'filesystem', status: 'connected' },
-        { name: 'github', status: 'connected' },
-      ],
-      activeConnections: 5,
-      version: '1.0.0',
-    };
-
-    expect(() => HealthDataSchema.parse(health)).not.toThrow();
-  });
-
-  it('should reject negative uptime', () => {
-    const health = {
-      status: 'ready' as const,
-      uptime: -100,
-      servers: [],
-    };
-
-    expect(() => HealthDataSchema.parse(health)).toThrow();
-  });
-
-  it('should reject negative activeConnections', () => {
-    const health = {
-      status: 'ready' as const,
-      uptime: 0,
-      servers: [],
-      activeConnections: -1,
-    };
-
-    expect(() => HealthDataSchema.parse(health)).toThrow();
-  });
-});
-
 describe('HealthResponseSchema', () => {
-  it('should validate health check response', () => {
+  it('should validate health check response with no servers', () => {
     const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-      },
-      data: {
-        status: 'ready' as const,
-        uptime: 54321,
-        servers: [
-          { name: 'filesystem', status: 'connected' },
-        ],
-      },
+      status: 'ok' as const,
+      state: 'ready' as const,
+      server_id: 'test-server',
+      activeClients: 0,
+      timestamp: '2025-01-08T12:00:00.000Z',
+      servers: [],
     };
 
     expect(() => HealthResponseSchema.parse(response)).not.toThrow();
+  });
+
+  it('should validate health response with servers', () => {
+    const response = {
+      status: 'ok' as const,
+      state: 'ready' as const,
+      server_id: 'test-server',
+      activeClients: 5,
+      timestamp: '2025-01-08T12:00:00.000Z',
+      servers: [
+        {
+          name: 'filesystem',
+          displayName: 'Filesystem',
+          description: 'File operations',
+          transportType: 'stdio' as const,
+          status: 'connected' as const,
+          error: null,
+          capabilities: {
+            tools: [],
+            resources: [],
+            resourceTemplates: [],
+            prompts: []
+          },
+          uptime: 54321,
+          lastStarted: '2025-01-08T11:00:00.000Z',
+          authorizationUrl: null,
+          serverInfo: { name: 'filesystem', version: '1.0.0' },
+          config_source: 'mcp-servers.json',
+        },
+      ],
+    };
+
+    expect(() => HealthResponseSchema.parse(response)).not.toThrow();
+  });
+
+  it('should validate server with populated capabilities', () => {
+    const response = {
+      status: 'ok' as const,
+      state: 'ready' as const,
+      server_id: 'test-server',
+      activeClients: 1,
+      timestamp: '2025-01-08T12:00:00.000Z',
+      servers: [
+        {
+          name: 'mcp-server',
+          displayName: 'MCP Server',
+          description: 'Test MCP server',
+          transportType: 'stdio' as const,
+          status: 'connected' as const,
+          error: null,
+          capabilities: {
+            tools: [
+              {
+                name: 'read_file',
+                description: 'Read file contents',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    path: { type: 'string' }
+                  },
+                  required: ['path']
+                }
+              }
+            ],
+            resources: [
+              {
+                name: 'file-system',
+                uri: 'file:///home/user',
+                description: 'File system access',
+                mimeType: 'application/json'
+              }
+            ],
+            resourceTemplates: [
+              {
+                name: 'file-template',
+                uriTemplate: 'file:///{path}',
+                description: 'File access template',
+                mimeType: 'text/plain'
+              }
+            ],
+            prompts: [
+              {
+                name: 'analyze-code',
+                description: 'Analyze code for issues',
+                arguments: [
+                  {
+                    name: 'language',
+                    description: 'Programming language',
+                    required: true
+                  }
+                ]
+              }
+            ]
+          },
+          uptime: 12345,
+          lastStarted: '2025-01-08T11:00:00.000Z',
+          authorizationUrl: null,
+          serverInfo: { name: 'mcp-server', version: '1.0.0' },
+          config_source: 'mcp-servers.json',
+        },
+      ],
+    };
+
+    expect(() => HealthResponseSchema.parse(response)).not.toThrow();
+  });
+
+  it('should reject server with invalid tool (missing name)', () => {
+    const response = {
+      status: 'ok' as const,
+      state: 'ready' as const,
+      server_id: 'test-server',
+      activeClients: 1,
+      timestamp: '2025-01-08T12:00:00.000Z',
+      servers: [
+        {
+          name: 'mcp-server',
+          displayName: 'MCP Server',
+          description: 'Test',
+          transportType: 'stdio' as const,
+          status: 'connected' as const,
+          error: null,
+          capabilities: {
+            tools: [
+              {
+                description: 'Missing name field'
+              }
+            ],
+            resources: [],
+            resourceTemplates: [],
+            prompts: []
+          },
+          uptime: 0,
+          lastStarted: null,
+          authorizationUrl: null,
+          serverInfo: null,
+          config_source: 'mcp-servers.json',
+        },
+      ],
+    };
+
+    expect(() => HealthResponseSchema.parse(response)).toThrow();
+  });
+
+  it('should reject server with invalid resource (missing uri)', () => {
+    const response = {
+      status: 'ok' as const,
+      state: 'ready' as const,
+      server_id: 'test-server',
+      activeClients: 1,
+      timestamp: '2025-01-08T12:00:00.000Z',
+      servers: [
+        {
+          name: 'mcp-server',
+          displayName: 'MCP Server',
+          description: 'Test',
+          transportType: 'stdio' as const,
+          status: 'connected' as const,
+          error: null,
+          capabilities: {
+            tools: [],
+            resources: [
+              {
+                name: 'resource-name',
+                description: 'Missing URI field'
+              }
+            ],
+            resourceTemplates: [],
+            prompts: []
+          },
+          uptime: 0,
+          lastStarted: null,
+          authorizationUrl: null,
+          serverInfo: null,
+          config_source: 'mcp-servers.json',
+        },
+      ],
+    };
+
+    expect(() => HealthResponseSchema.parse(response)).toThrow();
   });
 });

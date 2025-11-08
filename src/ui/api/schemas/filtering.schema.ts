@@ -15,6 +15,7 @@ export const FilteringModeSchema = z.enum([
   'static',
   'server-allowlist',
   'category',
+  'hybrid',
   'prompt-based',
 ]);
 

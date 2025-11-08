@@ -1,19 +1,91 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
   root: path.resolve(__dirname, 'src/ui'),
-  plugins: [react()],
+  plugins: [
+    react({
+      babel: {
+        plugins: [
+          [
+            'babel-plugin-import',
+            {
+              libraryName: '@mui/material',
+              libraryDirectory: '',
+              camel2DashComponentName: false,
+            },
+            '@mui/material',
+          ],
+          [
+            'babel-plugin-import',
+            {
+              libraryName: '@mui/icons-material',
+              libraryDirectory: '',
+              camel2DashComponentName: false,
+            },
+            '@mui/icons-material',
+          ],
+        ],
+      },
+    }),
+    visualizer({
+      filename: './dist/stats.html',
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
+    }),
+  ],
   build: {
     outDir: path.resolve(__dirname, 'dist/ui'),
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: false, // Disabled for production - reduces build size and time
+
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React framework (changes rarely, excellent caching)
+          'react-core': [
+            'react',
+            'react-dom',
+            'react/jsx-runtime',
+            'react-router-dom',
+          ],
+
+          // MUI and styling (large but stable)
+          'mui-core': [
+            '@mui/material',
+            '@mui/icons-material',
+            '@emotion/react',
+            '@emotion/styled',
+            '@emotion/cache',
+          ],
+
+          // State management and utilities (smaller, may change with app logic)
+          'state-utils': [
+            '@tanstack/react-query',
+            'zustand',
+            'zod',
+          ],
+        },
+      },
+    },
   },
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:7000',
+      '/api': {
+        target: 'http://localhost:7000',
+        changeOrigin: true,
+        // Don't proxy requests to .ts/.tsx files (source modules)
+        bypass: (req) => {
+          if (req.url?.match(/\.(ts|tsx|js|jsx)$/)) {
+            return req.url;
+          }
+          return null; // Explicitly proxy to backend
+        },
+      },
       '/events': 'http://localhost:7000',
       '/mcp': 'http://localhost:7000',
       '/messages': 'http://localhost:7000',
@@ -27,6 +99,11 @@ export default defineConfig({
       '@pages': path.resolve(__dirname, 'src/ui/pages'),
       '@hooks': path.resolve(__dirname, 'src/ui/hooks'),
       '@theme': path.resolve(__dirname, 'src/ui/theme'),
+      '@utils': path.resolve(__dirname, 'src/ui/utils'),
     },
+  },
+  optimizeDeps: {
+    // Exclude these from pre-bundling since they're project source files
+    exclude: ['@ui', '@api', '@components', '@pages', '@hooks', '@theme', '@utils'],
   },
 });

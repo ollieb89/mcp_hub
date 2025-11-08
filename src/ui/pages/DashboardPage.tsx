@@ -21,7 +21,7 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import ActiveFiltersCard from "@components/ActiveFiltersCard";
 import LogsPanel from "@components/LogsPanel";
 import { useLogsStream } from "@hooks/useLogsStream";
-import { useConfigUpdates } from "@hooks/useSSESubscription";
+import { useSSESubscription } from "@hooks/useSSESubscription";
 import type { CacheHistoryPoint } from "@components/CacheLineChart";
 
 const ToolPieChart = lazy(() => import("@components/ToolPieChart"));
@@ -92,13 +92,12 @@ const DashboardPage = () => {
   }, [stats, appendHistory]);
 
   // SSE integration - invalidate queries on config changes
-  useConfigUpdates(
-    useCallback((event) => {
+  useSSESubscription(
+    ["config_changed", "servers_updated"],
+    useCallback((eventType) => {
       // Invalidate filtering stats query when config changes
-      if (event.type === "config_changed" || event.type === "servers_updated") {
-        queryClient.invalidateQueries({ queryKey: queryKeys.filtering.stats });
-        queryClient.invalidateQueries({ queryKey: queryKeys.tools.all });
-      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.filtering.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tools.all });
     }, [queryClient]),
   );
 

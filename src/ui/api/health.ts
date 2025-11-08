@@ -1,11 +1,14 @@
 import { request } from "./client";
-import { HealthResponse } from "./schemas";
+import {
+  HealthResponseSchema,
+  type HealthResponse,
+} from "./schemas/health.schema";
 
 /**
  * Fetch hub health status and server states
- *
- * @returns Health check response with hub state and all server statuses
+ * @returns Promise with validated health data
+ * @throws APIError if request fails or validation fails
  */
-export function getHealth() {
-  return request<HealthResponse>("/api/health");
+export function getHealth(): Promise<HealthResponse> {
+  return request("/api/health", HealthResponseSchema);
 }

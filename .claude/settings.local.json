@@ -119,7 +119,16 @@
       "Bash(bash scripts/test-analyze-prompt.sh:*)",
       "Read(//home/ob/Development/Tools/mcp-hub/**)",
       "Read(//home/ob/Development/Tools/mcp-hub/**)",
-      "Read(//home/ob/Development/Tools/mcp-hub/**)"
+      "Read(//home/ob/Development/Tools/mcp-hub/**)",
+      "Bash(node -e:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_snapshot",
+      "Bash(git -C /home/ob/Development/Tools/mcp-hub diff mcp-servers.json)",
+      "Bash(git -C /home/ob/Development/Tools/mcp-hub status mcp-servers.json)"
     ],
     "deny": [],
     "ask": []

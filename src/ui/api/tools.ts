@@ -1,19 +1,15 @@
 import { request } from "./client";
+import {
+  ToolsResponseSchema,
+  type ToolSummary,
+  type ToolsResponse,
+} from "./schemas/tools.schema";
 
-export interface ToolSummary {
-  server: string;
-  serverDisplayName: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  categories: string[];
-}
-
-export interface ToolsResponse {
-  tools: ToolSummary[];
-  timestamp: string;
-}
-
-export function getTools() {
-  return request<ToolsResponse>("/api/tools");
+/**
+ * Fetch all available MCP tools across all servers
+ * @returns Promise with validated tools data
+ * @throws APIError if request fails or validation fails
+ */
+export function getTools(): Promise<ToolsResponse> {
+  return request("/api/tools", ToolsResponseSchema);
 }

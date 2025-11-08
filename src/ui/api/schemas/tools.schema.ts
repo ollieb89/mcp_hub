@@ -25,6 +25,7 @@ export const ToolSummarySchema = z.object({
  */
 export const ToolsResponseSchema = z.object({
   tools: z.array(ToolSummarySchema),
+  timestamp: z.string().datetime()
 });
 
 // Type exports

@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
-> **Current Status**: MCP Hub v4.2.1 is production-ready with 308+ tests (100% pass rate), 82.94% branch coverage, and zero critical bugs. Currently running with **12 connected MCP servers** providing **108+ tools** including AI assistance, UI development, documentation, memory, web browsing, version control, vector search, deployment, ML models, and browser automation. The project is actively maintained with regular updates.
+> **Current Status**: MCP Hub v4.2.1 is production-ready with comprehensive test coverage (82.94% branches), zero critical bugs, and a fully-featured web UI. Currently running with **12 connected MCP servers** providing **108+ tools** including AI assistance, UI development, documentation, memory, web browsing, version control, vector search, deployment, ML models, and browser automation. The project is actively maintained with regular updates.
 
 **Quick Links**: [Installation](#installation) · [Configuration](#configuration) · [REST API](#rest-api) · [Testing](#testing) · [Roadmap](#roadmap) · [Contributing](./CONTRIBUTING.md)
 
@@ -13,25 +13,26 @@ MCP Hub acts as a central coordinator for MCP servers and clients, providing two
 1. **Management Interface** (/api/*): Manage multiple MCP servers through a unified REST API and web UI
 2. **MCP Server Interface** (/mcp): Connect ANY MCP client to access ALL server capabilities through a single endpoint
 
-This dual-interface approach means you can manage servers through the Hub's UI while MCP clients (Claude Desktop, Cline, etc.) only need to connect to one endpoint (`localhost:37373/mcp`) to access all capabilities. Implements [MCP 2025-03-26](https://modelcontextprotocol.io/specification/2025-03-26) specification.
+This dual-interface approach means you can manage servers through the Hub's UI while MCP clients (Claude Desktop, Cline, etc.) only need to connect to one endpoint (`localhost:7000/mcp`) to access all capabilities. Implements [MCP 2025-03-26](https://modelcontextprotocol.io/specification/2025-03-26) specification.
 
 ## Recent Highlights
 
 ### 🎉 What's New in v4.2.x
 
+- **Configuration Safety Features** (v4.2.1 Nov 8): Diff preview dialogs with destructive change warnings, SHA-256 version tracking, and concurrent write protection - prevents accidental configuration damage
+- **Web UI Launch** (v4.2.1): Full-featured React web UI for server management, configuration editing, and real-time monitoring at `localhost:7000`
 - **VS Code Configuration Compatibility** (v4.2.0): Full support for `.vscode/mcp.json` files with VS Code-style variable syntax (`${env:}`, `${workspaceFolder}`, etc.) - seamless migration from VS Code
 - **Enhanced Workspace Management** (v4.1.x): Real-time workspace lifecycle tracking with detailed state management and SSE event streaming
 - **Multiple Configuration Files** (v4.1.0): Support for layered configuration with intelligent merging (e.g., global + project configs)
-- **Improved Stability** (v4.2.1): Enhanced workspace cache locking to prevent deadlocks and improved error handling
 - **LLM SDK Upgrade**: Migration to official OpenAI and Anthropic SDKs with automatic retries, typed errors, and better observability
 
 ### 🚀 Production-Ready Quality
 
-- **100% Test Pass Rate**: 308+ tests all passing with strategic 82.94% branch coverage
+- **Comprehensive Test Coverage**: 530+ backend tests with strategic 82.94% branch coverage exceeding industry standards
 - **Zero Critical Bugs**: All production issues resolved and actively monitored
 - **96%+ ESLint Compliance**: Clean, maintainable codebase following best practices
 - **Zero Memory Leaks**: Comprehensive resource cleanup with idempotent patterns
-- **Enterprise Features**: HTTP connection pooling, tool filtering, workspace management, and real-time event streaming
+- **Enterprise Features**: HTTP connection pooling, prompt-based tool filtering, workspace management, and real-time event streaming
 - **Active Deployment**: Currently running stable with 12+ connected servers and 108+ available tools
 
 ## 🧪 Beta Testing Program
@@ -92,7 +93,8 @@ See our [Beta Onboarding Guide](./docs/BETA_ONBOARDING.md) for complete details.
 | Marketplace Integration | ✅ Stable | Production | MCP Registry with 1-hour cache |
 | VS Code Compatibility | ✅ Stable | Production | Full `.vscode/mcp.json` support |
 | Configuration System | ✅ Stable | Production | Multi-file, VS Code compatible |
-| Web UI | 🚧 Planned | Future | In development roadmap |
+| Web UI | ✅ Stable | Production | Full-featured React UI with config safety |
+| Configuration Diff Preview | ✅ Stable | Production | Side-by-side diffing with destructive change warnings |
 | TUI | 🚧 Planned | Future | Inspired by mcphub.nvim |
 
 ### Feature Coverage
@@ -169,6 +171,14 @@ The Hub automatically:
   - Per-client session isolation
   - Context-aware tool selection
   - See [Prompt-Based Filtering Guide](./claudedocs/PROMPT_BASED_FILTERING_QUICK_START.md)
+
+- **🆕 Full-Featured Web UI** (v4.2.1):
+  - Server management dashboard with real-time status
+  - Visual configuration editor with diff preview
+  - Destructive change warnings and safety features
+  - Tool browser and search interface
+  - Monitoring dashboard with filtering statistics
+  - Available at `localhost:7000` when hub is running
 
 - **Dynamic Server Management**:
   - Start, stop, enable/disable servers on demand
@@ -270,6 +280,84 @@ Options:
 ## Configuration
 
 MCP Hub uses JSON configuration files to define managed servers with **universal `${}` placeholder syntax** for environment variables and command execution.
+
+### Configuration Schema & Validation
+
+MCP Hub provides a comprehensive JSON Schema for configuration validation and IDE support:
+
+**Schema Files:**
+- `config.schema.json` - JSON Schema (v7) for validation
+- `config.schema.d.ts` - TypeScript type definitions
+- `docs/CONFIG_SCHEMA.md` - Complete documentation
+
+**Enable IDE Support:**
+
+Add this to the top of your `mcp-servers.json`:
+
+```json
+{
+  "$schema": "./config.schema.json",
+  "mcpServers": {
+    // Your configuration with autocomplete and validation
+  }
+}
+```
+
+This enables:
+- ✅ **Autocomplete** for all configuration options
+- ✅ **Inline validation** with error messages
+- ✅ **Hover documentation** for properties
+- ✅ **Type checking** for TypeScript projects
+
+**Validate Configuration:**
+
+```bash
+# Validate your configuration file
+bun run validate:config [path/to/config.json]
+
+# Or use the standalone script
+bun scripts/validate-config.js mcp-servers.json
+```
+
+**Example Output:**
+```
+🔍 MCP Hub Configuration Validator
+
+📄 Validating: mcp-servers.json
+✓ Schema loaded
+✓ Config parsed
+
+✅ Configuration is valid!
+
+Summary:
+  - Servers: 12
+  - Connection pooling: enabled
+  - Tool filtering: prompt-based mode
+```
+
+**TypeScript Support:**
+
+```typescript
+import type { McpHubConfig } from 'mcp-hub/config.schema';
+
+const config: McpHubConfig = {
+  connectionPool: {
+    enabled: true,
+    maxConnections: 100
+  },
+  mcpServers: {
+    // Fully typed configuration
+  }
+};
+```
+
+See [`docs/CONFIG_SCHEMA.md`](./docs/CONFIG_SCHEMA.md) for complete schema documentation including:
+- All configuration properties and validation rules
+- Connection pool configuration
+- Tool filtering modes
+- Transport types (STDIO, SSE, streamable-http)
+- Environment variable resolution
+- Best practices and examples
 
 ### OAuth Configuration for Remote Services
 
@@ -1045,6 +1133,60 @@ Note: A server configuration cannot mix STDIO and remote server fields.
 2. **Environment Variables**: `${VAR}` are resolved from `env` object, then `process.env`
 3. **Fallback**: `null` or `""` values fall back to `process.env`
 4. **Multi-pass**: Dependencies between variables are resolved automatically
+
+## Web UI
+
+MCP Hub includes a full-featured React web UI for managing servers, configuring settings, and monitoring real-time status. The UI is available at `http://localhost:7000` when the hub is running.
+
+### Features
+
+**Server Management**
+- View all connected servers with real-time status
+- Start, stop, enable, and disable servers on demand
+- Monitor server health and connection state
+- View tool/resource counts per server
+
+**Configuration Editing**
+- Visual JSON configuration editor with syntax highlighting
+- Side-by-side diff preview before applying changes
+- Destructive change warnings for removed servers
+- Version tracking with SHA-256 hashing
+- Concurrent write protection (prevents conflicting edits)
+- Raw JSON editing with validation
+
+**Dashboard & Monitoring**
+- Real-time connection statistics
+- Tool filtering status and impact metrics
+- Server uptime tracking
+- Active client connections
+
+**Tool Management**
+- Browse available tools from all servers
+- Search and filter tools by server/name
+- View tool schemas and descriptions
+- Category-based tool organization with filtering statistics
+
+### Configuration Safety Features
+
+The UI includes advanced safety features to prevent accidental configuration damage:
+
+**Diff Preview Dialog**
+- Side-by-side comparison of current vs. proposed configuration
+- Change summary showing added/removed/modified fields
+- Destructive change detection and warnings
+- Visual highlighting of critical changes
+
+**Version Tracking**
+- SHA-256 hash of current configuration
+- Automatic detection of external config changes
+- Prevents loss of concurrent edits
+
+**Concurrent Write Protection**
+- Detects when config is modified by another process
+- Prompts user before overwriting changes
+- Maintains file integrity across distributed edits
+
+For detailed information on configuration safety features, see [`claudedocs/UX_IMPROVEMENTS_CONFIG_SAFETY.md`](./claudedocs/UX_IMPROVEMENTS_CONFIG_SAFETY.md).
 
 ## Nix
 
@@ -2133,7 +2275,7 @@ MCP Hub employs a strategic two-tier coverage approach:
 
 - **Critical Components**: 70-80%+ coverage (MCPConnection, MCPHub, core utilities)
 - **Global Baseline**: 50-70% (infrastructure files require integration tests)
-- **Current Metrics**: 308+ tests passing (100% pass rate), 82.94% branch coverage
+- **Current Metrics**: 530+ backend tests across 23 test files, 82.94% branch coverage
 
 #### Run Tests
 

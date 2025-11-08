@@ -1,42 +1,64 @@
+import { z } from "zod";
 import { request } from "./client";
+import {
+  FilteringStatsResponseSchema,
+  FilteringModeSchema,
+  type FilteringStatsResponse,
+  type FilteringMode,
+} from "./schemas/filtering.schema";
 
-export interface FilteringStats {
-  enabled: boolean;
-  mode: string;
-  totalTools: number;
-  filteredTools: number;
-  exposedTools: number;
-  filterRate: number;
-  serverFilterMode: string | null;
-  allowedServers: string[];
-  allowedCategories: string[];
-  categoryCacheSize: number;
-  cacheHitRate: number;
-  llmCacheSize: number;
-  llmCacheHitRate: number;
-  timestamp: string;
+/**
+ * Response schema for filtering mutations (enable/mode changes)
+ */
+const FilteringMutationResponseSchema = z.object({
+  status: z.string(),
+  toolFiltering: z.object({
+    enabled: z.boolean().optional(),
+    mode: FilteringModeSchema.optional(),
+  }),
+});
+
+export type FilteringMutationResponse = z.infer<typeof FilteringMutationResponseSchema>;
+
+/**
+ * Fetch current tool filtering statistics
+ * @returns Promise with validated filtering stats
+ * @throws APIError if request fails or validation fails
+ */
+export function getFilteringStats(): Promise<FilteringStatsResponse> {
+  return request("/api/filtering/stats", FilteringStatsResponseSchema);
 }
 
-export function getFilteringStats() {
-  return request<FilteringStats>("/api/filtering/stats");
-}
-
-export function setFilteringEnabled(enabled: boolean) {
-  return request<{ status: string; toolFiltering: { enabled: boolean } }>(
+/**
+ * Enable or disable tool filtering
+ * @param enabled - Whether filtering should be enabled
+ * @returns Promise with mutation confirmation
+ * @throws APIError if request fails
+ */
+export function setFilteringEnabled(enabled: boolean): Promise<FilteringMutationResponse> {
+  return request(
     "/api/filtering/status",
+    FilteringMutationResponseSchema,
     {
       method: "POST",
       body: JSON.stringify({ enabled }),
-    },
+    }
   );
 }
 
-export function setFilteringMode(mode: FilteringStats["mode"]) {
-  return request<{ status: string; toolFiltering: { mode: string } }>(
+/**
+ * Change tool filtering mode
+ * @param mode - Filtering mode to set
+ * @returns Promise with mutation confirmation
+ * @throws APIError if request fails
+ */
+export function setFilteringMode(mode: FilteringMode): Promise<FilteringMutationResponse> {
+  return request(
     "/api/filtering/mode",
+    FilteringMutationResponseSchema,
     {
       method: "POST",
       body: JSON.stringify({ mode }),
-    },
+    }
   );
 }

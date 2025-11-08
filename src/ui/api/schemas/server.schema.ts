@@ -16,6 +16,8 @@ export const ServerStatusSchema = z.enum([
   'connecting',
   'disconnected',
   'error',
+  'unauthorized',
+  'disabled'
 ]);
 
 /**
@@ -106,6 +108,7 @@ export const ServerInfoSchema = z.object({
  */
 export const ServersResponseSchema = z.object({
   servers: z.array(ServerInfoSchema),
+  timestamp: z.string().datetime()
 });
 
 // Type exports

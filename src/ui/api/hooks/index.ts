@@ -5,6 +5,7 @@
 // Query hooks
 export * from './useHealth';
 export * from './useServers';
+export * from './useServer';
 export * from './useConfig';
 export * from './useFilteringStats';
 export * from './useTools';

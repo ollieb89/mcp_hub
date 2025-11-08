@@ -18,6 +18,17 @@ export const ErrorObjectSchema = z.object({
 });
 
 /**
+ * API error response format (flat structure)
+ * Matches server.js error middleware response
+ */
+export const ErrorResponseSchema = z.object({
+  error: z.string(),
+  code: z.string(),
+  data: z.unknown().optional(),
+  timestamp: z.string(),
+});
+
+/**
  * Common pagination metadata
  * For future paginated endpoints
  */
@@ -30,4 +41,5 @@ export const PaginationMetadataSchema = z.object({
 
 // Type exports
 export type ErrorObject = z.infer<typeof ErrorObjectSchema>;
+export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 export type PaginationMetadata = z.infer<typeof PaginationMetadataSchema>;

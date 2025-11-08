@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTools } from "@api/hooks";
 import { queryKeys } from "@utils/query-client";
 import ToolsTable from "@components/ToolsTable";
-import { useToolListUpdates } from "@hooks/useSSESubscription";
+import { useSSESubscription } from "@hooks/useSSESubscription";
 
 const ToolsPage = () => {
   const queryClient = useQueryClient();
@@ -13,11 +13,10 @@ const ToolsPage = () => {
   const { data: toolsData, isLoading, error } = useTools();
 
   // SSE integration - invalidate queries on tool list changes
-  useToolListUpdates(
-    useCallback((event) => {
-      if (event.type === "tool_list_changed") {
-        queryClient.invalidateQueries({ queryKey: queryKeys.tools.all });
-      }
+  useSSESubscription(
+    ["tool_list_changed"],
+    useCallback((eventType) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.tools.all });
     }, [queryClient]),
   );
 

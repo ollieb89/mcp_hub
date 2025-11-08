@@ -7,7 +7,7 @@ import { useStartServer, useStopServer } from "@api/mutations";
 import { queryKeys } from "@utils/query-client";
 import ServersTable from "@components/ServersTable";
 import { useSnackbar } from "@hooks/useSnackbar";
-import { useConfigUpdates } from "@hooks/useSSESubscription";
+import { useSSESubscription } from "@hooks/useSSESubscription";
 
 const ServersPage = () => {
   const queryClient = useQueryClient();
@@ -19,12 +19,11 @@ const ServersPage = () => {
   const stopServerMutation = useStopServer();
 
   // SSE integration - invalidate queries on config changes
-  useConfigUpdates(
-    useCallback((event) => {
-      if (event.type === "config_changed" || event.type === "servers_updated") {
-        queryClient.invalidateQueries({ queryKey: queryKeys.servers.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.health });
-      }
+  useSSESubscription(
+    ["config_changed", "servers_updated"],
+    useCallback((eventType) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.servers.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.health });
     }, [queryClient]),
   );
 

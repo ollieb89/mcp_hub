@@ -55,11 +55,51 @@
     "prepublishOnly": "bun run build",
     "dev:ui": "vite dev",
     "build:ui": "vite build",
-    "preview:ui": "vite preview"
+    "preview:ui": "vite preview",
+    "size-check": "size-limit"
   },
+  "size-limit": [
+    {
+      "name": "Total UI Bundle (gzipped)",
+      "path": "dist/ui/assets/*.js",
+      "limit": "325 KB",
+      "gzip": true
+    },
+    {
+      "name": "React Core chunk",
+      "path": "dist/ui/assets/react-core-*.js",
+      "limit": "52 KB",
+      "gzip": true
+    },
+    {
+      "name": "MUI Core chunk",
+      "path": "dist/ui/assets/mui-core-*.js",
+      "limit": "82 KB",
+      "gzip": true
+    },
+    {
+      "name": "State Utils chunk",
+      "path": "dist/ui/assets/state-utils-*.js",
+      "limit": "27 KB",
+      "gzip": true
+    },
+    {
+      "name": "Charts bundle (lazy)",
+      "path": "dist/ui/assets/ChartsWrapper-*.js",
+      "limit": "65 KB",
+      "gzip": true
+    },
+    {
+      "name": "Monaco Editor (lazy)",
+      "path": "dist/ui/assets/ConfigPage-*.js",
+      "limit": "27 KB",
+      "gzip": true
+    }
+  ],
   "devDependencies": {
     "@eslint/js": "^9.39.0",
     "@modelcontextprotocol/sdk": "^1.20.2",
+    "@size-limit/file": "^11.2.0",
     "@tanstack/react-query-devtools": "^5.90.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
@@ -67,6 +107,7 @@
     "@types/node": "^24.9.2",
     "@vitejs/plugin-react": "^5.1.0",
     "@vitest/coverage-v8": "^4.0.6",
+    "babel-plugin-import": "^1.13.8",
     "chokidar": "^4.0.3",
     "esbuild": "^0.25.12",
     "eslint": "^9.39.0",
@@ -79,6 +120,8 @@
     "nodemon": "^3.1.10",
     "open": "^10.2.0",
     "reconnecting-eventsource": "^1.6.4",
+    "rollup-plugin-visualizer": "^6.0.5",
+    "size-limit": "^11.2.0",
     "supertest": "^7.1.4",
     "typescript": "^5.9.3",
     "uuid": "^13.0.0",
@@ -109,7 +152,6 @@
     "react-diff-viewer-continued": "^3.4.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5",
-    "recharts": "^3.3.0",
     "undici": "^7.16.0",
     "zod": "^4.1.12",
     "zustand": "^5.0.8"

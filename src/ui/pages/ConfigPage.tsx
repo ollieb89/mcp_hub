@@ -26,7 +26,7 @@ import RawJsonEditor from "@components/RawJsonEditor";
 import ConfigPreviewDialog from "@components/ConfigPreviewDialog";
 import type { FilteringMode } from "@components/FilteringCard";
 import { useSnackbar } from "@hooks/useSnackbar";
-import { useConfigUpdates } from "@hooks/useSSESubscription";
+import { useSSESubscription } from "@hooks/useSSESubscription";
 
 const filteringModes: FilteringMode[] = [
   "server-allowlist",
@@ -66,9 +66,10 @@ const ConfigPage = () => {
   }, [configData, dirty]);
 
   // SSE integration - invalidate queries on config changes
-  useConfigUpdates(
-    useCallback((event) => {
-      if (event.type === "config_changed" && !dirty) {
+  useSSESubscription(
+    ["config_changed"],
+    useCallback((eventType) => {
+      if (!dirty) {
         // Only auto-reload if user hasn't made local changes
         queryClient.invalidateQueries({ queryKey: queryKeys.config });
       }

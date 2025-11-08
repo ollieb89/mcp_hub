@@ -50,10 +50,9 @@ export async function request<T>(
 
     if (errorResult.success) {
       throw new APIError(
-        errorResult.data.error.code,
-        errorResult.data.error.message,
-        errorResult.data.error.details,
-        errorResult.data.error.requestId
+        errorResult.data.code,
+        errorResult.data.error,
+        errorResult.data.data as Record<string, unknown> | undefined
       );
     }
 
@@ -72,7 +71,7 @@ export async function request<T>(
     throw new APIError(
       'VALIDATION_ERROR',
       'Response validation failed',
-      { errors: result.error.errors }
+      { errors: result.error.issues }
     );
   }
 

@@ -160,7 +160,7 @@ export function useStopServer(options?: Parameters<typeof useMutation>[0]) {
         queryKeys.servers.all
       );
 
-      // Optimistically update server status to 'disconnecting'
+      // Optimistically update server status to 'disconnected'
       queryClient.setQueryData<ServersResponse>(
         queryKeys.servers.all,
         (old) => {
@@ -170,7 +170,7 @@ export function useStopServer(options?: Parameters<typeof useMutation>[0]) {
             ...old,
             servers: old.servers.map((server) =>
               server.name === serverName
-                ? { ...server, status: 'disconnecting' }
+                ? { ...server, status: 'disconnected' }
                 : server
             ),
           };

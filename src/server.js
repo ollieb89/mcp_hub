@@ -1155,7 +1155,7 @@ app.get(/^\/(?!api|mcp|messages).*/, (req, res, next) => {
 });
 
 // Error handler middleware
-router.use((err, req, res) => {
+router.use((err, req, res, next) => {
   // Determine if it's our custom error or needs wrapping
   const error = isMCPHubError(err)
     ? err

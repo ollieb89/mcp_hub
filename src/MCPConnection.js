@@ -7,7 +7,7 @@ import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { UnauthorizedError } from "@modelcontextprotocol/sdk/client/auth.js";
 import ReconnectingEventSource from "reconnecting-eventsource";
-import MCPHubOAuthProvider from "./utils/oauth-provider.js"
+import MCPHubOAuthProvider from "./utils/oauth-provider.js";
 import {
   ListToolsResultSchema,
   ListResourcesResultSchema,
@@ -24,7 +24,12 @@ import {
 import EventEmitter from "events";
 import logger from "./utils/logger.js";
 import open from "open";
-import { createHTTPAgent, createPooledFetch, destroyAgent, mergePoolConfig } from "./utils/http-pool.js";
+import {
+  createHTTPAgent,
+  createPooledFetch,
+  destroyAgent,
+  mergePoolConfig,
+} from "./utils/http-pool.js";
 import {
   ConnectionError,
   ToolError,
@@ -39,14 +44,13 @@ import { CONNECTION_STATUS, TIMEOUTS } from "./utils/constants.js";
 // Alias for backward compatibility
 const ConnectionStatus = CONNECTION_STATUS;
 
-
 /**
  * MCPConnection manages a single MCP server connection, handling transport setup,
  * capability discovery, tool execution, resource access, and OAuth authentication.
- * 
+ *
  * @class MCPConnection
  * @extends {EventEmitter}
- * 
+ *
  * @emits {toolsChanged} When tools list changes
  * @emits {resourcesChanged} When resources list changes
  * @emits {promptsChanged} When prompts list changes
@@ -79,14 +83,14 @@ export class MCPConnection extends EventEmitter {
 
     // Set display name from marketplace
     this.displayName = name; // Default to mcpId
-    let serverDescription = ""
+    let serverDescription = "";
     if (marketplace?.cache?.catalog?.items) {
       const item = marketplace.cache.catalog.items.find(
-        (item) => item.mcpId === name
+        (item) => item.mcpId === name,
       );
       if (item?.name) {
         this.displayName = item.name;
-        serverDescription = item.description || ""
+        serverDescription = item.description || "";
         logger.debug(`Using marketplace name for server '${name}'`, {
           name,
           displayName: item.name,
@@ -94,7 +98,9 @@ export class MCPConnection extends EventEmitter {
       }
     }
     this.config = config;
-    this.description = config.description ? config.description : serverDescription
+    this.description = config.description
+      ? config.description
+      : serverDescription;
     this.client = null;
     this.transport = null;
     this.transportType = config.type; // Store the transport type from config
@@ -102,7 +108,9 @@ export class MCPConnection extends EventEmitter {
     this.resources = [];
     this.prompts = [];
     this.resourceTemplates = [];
-    this.status = config.disabled ? ConnectionStatus.DISABLED : ConnectionStatus.DISCONNECTED;
+    this.status = config.disabled
+      ? ConnectionStatus.DISABLED
+      : ConnectionStatus.DISCONNECTED;
     this.error = null;
     this.startTime = null;
     this.lastStarted = null;
@@ -115,12 +123,15 @@ export class MCPConnection extends EventEmitter {
     // STDIO servers don't use HTTP, so only create agents for SSE/streamable-http
     this.httpAgent = null;
     this.pooledFetch = null;
-    if (this.transportType === 'sse' || this.transportType === 'streamable-http') {
+    if (
+      this.transportType === "sse" ||
+      this.transportType === "streamable-http"
+    ) {
       try {
         // Merge global and per-server pool configuration
         const poolConfig = mergePoolConfig(
           globalConfig.connectionPool,
-          config.connectionPool
+          config.connectionPool,
         );
 
         // Only create Agent if pooling is enabled
@@ -132,29 +143,37 @@ export class MCPConnection extends EventEmitter {
             config: poolConfig,
           });
         } else {
-          logger.debug(`HTTP connection pooling disabled for server '${name}'`, {
-            type: this.transportType,
-          });
+          logger.debug(
+            `HTTP connection pooling disabled for server '${name}'`,
+            {
+              type: this.transportType,
+            },
+          );
         }
       } catch (error) {
         // Log error but don't fail connection - fall back to default fetch
-        logger.warn(`Failed to create HTTP connection pool for server '${name}', using default fetch`, {
-          error: error.message,
-        });
+        logger.warn(
+          `Failed to create HTTP connection pool for server '${name}', using default fetch`,
+          {
+            error: error.message,
+          },
+        );
       }
     }
 
     // Initialize dev watcher for stdio servers with dev config
-    if (this.transportType === 'stdio' && config.dev) {
+    if (this.transportType === "stdio" && config.dev) {
       this.devWatcher = new DevWatcher(this.name, config.dev);
-      this.devWatcher.on('filesChanged', (data) => this.#handleDevFilesChanged(data));
+      this.devWatcher.on("filesChanged", (data) =>
+        this.#handleDevFilesChanged(data),
+      );
     }
   }
 
   /**
    * Start the MCP server connection. If the server is disabled, it will be enabled.
    * If already connected, returns current server information.
-   * 
+   *
    * @returns {Promise<Object>} Server information object
    * @throws {ConnectionError} If connection fails
    */
@@ -177,7 +196,7 @@ export class MCPConnection extends EventEmitter {
 
   /**
    * Stop the MCP server connection. Optionally disable the server to prevent reconnection.
-   * 
+   *
    * @param {boolean} [disable=false] - If true, disable the server after stopping
    * @returns {Promise<Object>} Server information object
    */
@@ -198,11 +217,16 @@ export class MCPConnection extends EventEmitter {
   /**
    * Calculate the server uptime in seconds since the last successful connection.
    * Returns 0 if the server has never been connected or is not currently running.
-   * 
+   *
    * @returns {number} Uptime in seconds (0 if disconnected)
    */
   getUptime() {
-    if (!this.startTime || ![ConnectionStatus.CONNECTED, ConnectionStatus.DISABLED].includes(this.status)) {
+    if (
+      !this.startTime ||
+      ![ConnectionStatus.CONNECTED, ConnectionStatus.DISABLED].includes(
+        this.status,
+      )
+    ) {
       return 0;
     }
     return Math.floor((Date.now() - this.startTime) / 1000);
@@ -211,20 +235,20 @@ export class MCPConnection extends EventEmitter {
   /**
    * Connect to the MCP server using the configured transport type (stdio, SSE, or HTTP).
    * Establishes transport connection, fetches server capabilities, and sets up event handlers.
-   * 
+   *
    * @param {Object} [config] - Optional updated configuration to use
    * @returns {Promise<void>}
-   * @throws {ConnectionError} If connection fails
+   * @throws {ConnectionError} If connection fails or times out
    * @emits {toolsChanged} When tools are discovered
    * @emits {resourcesChanged} When resources are discovered
    * @emits {promptsChanged} When prompts are discovered
    */
   async connect(config) {
     if (config) {
-      this.config = config
+      this.config = config;
     }
     if (this.config?.name) {
-      this.displayName = this.config.name
+      this.displayName = this.config.name;
     }
     if (this.disabled) {
       this.status = ConnectionStatus.DISABLED;
@@ -237,54 +261,103 @@ export class MCPConnection extends EventEmitter {
     this.status = ConnectionStatus.CONNECTING;
     this.lastStarted = new Date().toISOString();
 
+    // Wrap entire connection process with timeout to prevent hanging
+    const connectionTimeoutMs = 60000; // 60 seconds total timeout for connection (increased for slow-starting servers like Serena)
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(
+        () =>
+          reject(
+            new ConnectionError(
+              `Connection timeout after ${connectionTimeoutMs}ms`,
+              { server: this.name },
+            ),
+          ),
+        connectionTimeoutMs,
+      );
+    });
+
+    try {
+      await Promise.race([this._performConnection(), timeoutPromise]);
+    } catch (error) {
+      await this.cleanup(error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Internal method to perform the actual connection logic.
+   * Separated to allow timeout wrapper in connect().
+   *
+   * @private
+   * @returns {Promise<void>}
+   */
+  async _performConnection() {
     // Resolve config once for all transport types
     const resolvedConfig = await envResolver.resolveConfig(this.config, [
-      'env', 'args', 'command', 'url', 'headers', 'cwd'
+      "env",
+      "args",
+      "command",
+      "url",
+      "headers",
+      "cwd",
     ]);
 
     try {
       // Create appropriate transport based on transport type
-      if (this.transportType === 'stdio') {
+      if (this.transportType === "stdio") {
         this.transport = await this._createStdioTransport(resolvedConfig);
         this.client = this._createClient();
         await this.client.connect(this.transport, {
-          timeout: TIMEOUTS.CLIENT_CONNECT
+          timeout: TIMEOUTS.CLIENT_CONNECT,
         });
       } else {
         //First try the new http transport with fallback to deprecated sse transport
         try {
-          this.authProvider = this._createOAuthProvider()
-          this.transport = await this._createStreambleHTTPTransport(this.authProvider, resolvedConfig)
+          this.authProvider = this._createOAuthProvider();
+          this.transport = await this._createStreambleHTTPTransport(
+            this.authProvider,
+            resolvedConfig,
+          );
           this.client = this._createClient();
           await this.client.connect(this.transport, {
-            timeout: TIMEOUTS.CLIENT_CONNECT
+            timeout: TIMEOUTS.CLIENT_CONNECT,
           });
         } catch (httpError) {
           try {
             //catches 401 error from http transport
             if (this._isAuthError(httpError)) {
-              logger.debug(`'${this.name}' streamable-http transport needs authorization: ${httpError.message}`);
-              await this._handleUnauthorizedConnection()
-              return
+              logger.debug(
+                `'${this.name}' streamable-http transport needs authorization: ${httpError.message}`,
+              );
+              await this._handleUnauthorizedConnection();
+              return;
             } else {
-              logger.debug(`'${this.name}' streamable-http error: ${httpError.message}. Falling back to SSE transport`);
-              this.authProvider = this._createOAuthProvider()
-              this.transport = await this._createSSETransport(this.authProvider, resolvedConfig);
+              logger.debug(
+                `'${this.name}' streamable-http error: ${httpError.message}. Falling back to SSE transport`,
+              );
+              this.authProvider = this._createOAuthProvider();
+              this.transport = await this._createSSETransport(
+                this.authProvider,
+                resolvedConfig,
+              );
               this.client = this._createClient();
               await this.client.connect(this.transport, {
-                timeout: TIMEOUTS.CLIENT_CONNECT
+                timeout: TIMEOUTS.CLIENT_CONNECT,
               });
             }
           } catch (sseError) {
-
             //catches 401 error from sse transport
             if (this._isAuthError(sseError)) {
-              logger.debug(`'${this.name}' SSE transport needs authorization: ${sseError.message}`);
-              await this._handleUnauthorizedConnection()
-              return
+              logger.debug(
+                `'${this.name}' SSE transport needs authorization: ${sseError.message}`,
+              );
+              await this._handleUnauthorizedConnection();
+              return;
             } else {
-              logger.debug(`'${this.name}' failed to start connection with http and sse transports: ${sseError.message}`);
-              throw sseError
+              logger.debug(
+                `'${this.name}' failed to start connection with http and sse transports: ${sseError.message}`,
+              );
+              throw sseError;
             }
           }
         }
@@ -309,28 +382,39 @@ export class MCPConnection extends EventEmitter {
 
       logger.info(`'${this.name}' MCP server connected`);
     } catch (error) {
-      // Ensure proper cleanup on error using finally-like pattern
-      await this.cleanup(error.message);
+      // Re-throw error, it will be handled by connect() method
       throw new ConnectionError(
         `Failed to connect to "${this.name}" MCP server: ${error.message}`,
         {
           server: this.name,
           error: error.message,
-        }
+        },
       );
     }
   }
 
   removeNotificationHandlers() {
-    if (!this.client) return
+    if (!this.client) return;
     // Remove all notification handlers
-    // For some reason removeNotificationHandlers doesn't seem to work 
+    // For some reason removeNotificationHandlers doesn't seem to work
     // so we are setting them to nothing
-    const nothing = () => { };
-    this.client.setNotificationHandler(ToolListChangedNotificationSchema, nothing)
-    this.client.setNotificationHandler(ResourceListChangedNotificationSchema, nothing)
-    this.client.setNotificationHandler(PromptListChangedNotificationSchema, nothing)
-    this.client.setNotificationHandler(LoggingMessageNotificationSchema, nothing)
+    const nothing = () => {};
+    this.client.setNotificationHandler(
+      ToolListChangedNotificationSchema,
+      nothing,
+    );
+    this.client.setNotificationHandler(
+      ResourceListChangedNotificationSchema,
+      nothing,
+    );
+    this.client.setNotificationHandler(
+      PromptListChangedNotificationSchema,
+      nothing,
+    );
+    this.client.setNotificationHandler(
+      LoggingMessageNotificationSchema,
+      nothing,
+    );
   }
 
   /**
@@ -350,45 +434,51 @@ export class MCPConnection extends EventEmitter {
         let params = notification.params || {};
         let data = params.data || {};
         let level = params.level || "debug";
-        logger.debug(`["${this.name}" server ${level} log]: ${JSON.stringify(data, null, 2)}`);
-      }
+        logger.debug(
+          `["${this.name}" server ${level} log]: ${JSON.stringify(data, null, 2)}`,
+        );
+      },
     );
 
     const map = {
-      "tools": ToolListChangedNotificationSchema,
-      "resources": ResourceListChangedNotificationSchema,
-      "prompts": PromptListChangedNotificationSchema,
+      tools: ToolListChangedNotificationSchema,
+      resources: ResourceListChangedNotificationSchema,
+      prompts: PromptListChangedNotificationSchema,
     };
 
     // Handle capability change notifications
-    Object.keys(map).forEach(type => {
+    Object.keys(map).forEach((type) => {
       this.client.setNotificationHandler(map[type], async () => {
         logger.debug(`Received ${type}Changed notification`);
-        
+
         // Update capabilities and get which ones actually changed
         const changedCapabilities = await this.updateCapabilities(
-          type === "resources" ? ["resources", "resourceTemplates"] : [type]
+          type === "resources" ? ["resources", "resourceTemplates"] : [type],
         );
-        
+
         // Only emit events if capabilities actually changed
         if (changedCapabilities && changedCapabilities.length > 0) {
-          const updatedData = type === "resources" ? {
-            resources: this.resources,
-            resourceTemplates: this.resourceTemplates,
-          } : {
-            [type]: this[type],
-          };
+          const updatedData =
+            type === "resources"
+              ? {
+                  resources: this.resources,
+                  resourceTemplates: this.resourceTemplates,
+                }
+              : {
+                  [type]: this[type],
+                };
           this.emit(`${type}Changed`, {
             server: this.name,
             ...updatedData,
           });
         } else {
-          logger.debug(`${type} capabilities unchanged, skipping event emission`);
+          logger.debug(
+            `${type} capabilities unchanged, skipping event emission`,
+          );
         }
       });
     });
   }
-
 
   async fetchServerInfo() {
     if (!this.client) {
@@ -399,7 +489,9 @@ export class MCPConnection extends EventEmitter {
       // Get server info from the connected server
       this.serverInfo = this.client.getServerVersion();
     } catch (error) {
-      logger.debug(`Could not fetch server info for '${this.name}': ${error.message}`);
+      logger.debug(
+        `Could not fetch server info for '${this.name}': ${error.message}`,
+      );
       this.serverInfo = null;
     }
   }
@@ -435,32 +527,35 @@ export class MCPConnection extends EventEmitter {
       prompts: {
         method: "prompts/list",
         schema: ListPromptsResultSchema,
-      }
-    }
+      },
+    };
 
     try {
       const typesToFetch = capabilitiesToUpdate || Object.keys(map);
-      
+
       // Store previous capabilities for comparison
       const previousCapabilities = {};
-      typesToFetch.forEach(type => {
-        previousCapabilities[type] = this[type] ? JSON.stringify(this[type]) : null;
+      typesToFetch.forEach((type) => {
+        previousCapabilities[type] = this[type]
+          ? JSON.stringify(this[type])
+          : null;
       });
-      
+
       const fetchPromises = typesToFetch.map(async (type) => {
-        this[type] = (await safeRequest(map[type].method, map[type].schema))?.[type] || [];
+        this[type] =
+          (await safeRequest(map[type].method, map[type].schema))?.[type] || [];
       });
       await Promise.all(fetchPromises);
-      
+
       // Check which capabilities actually changed and only emit events for those
-      const changedCapabilities = typesToFetch.filter(type => {
+      const changedCapabilities = typesToFetch.filter((type) => {
         const currentSerialized = JSON.stringify(this[type]);
         return previousCapabilities[type] !== currentSerialized;
       });
-      
+
       // Return changed capabilities so caller can emit appropriate events
       return changedCapabilities;
-      
+
       //TODO: handle pagination
     } catch (error) {
       // Only log as warning since missing capabilities are expected in some cases
@@ -494,17 +589,16 @@ export class MCPConnection extends EventEmitter {
     }
   }
 
-
   /**
    * Get a prompt from the MCP server.
-   * 
+   *
    * @param {string} promptName - Name of the prompt to retrieve
    * @param {Object|Array|null} [args] - Prompt arguments (object, array, or null)
    * @param {Object} [request_options] - Additional request options
    * @returns {Promise<Object>} Prompt content
    * @throws {ToolError} If prompt retrieval fails or prompt not found
    * @throws {ConnectionError} If server not connected
-   * 
+   *
    * @example
    * // Get a prompt with arguments
    * const prompt = await connection.getPrompt('summarize', { text: 'Long text...' });
@@ -542,13 +636,17 @@ export class MCPConnection extends EventEmitter {
     }
 
     try {
-
-      return await this.client.request({
-        method: "prompts/get", params: {
-          name: promptName,
-          arguments: args
-        }
-      }, GetPromptResultSchema, request_options);
+      return await this.client.request(
+        {
+          method: "prompts/get",
+          params: {
+            name: promptName,
+            arguments: args,
+          },
+        },
+        GetPromptResultSchema,
+        request_options,
+      );
     } catch (error) {
       throw wrapError(error, "PROMPT_EXECUTION_ERROR", {
         server: this.name,
@@ -556,7 +654,6 @@ export class MCPConnection extends EventEmitter {
         args,
       });
     }
-
   }
 
   /*
@@ -570,14 +667,14 @@ export class MCPConnection extends EventEmitter {
     */
   /**
    * Execute a tool on the MCP server.
-   * 
+   *
    * @param {string} toolName - Name of the tool to execute
    * @param {Object|Array|null} [args] - Tool arguments (object, array, or null)
    * @param {Object} [request_options] - Additional request options
    * @returns {Promise<Object>} Tool execution result
    * @throws {ToolError} If tool execution fails or tool not found
    * @throws {ConnectionError} If server not connected
-   * 
+   *
    * @example
    * // Execute a tool with arguments
    * const result = await connection.callTool('readFile', { path: '/tmp/file.txt' });
@@ -626,7 +723,7 @@ export class MCPConnection extends EventEmitter {
           },
         },
         CallToolResultSchema,
-        request_options
+        request_options,
       );
     } catch (error) {
       throw wrapError(error, "TOOL_EXECUTION_ERROR", {
@@ -649,13 +746,13 @@ export class MCPConnection extends EventEmitter {
 
   /**
    * Read a resource from the MCP server.
-   * 
+   *
    * @param {string} uri - Resource URI to read
    * @param {Object} [request_options] - Additional request options
    * @returns {Promise<Object>} Resource content
    * @throws {ResourceError} If resource read fails or resource not found
    * @throws {ConnectionError} If server not connected
-   * 
+   *
    * @example
    * // Read a text resource
    * const resource = await connection.readResource('file:///tmp/file.txt');
@@ -700,7 +797,7 @@ export class MCPConnection extends EventEmitter {
           params: { uri },
         },
         ReadResourceResultSchema,
-        request_options
+        request_options,
       );
     } catch (error) {
       throw wrapError(error, "RESOURCE_READ_ERROR", {
@@ -709,8 +806,6 @@ export class MCPConnection extends EventEmitter {
       });
     }
   }
-
-
 
   /**
    * Centralized cleanup method that is idempotent and safe to call multiple times.
@@ -726,7 +821,9 @@ export class MCPConnection extends EventEmitter {
       try {
         await this.devWatcher.stop();
       } catch (err) {
-        logger.debug(`'${this.name}': Error stopping dev watcher: ${err.message}`);
+        logger.debug(
+          `'${this.name}': Error stopping dev watcher: ${err.message}`,
+        );
       }
       this.devWatcher = null;
     }
@@ -739,7 +836,9 @@ export class MCPConnection extends EventEmitter {
           logger.debug(`'${this.name}': Terminating session before exit...`);
           await this.transport.terminateSession();
         } catch (err) {
-          logger.debug(`'${this.name}': Error terminating session: ${err.message}`);
+          logger.debug(
+            `'${this.name}': Error terminating session: ${err.message}`,
+          );
         }
       }
       try {
@@ -769,7 +868,9 @@ export class MCPConnection extends EventEmitter {
         destroyAgent(this.httpAgent);
         logger.debug(`'${this.name}': Destroyed HTTP connection pool`);
       } catch (err) {
-        logger.debug(`'${this.name}': Error destroying HTTP agent: ${err.message}`);
+        logger.debug(
+          `'${this.name}': Error destroying HTTP agent: ${err.message}`,
+        );
       }
       this.httpAgent = null;
       this.pooledFetch = null;
@@ -786,7 +887,9 @@ export class MCPConnection extends EventEmitter {
     this.resources = [];
     this.prompts = [];
     this.resourceTemplates = [];
-    this.status = this.config.disabled ? ConnectionStatus.DISABLED : ConnectionStatus.DISCONNECTED;
+    this.status = this.config.disabled
+      ? ConnectionStatus.DISABLED
+      : ConnectionStatus.DISCONNECTED;
     this.error = error || null;
     this.startTime = null;
     this.lastStarted = null;
@@ -798,7 +901,7 @@ export class MCPConnection extends EventEmitter {
 
   /**
    * Disconnect from the MCP server and clean up all resources.
-   * 
+   *
    * @param {string} [error] - Optional error message to store in state
    * @returns {Promise<void>}
    */
@@ -812,17 +915,17 @@ export class MCPConnection extends EventEmitter {
     return new MCPHubOAuthProvider({
       serverName: this.name,
       serverUrl: this.config.url,
-      hubServerUrl: this.hubServerUrl
-    })
+      hubServerUrl: this.hubServerUrl,
+    });
   }
 
   /**
    * Initiate OAuth authorization flow by opening the authorization URL in the default browser.
-   * 
+   *
    * @returns {Promise<Object>} Object containing the authorization URL
    * @returns {string} returns.authorizationUrl - The OAuth authorization URL
    * @throws {Error} If no authorization URL is available
-   * 
+   *
    * @example
    * // Start OAuth flow
    * const { authorizationUrl } = await connection.authorize();
@@ -830,26 +933,30 @@ export class MCPConnection extends EventEmitter {
    */
   async authorize() {
     if (!this.authorizationUrl) {
-      throw new Error(`No authorization URL available for server '${this.name}'`);
+      throw new Error(
+        `No authorization URL available for server '${this.name}'`,
+      );
     }
     //validate
-    new URL(this.authorizationUrl)
+    new URL(this.authorizationUrl);
     // log it in cases where the user in a browserless environment
-    logger.info(`Opening authorization URL for server '${this.name}': ${this.authorizationUrl.toString()}`);
-    // Open the authorization URL in the default browser 
-    await open(this.authorizationUrl.toString())
+    logger.info(
+      `Opening authorization URL for server '${this.name}': ${this.authorizationUrl.toString()}`,
+    );
+    // Open the authorization URL in the default browser
+    await open(this.authorizationUrl.toString());
     //Once the user authorizes, handleAuthCallback is called.
     return {
       authorizationUrl: this.authorizationUrl,
-    }
+    };
   }
 
   /**
    * Reconnect to the MCP server. First disconnects any existing connection, then establishes a new one.
-   * 
+   *
    * @returns {Promise<void>}
    * @throws {ConnectionError} If reconnection fails
-   * 
+   *
    * @example
    * // Reconnect after connection loss
    * await connection.reconnect();
@@ -858,10 +965,11 @@ export class MCPConnection extends EventEmitter {
     if (this.client) {
       try {
         await this.disconnect();
-      }
-      catch (error) {
+      } catch (error) {
         // Log but continue - disconnect errors shouldn't block reconnection
-        logger.debug(`'${this.name}': Error during disconnect before reconnect: ${error.message}`);
+        logger.debug(
+          `'${this.name}': Error during disconnect before reconnect: ${error.message}`,
+        );
         this.resetState();
       }
     }
@@ -871,7 +979,7 @@ export class MCPConnection extends EventEmitter {
   /**
    * Handle OAuth callback with authorization code exchange.
    * Called after user completes authorization in the browser.
-   * 
+   *
    * @param {string} code - Authorization code from OAuth provider
    * @returns {Promise<void>}
    * @throws {Error} If transport not available or authorization fails
@@ -881,16 +989,18 @@ export class MCPConnection extends EventEmitter {
     if (!this.transport) {
       throw new Error(`No transport available for server '${this.name}'`);
     }
-    
+
     logger.debug(`Handling OAuth callback for server '${this.name}'`);
     await this.transport.finishAuth(code);
-    logger.debug(`Successful code exchange for '${this.name}': Authorized, connecting with new tokens`);
-    await this.connect()
+    logger.debug(
+      `Successful code exchange for '${this.name}': Authorized, connecting with new tokens`,
+    );
+    await this.connect();
   }
 
   /**
    * Get comprehensive server information including status, capabilities, and metadata.
-   * 
+   *
    * @returns {Object} Server information object with:
    * @returns {string} returns.name - Server identifier (MCP ID)
    * @returns {string} returns.displayName - Friendly display name from marketplace
@@ -928,7 +1038,6 @@ export class MCPConnection extends EventEmitter {
   }
 
   async _createStdioTransport(resolvedConfig) {
-
     // Build serverEnv with resolved values
     const serverEnv = {
       // INFO: getDefaultEnvironment is imp in order to start mcp servers properly
@@ -939,9 +1048,9 @@ export class MCPConnection extends EventEmitter {
     const transport = new StdioClientTransport({
       cwd: resolvedConfig.cwd,
       command: resolvedConfig.command, // Now supports ${} placeholders too!
-      args: resolvedConfig.args,       // Supports both ${} and legacy $VAR
+      args: resolvedConfig.args, // Supports both ${} and legacy $VAR
       env: serverEnv,
-      stderr: 'pipe',
+      stderr: "pipe",
     });
 
     //listen to stderr for stdio servers
@@ -949,12 +1058,11 @@ export class MCPConnection extends EventEmitter {
     if (stderrStream) {
       stderrStream.on("data", (data) => {
         const errorOutput = data.toString().trim();
-        logger.warn(`${this.name} stderr: ${errorOutput}`)
+        logger.warn(`${this.name} stderr: ${errorOutput}`);
       });
     }
-    return transport
+    return transport;
   }
-
 
   async _createStreambleHTTPTransport(authProvider, resolvedConfig) {
     const url = new URL(resolvedConfig.url);
@@ -968,15 +1076,17 @@ export class MCPConnection extends EventEmitter {
       ...(this.pooledFetch && { fetch: this.pooledFetch }),
       // reconnectionOptions?: StreamableHTTPReconnectionOptions
       // sessionId?: string;
-    }
+    };
 
     const transport = new StreamableHTTPClientTransport(url, options);
 
     if (this.pooledFetch) {
-      logger.debug(`Streamable HTTP transport using connection pool for '${this.name}'`);
+      logger.debug(
+        `Streamable HTTP transport using connection pool for '${this.name}'`,
+      );
     }
 
-    return transport
+    return transport;
   }
 
   async _createSSETransport(authProvider, resolvedConfig) {
@@ -992,13 +1102,13 @@ export class MCPConnection extends EventEmitter {
     class ReconnectingES extends ReconnectingEventSource {
       constructor(url, options) {
         super(url, {
-          ...options || {},
-          ...reconnectingEventSourceOptions
-        })
+          ...(options || {}),
+          ...reconnectingEventSourceOptions,
+        });
       }
     }
     // Use ReconnectingEventSource for automatic reconnection
-    global.EventSource = ReconnectingES
+    global.EventSource = ReconnectingES;
     const transport = new SSEClientTransport(url, {
       requestInit: {
         headers: resolvedConfig.headers, // Already resolved with commands support
@@ -1011,10 +1121,12 @@ export class MCPConnection extends EventEmitter {
     });
 
     if (this.pooledFetch) {
-      logger.debug(`SSE transport using HTTP connection pool for '${this.name}'`);
+      logger.debug(
+        `SSE transport using HTTP connection pool for '${this.name}'`,
+      );
     }
 
-    return transport
+    return transport;
   }
 
   _createClient() {
@@ -1025,30 +1137,30 @@ export class MCPConnection extends EventEmitter {
       },
       {
         capabilities: {},
-      }
+      },
     );
     client.onerror = (error) => {
       // logger.error("CLIENT_ERROR", `${this.name}: client error: ${error.message}`, {}, false);
       //INFO: onerror is being called for even minor errors, so debug seems more appropriate
-      logger.debug(`'${this.name}' error: ${error.message}`)
+      logger.debug(`'${this.name}' error: ${error.message}`);
     };
 
     client.onclose = () => {
-      logger.debug(`'${this.name}' transport closed`)
+      logger.debug(`'${this.name}' transport closed`);
       //This is causing a bug where in the frontend the server is shown as disconnected when we try disconnect() which sets to disconnected and again connect() which sets to connecting. Having this here negated the connecting status.
       // this.status = [ConnectionStatus.DISCONNECTED, ConnectionStatus.DISABLED].includes(this.status) ? this.status : ConnectionStatus.DISCONNECTED;
       this.startTime = null;
       // Emit close event for handling reconnection if needed
       this.emit("connectionClosed", {
         server: this.name,
-        type: this.transportType
+        type: this.transportType,
       });
     };
-    return client
+    return client;
   }
 
   _isAuthError(error) {
-    return error.code === 401 || error instanceof UnauthorizedError
+    return error.code === 401 || error instanceof UnauthorizedError;
   }
 
   async _handleUnauthorizedConnection() {
@@ -1060,38 +1172,47 @@ export class MCPConnection extends EventEmitter {
       logger.warn(`No authorization URL available for server '${this.name}'`);
       return;
     }
-    
+
     // Automatically open authorization URL in browser
     try {
-      logger.info(`Opening authorization URL for server '${this.name}': ${this.authorizationUrl.toString()}`);
+      logger.info(
+        `Opening authorization URL for server '${this.name}': ${this.authorizationUrl.toString()}`,
+      );
       await open(this.authorizationUrl.toString());
       logger.info(`Authorization browser opened for server '${this.name}'`);
     } catch (error) {
-      logger.error('AUTO_AUTH_ERROR', `Failed to open authorization URL for server '${this.name}': ${error.message}`, {
-        server: this.name,
-        authorizationUrl: this.authorizationUrl,
-      }, false);
+      logger.error(
+        "AUTO_AUTH_ERROR",
+        `Failed to open authorization URL for server '${this.name}': ${error.message}`,
+        {
+          server: this.name,
+          authorizationUrl: this.authorizationUrl,
+        },
+        false,
+      );
       // Still allow manual authorization via the API
     }
   }
 
   async #handleDevFilesChanged(data) {
     try {
-      logger.debug(`Dev file changes detected, restarting server '${this.name}'`)
+      logger.debug(
+        `Dev file changes detected, restarting server '${this.name}'`,
+      );
 
       // Emit dev restart starting event
-      this.emit('devServerRestarting', {
+      this.emit("devServerRestarting", {
         changes: { modified: [this.name] },
-        reason: 'dev_file_change',
+        reason: "dev_file_change",
         files: data.relativeFiles,
         timestamp: data.timestamp,
       });
       // Perform restart
       await this.restartForDev();
       // Emit dev restart completed event
-      this.emit('devServerRestarted', {
+      this.emit("devServerRestarted", {
         changes: { modified: [this.name] },
-        reason: 'dev_file_change',
+        reason: "dev_file_change",
         files: data.relativeFiles,
         timestamp: new Date().toISOString(),
         newCapabilities: this.getServerInfo().capabilities,
@@ -1099,19 +1220,19 @@ export class MCPConnection extends EventEmitter {
       logger.debug(`Dev restart completed for server '${this.name}'`);
     } catch (error) {
       logger.error(
-        'DEV_RESTART_ERROR',
+        "DEV_RESTART_ERROR",
         `Failed to restart server '${this.name}' after file changes: ${error.message}`,
         {
           server: this.name,
           files: data.relativeFiles,
           error: error.message,
         },
-        false
+        false,
       );
       // Still emit the completed event with error info
-      this.emit('devServerRestarted', {
+      this.emit("devServerRestarted", {
         changes: { modified: [this.name] },
-        reason: 'dev_file_change',
+        reason: "dev_file_change",
         files: data.relativeFiles,
         timestamp: new Date().toISOString(),
         error: error.message,

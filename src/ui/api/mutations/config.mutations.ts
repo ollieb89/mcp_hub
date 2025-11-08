@@ -4,7 +4,7 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@ui/utils/query-client';
-import { saveConfig, type HubConfig, type ConfigResponse } from '../config';
+import { saveConfig, type ConfigData, type ConfigResponse } from '../config';
 
 /**
  * Save configuration with version checking
@@ -22,7 +22,7 @@ import { saveConfig, type HubConfig, type ConfigResponse } from '../config';
  * function ConfigEditor() {
  *   const { data: configData } = useConfig();
  *   const saveConfigMutation = useSaveConfig();
- *   const [config, setConfig] = useState<HubConfig | null>(null);
+ *   const [config, setConfig] = useState<ConfigData | null>(null);
  *
  *   useEffect(() => {
  *     if (configData) setConfig(configData.config);
@@ -77,7 +77,7 @@ export function useSaveConfig(options?: Parameters<typeof useMutation>[0]) {
       config,
       expectedVersion,
     }: {
-      config: HubConfig;
+      config: ConfigData;
       expectedVersion?: string;
     }) => saveConfig(config, expectedVersion),
     onMutate: async ({ config }) => {

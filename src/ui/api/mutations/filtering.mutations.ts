@@ -3,7 +3,12 @@
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@ui/utils/query-client';
-import { setFilteringMode, setFilteringEnabled, type FilteringStats } from '../filtering';
+import {
+  setFilteringMode,
+  setFilteringEnabled,
+  type FilteringStatsResponse,
+  type FilteringMode,
+} from '../filtering';
 
 /**
  * Update tool filtering mode
@@ -51,18 +56,18 @@ export function useUpdateFilteringMode(options?: Parameters<typeof useMutation>[
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (mode: string) => setFilteringMode(mode),
-    onMutate: async (mode: string) => {
+    mutationFn: (mode: FilteringMode) => setFilteringMode(mode),
+    onMutate: async (mode: FilteringMode) => {
       // Cancel outgoing queries
       await queryClient.cancelQueries({ queryKey: queryKeys.filtering.stats });
 
       // Snapshot previous value
-      const previousStats = queryClient.getQueryData<FilteringStats>(
+      const previousStats = queryClient.getQueryData<FilteringStatsResponse>(
         queryKeys.filtering.stats
       );
 
       // Optimistically update mode
-      queryClient.setQueryData<FilteringStats>(
+      queryClient.setQueryData<FilteringStatsResponse>(
         queryKeys.filtering.stats,
         (old) => {
           if (!old) return old;
@@ -146,12 +151,12 @@ export function useToggleFiltering(options?: Parameters<typeof useMutation>[0]) 
       await queryClient.cancelQueries({ queryKey: queryKeys.filtering.stats });
 
       // Snapshot previous value
-      const previousStats = queryClient.getQueryData<FilteringStats>(
+      const previousStats = queryClient.getQueryData<FilteringStatsResponse>(
         queryKeys.filtering.stats
       );
 
       // Optimistically update enabled state
-      queryClient.setQueryData<FilteringStats>(
+      queryClient.setQueryData<FilteringStatsResponse>(
         queryKeys.filtering.stats,
         (old) => {
           if (!old) return old;

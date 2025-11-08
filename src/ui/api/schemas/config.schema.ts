@@ -15,10 +15,10 @@ export const ServerConfigSchema = z.object({
   command: z.string().optional(),
   args: z.array(z.string()).optional(),
   cwd: z.string().optional(),
-  env: z.record(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
   disabled: z.boolean().optional(),
   url: z.string().optional(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   dev: z
     .object({
       enabled: z.boolean().optional(),
@@ -100,6 +100,8 @@ export const ConfigDataSchema = z.object({
  */
 export const ConfigResponseSchema = z.object({
   config: ConfigDataSchema,
+  version: z.string(),
+  timestamp: z.string().datetime()
 });
 
 /**
