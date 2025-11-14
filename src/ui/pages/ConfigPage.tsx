@@ -24,6 +24,7 @@ import CategoryListEditor from "@components/CategoryListEditor";
 import ServerAllowlistEditor from "@components/ServerAllowlistEditor";
 import RawJsonEditor from "@components/RawJsonEditor";
 import ConfigPreviewDialog from "@components/ConfigPreviewDialog";
+import ErrorBoundary from "@components/ErrorBoundary";
 import type { FilteringMode } from "@components/FilteringCard";
 import { useSnackbar } from "@hooks/useSnackbar";
 import { useSSESubscription } from "@hooks/useSSESubscription";
@@ -68,7 +69,7 @@ const ConfigPage = () => {
   // SSE integration - invalidate queries on config changes
   useSSESubscription(
     ["config_changed"],
-    useCallback((eventType) => {
+    useCallback(() => {
       if (!dirty) {
         // Only auto-reload if user hasn't made local changes
         queryClient.invalidateQueries({ queryKey: queryKeys.config });
@@ -306,58 +307,65 @@ const ConfigPage = () => {
   ];
 
   return (
-    <Box>
-      <Stack spacing={1} mb={3}>
-        <Typography variant="h5" fontWeight={700}>
-          Configuration
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Adjust tool filtering behaviour, allowed categories, and server allowlists. Raw JSON editing is available for advanced changes.
-        </Typography>
-      </Stack>
+    <ErrorBoundary
+      recoverableErrors={[/json parse error|validation error|config error|network error/i]}
+      onError={(error) => {
+        console.log("[ConfigPage] Error caught:", error.message);
+      }}
+    >
+      <Box>
+        <Stack spacing={1} mb={3}>
+          <Typography variant="h5" fontWeight={700}>
+            Configuration
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Adjust tool filtering behaviour, allowed categories, and server allowlists. Raw JSON editing is available for advanced changes.
+          </Typography>
+        </Stack>
 
-      {(error || queryError) && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error || queryError?.message}
-        </Alert>
-      )}
+        {(error || queryError) && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error || queryError?.message}
+          </Alert>
+        )}
 
-      <Stack direction="row" justifyContent="flex-end" mb={2}>
-        <Button
-          variant="contained"
-          onClick={handleSave}
-          disabled={saveConfigMutation.isPending || !dirty || !config}
-          startIcon={saveConfigMutation.isPending ? <CircularProgress size={18} /> : undefined}
-        >
-          {saveConfigMutation.isPending ? "Saving…" : "Save Changes"}
-        </Button>
-      </Stack>
+        <Stack direction="row" justifyContent="flex-end" mb={2}>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={saveConfigMutation.isPending || !dirty || !config}
+            startIcon={saveConfigMutation.isPending ? <CircularProgress size={18} /> : undefined}
+          >
+            {saveConfigMutation.isPending ? "Saving…" : "Save Changes"}
+          </Button>
+        </Stack>
 
-      {isLoading || !config ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <ConfigTabs value={activeTab} onChange={setActiveTab} tabs={tabs} />
-      )}
+        {isLoading || !config ? (
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <ConfigTabs value={activeTab} onChange={setActiveTab} tabs={tabs} />
+        )}
 
-      <Snackbar
-        open={open}
-        autoHideDuration={4000}
-        onClose={closeSnackbar}
-        message={message ?? ""}
-      />
-
-      {config && previewConfig && (
-        <ConfigPreviewDialog
-          open={showPreview}
-          currentConfig={config}
-          proposedConfig={previewConfig}
-          onConfirm={handleRawSave}
-          onCancel={() => setShowPreview(false)}
+        <Snackbar
+          open={open}
+          autoHideDuration={4000}
+          onClose={closeSnackbar}
+          message={message ?? ""}
         />
-      )}
-    </Box>
+
+        {config && previewConfig && (
+          <ConfigPreviewDialog
+            open={showPreview}
+            currentConfig={config}
+            proposedConfig={previewConfig}
+            onConfirm={handleRawSave}
+            onCancel={() => setShowPreview(false)}
+          />
+        )}
+      </Box>
+    </ErrorBoundary>
   );
 };
 

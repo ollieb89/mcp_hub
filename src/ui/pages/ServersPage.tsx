@@ -8,6 +8,7 @@ import { queryKeys } from "@utils/query-client";
 import ServersTable from "@components/ServersTable";
 import { useSnackbar } from "@hooks/useSnackbar";
 import { useSSESubscription } from "@hooks/useSSESubscription";
+import ErrorBoundary from "@components/ErrorBoundary";
 
 const ServersPage = () => {
   const queryClient = useQueryClient();
@@ -21,7 +22,7 @@ const ServersPage = () => {
   // SSE integration - invalidate queries on config changes
   useSSESubscription(
     ["config_changed", "servers_updated"],
-    useCallback((eventType) => {
+    useCallback(() => {
       queryClient.invalidateQueries({ queryKey: queryKeys.servers.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.health });
     }, [queryClient]),
@@ -70,32 +71,39 @@ const ServersPage = () => {
   );
 
   return (
-    <Box>
-      <Stack spacing={1} mb={3}>
-        <Typography variant="h5" fontWeight={700}>
-          Servers
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Manage MCP server processes, review transport details, and monitor uptime.
-        </Typography>
-      </Stack>
+    <ErrorBoundary
+      recoverableErrors={[/connection refused|server error|timeout|network error/i]}
+      onError={(error) => {
+        console.log("[ServersPage] Error caught:", error.message);
+      }}
+    >
+      <Box>
+        <Stack spacing={1} mb={3}>
+          <Typography variant="h5" fontWeight={700}>
+            Servers
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Manage MCP server processes, review transport details, and monitor uptime.
+          </Typography>
+        </Stack>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error.message}
-        </Alert>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error.message}
+          </Alert>
+        )}
 
-      <ServersTable
-        servers={serversData?.servers ?? []}
-        loading={isLoading}
-        onRefresh={refetch}
-        onToggle={handleToggle}
-        onRestart={handleRestart}
-      />
+        <ServersTable
+          servers={serversData?.servers ?? []}
+          loading={isLoading}
+          onRefresh={refetch}
+          onToggle={handleToggle}
+          onRestart={handleRestart}
+        />
 
-      <Snackbar open={open} autoHideDuration={4000} onClose={closeSnackbar} message={message ?? ""} />
-    </Box>
+        <Snackbar open={open} autoHideDuration={4000} onClose={closeSnackbar} message={message ?? ""} />
+      </Box>
+    </ErrorBoundary>
   );
 };
 

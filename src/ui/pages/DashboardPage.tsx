@@ -22,6 +22,7 @@ import ActiveFiltersCard from "@components/ActiveFiltersCard";
 import LogsPanel from "@components/LogsPanel";
 import { useLogsStream } from "@hooks/useLogsStream";
 import { useSSESubscription } from "@hooks/useSSESubscription";
+import ErrorBoundary from "@components/ErrorBoundary";
 import type { CacheHistoryPoint } from "@components/CacheLineChart";
 
 const ToolPieChart = lazy(() => import("@components/ToolPieChart"));
@@ -94,7 +95,7 @@ const DashboardPage = () => {
   // SSE integration - invalidate queries on config changes
   useSSESubscription(
     ["config_changed", "servers_updated"],
-    useCallback((eventType) => {
+    useCallback(() => {
       // Invalidate filtering stats query when config changes
       queryClient.invalidateQueries({ queryKey: queryKeys.filtering.stats });
       queryClient.invalidateQueries({ queryKey: queryKeys.tools.all });
@@ -129,68 +130,75 @@ const DashboardPage = () => {
   const derivedLogs = useMemo(() => logs.slice().reverse(), [logs]);
 
   return (
-    <Box>
-      <Stack spacing={1} mb={3}>
-        <Typography variant="h5" fontWeight={700}>
-          Overview
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Monitor filtering behaviour, tool inventory, cache health, and recent logs.
-        </Typography>
-      </Stack>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error.message}
-        </Alert>
-      )}
-
-      {isLoading && !stats ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
-          <CircularProgress color="primary" />
-        </Box>
-      ) : (
-        <Stack spacing={3}>
-          <Box
-            sx={{
-              display: "grid",
-              gap: 3,
-              gridTemplateColumns: {
-                xs: "1fr",
-                md: "repeat(3, minmax(0, 1fr))",
-              },
-            }}
-          >
-            <FilteringCard
-              stats={stats}
-              pending={pending}
-              onToggle={handleToggle}
-              onModeChange={handleModeChange}
-              onEditFilters={handleEditFilters}
-            />
-            <Suspense fallback={<ToolPieChartFallback />}>
-              <ToolPieChart stats={stats} />
-            </Suspense>
-            <Suspense fallback={<CacheLineChartFallback />}>
-              <CacheLineChart history={history} loading={isLoading} />
-            </Suspense>
-          </Box>
-          <Box
-            sx={{
-              display: "grid",
-              gap: 3,
-              gridTemplateColumns: {
-                xs: "1fr",
-                md: "repeat(2, minmax(0, 1fr))",
-              },
-            }}
-          >
-            <ActiveFiltersCard stats={stats} onEdit={handleEditFilters} />
-            <LogsPanel logs={derivedLogs} loading={logsLoading} />
-          </Box>
+    <ErrorBoundary
+      recoverableErrors={[/failed to fetch|timeout|network error/i]}
+      onError={(error) => {
+        console.log("[DashboardPage] Error caught:", error.message);
+      }}
+    >
+      <Box>
+        <Stack spacing={1} mb={3}>
+          <Typography variant="h5" fontWeight={700}>
+            Overview
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Monitor filtering behaviour, tool inventory, cache health, and recent logs.
+          </Typography>
         </Stack>
-      )}
-    </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error.message}
+          </Alert>
+        )}
+
+        {isLoading && !stats ? (
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
+            <CircularProgress color="primary" />
+          </Box>
+        ) : (
+          <Stack spacing={3}>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 3,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(3, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <FilteringCard
+                stats={stats}
+                pending={pending}
+                onToggle={handleToggle}
+                onModeChange={handleModeChange}
+                onEditFilters={handleEditFilters}
+              />
+              <Suspense fallback={<ToolPieChartFallback />}>
+                <ToolPieChart stats={stats} />
+              </Suspense>
+              <Suspense fallback={<CacheLineChartFallback />}>
+                <CacheLineChart history={history} loading={isLoading} />
+              </Suspense>
+            </Box>
+            <Box
+              sx={{
+                display: "grid",
+                gap: 3,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: "repeat(2, minmax(0, 1fr))",
+                },
+              }}
+            >
+              <ActiveFiltersCard stats={stats} onEdit={handleEditFilters} />
+              <LogsPanel logs={derivedLogs} loading={logsLoading} />
+            </Box>
+          </Stack>
+        )}
+      </Box>
+    </ErrorBoundary>
   );
 };
 
