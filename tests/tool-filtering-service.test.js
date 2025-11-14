@@ -273,7 +273,7 @@ describe('ToolFilteringService - Sprint 0.1: Non-Blocking Architecture', () => {
       mockMcpHub.config = llmConfig;
       service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
       await service.waitForInitialization();
-      service.llmCache.clear(); // Ensure cache is empty for this test
+      service.clearLLMCache(); // Ensure cache is empty and dirty flag reset for test isolation
 
       const mockCategorize = vi.fn().mockResolvedValue('web');
       service.llmClient = { categorize: mockCategorize };
@@ -2124,7 +2124,7 @@ describe('ToolFilteringService - Task 3.2.2: Non-Blocking LLM Integration', () =
     mockMcpHub.config = config;
     service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
     await service.waitForInitialization();
-    service.llmCache.clear(); // Ensure cache is empty for this test
+    service.clearLLMCache(); // Ensure cache is empty and dirty flag reset for test isolation
 
     // Mock LLM
     const mockCategorize = vi.fn().mockResolvedValue('web');
@@ -2390,7 +2390,7 @@ describe('ToolFilteringService - Task 3.3.2: LLM Categorization', () => {
     mockMcpHub.config = config;
     service = new ToolFilteringService(mockMcpHub.config, mockMcpHub);
     await service.waitForInitialization();
-    service.llmCache.clear(); // Ensure cache is empty for this test
+    service.clearLLMCache(); // Ensure cache is empty and dirty flag reset for test isolation
     service.llmClient = mockLLMClient;
 
     // Mock LLM with delay to simulate real API calls

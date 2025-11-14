@@ -1,11 +1,14 @@
 import { z } from "zod";
 import { request } from "./client";
 import {
-  FilteringStatsResponseSchema,
+  FilteringStatsSchema,
   FilteringModeSchema,
-  type FilteringStatsResponse,
+  type FilteringStats,
   type FilteringMode,
 } from "./schemas/filtering.schema";
+
+// Re-export types for convenience
+export type { FilteringStats, FilteringMode };
 
 /**
  * Response schema for filtering mutations (enable/mode changes)
@@ -25,8 +28,8 @@ export type FilteringMutationResponse = z.infer<typeof FilteringMutationResponse
  * @returns Promise with validated filtering stats
  * @throws APIError if request fails or validation fails
  */
-export function getFilteringStats(): Promise<FilteringStatsResponse> {
-  return request("/api/filtering/stats", FilteringStatsResponseSchema);
+export function getFilteringStats(): Promise<FilteringStats> {
+  return request("/api/filtering/stats", FilteringStatsSchema);
 }
 
 /**

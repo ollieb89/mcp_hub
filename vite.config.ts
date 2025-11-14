@@ -30,17 +30,29 @@ export default defineConfig({
         ],
       },
     }),
-    visualizer({
-      filename: './dist/stats.html',
-      open: true,
-      gzipSize: true,
-      brotliSize: true,
-    }),
+    // Only include visualizer in build (not dev)
+    {
+      ...visualizer({
+        filename: './dist/stats.html',
+        open: false,
+        gzipSize: true,
+        brotliSize: true,
+      }),
+      apply: 'build',
+    } as any,
   ],
   build: {
     outDir: path.resolve(__dirname, 'dist/ui'),
     emptyOutDir: true,
     sourcemap: false, // Disabled for production - reduces build size and time
+    // Enable minification
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false,
+        drop_debugger: true,
+      },
+    },
 
     rollupOptions: {
       output: {
@@ -67,6 +79,17 @@ export default defineConfig({
             '@tanstack/react-query',
             'zustand',
             'zod',
+          ],
+
+          // Charts library (only loaded on dashboard)
+          'charts': [
+            '@mui/x-charts',
+          ],
+
+          // Monaco editor (only loaded on config page)
+          'monaco': [
+            '@monaco-editor/react',
+            'monaco-editor',
           ],
         },
       },

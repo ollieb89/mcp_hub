@@ -3,12 +3,11 @@ import {
   ServerStatusSchema,
   ServerInfoSchema,
   ServersResponseSchema,
-  ServerResponseSchema,
 } from '../server.schema';
 
 describe('ServerStatusSchema', () => {
   it('should validate all valid status values', () => {
-    const validStatuses = ['connected', 'connecting', 'disconnected', 'unauthorized', 'disabled'];
+    const validStatuses = ['connected', 'connecting', 'disconnected', 'error', 'unauthorized', 'disabled'];
 
     validStatuses.forEach((status) => {
       expect(() => ServerStatusSchema.parse(status)).not.toThrow();
@@ -23,29 +22,50 @@ describe('ServerStatusSchema', () => {
 });
 
 describe('ServerInfoSchema', () => {
-  it('should validate minimal server info', () => {
-    const server = {
-      name: 'github',
-      status: 'connected' as const,
-    };
+  const validServer = {
+    name: 'github',
+    displayName: 'GitHub MCP Server',
+    description: 'GitHub integration server',
+    transportType: 'stdio' as const,
+    status: 'connected' as const,
+    error: null,
+    capabilities: {
+      tools: [],
+      resources: [],
+      resourceTemplates: [],
+      prompts: [],
+    },
+    uptime: 0,
+    lastStarted: null,
+    authorizationUrl: null,
+    serverInfo: null,
+    config_source: 'config.json',
+  };
 
-    expect(() => ServerInfoSchema.parse(server)).not.toThrow();
+  it('should validate complete server info with all required fields', () => {
+    expect(() => ServerInfoSchema.parse(validServer)).not.toThrow();
   });
 
-  it('should validate complete server info with all fields', () => {
+  it('should validate server info with populated capabilities', () => {
     const server = {
+      ...validServer,
       name: 'filesystem',
-      status: 'connected' as const,
       displayName: 'Local Filesystem',
-      transportType: 'stdio' as const,
-      uptime: 12345,
-      disabled: false,
-      lastError: 'Connection failed', // lastError is string or undefined, not null
+      description: 'Access local filesystem',
       capabilities: {
         tools: [
-          { name: 'read_file', description: 'Read a file' },
-          { name: 'write_file', description: 'Write a file' },
+          { name: 'read_file', description: 'Read a file', inputSchema: {} },
+          { name: 'write_file', description: 'Write a file', inputSchema: {} },
         ],
+        resources: [],
+        resourceTemplates: [],
+        prompts: [],
+      },
+      uptime: 12345,
+      lastStarted: '2025-01-08T12:00:00.000Z',
+      serverInfo: {
+        name: 'filesystem-server',
+        version: '1.0.0',
       },
     };
 
@@ -54,8 +74,7 @@ describe('ServerInfoSchema', () => {
 
   it('should validate SSE transport type', () => {
     const server = {
-      name: 'remote-server',
-      status: 'connected' as const,
+      ...validServer,
       transportType: 'sse' as const,
     };
 
@@ -64,9 +83,9 @@ describe('ServerInfoSchema', () => {
 
   it('should validate streamable-http transport type', () => {
     const server = {
-      name: 'oauth-server',
-      status: 'connected' as const,
+      ...validServer,
       transportType: 'streamable-http' as const,
+      authorizationUrl: 'https://oauth.example.com/authorize',
     };
 
     expect(() => ServerInfoSchema.parse(server)).not.toThrow();
@@ -74,8 +93,7 @@ describe('ServerInfoSchema', () => {
 
   it('should reject invalid transport type', () => {
     const server = {
-      name: 'server',
-      status: 'connected' as const,
+      ...validServer,
       transportType: 'invalid',
     };
 
@@ -84,35 +102,19 @@ describe('ServerInfoSchema', () => {
 
   it('should reject negative uptime', () => {
     const server = {
-      name: 'server',
-      status: 'connected' as const,
+      ...validServer,
       uptime: -100,
     };
 
     expect(() => ServerInfoSchema.parse(server)).toThrow();
-  });
-
-  it('should handle missing optional fields', () => {
-    const server = {
-      name: 'minimal-server',
-      status: 'disconnected' as const,
-    };
-
-    const result = ServerInfoSchema.parse(server);
-    expect(result.displayName).toBeUndefined();
-    expect(result.transportType).toBeUndefined();
-    expect(result.uptime).toBeUndefined();
   });
 });
 
 describe('ServersResponseSchema', () => {
   it('should validate empty servers list', () => {
     const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-      },
-      data: [],
+      servers: [],
+      timestamp: '2025-01-08T12:00:00.000Z',
     };
 
     expect(() => ServersResponseSchema.parse(response)).not.toThrow();
@@ -120,27 +122,47 @@ describe('ServersResponseSchema', () => {
 
   it('should validate response with multiple servers', () => {
     const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-      },
-      data: [
+      servers: [
         {
           name: 'filesystem',
-          status: 'connected' as const,
+          displayName: 'Filesystem Server',
+          description: 'Access filesystem',
           transportType: 'stdio' as const,
+          status: 'connected' as const,
+          error: null,
+          capabilities: {
+            tools: [],
+            resources: [],
+            resourceTemplates: [],
+            prompts: [],
+          },
+          uptime: 100,
+          lastStarted: null,
+          authorizationUrl: null,
+          serverInfo: null,
+          config_source: 'config.json',
         },
         {
           name: 'github',
-          status: 'connected' as const,
           displayName: 'GitHub MCP',
-        },
-        {
-          name: 'disabled-server',
-          status: 'disabled' as const,
-          disabled: true,
+          description: 'GitHub integration',
+          transportType: 'stdio' as const,
+          status: 'connected' as const,
+          error: null,
+          capabilities: {
+            tools: [],
+            resources: [],
+            resourceTemplates: [],
+            prompts: [],
+          },
+          uptime: 200,
+          lastStarted: null,
+          authorizationUrl: null,
+          serverInfo: null,
+          config_source: 'config.json',
         },
       ],
+      timestamp: '2025-01-08T12:00:00.000Z',
     };
 
     expect(() => ServersResponseSchema.parse(response)).not.toThrow();
@@ -148,60 +170,20 @@ describe('ServersResponseSchema', () => {
 
   it('should reject invalid server data', () => {
     const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-      },
-      data: [
+      servers: [
         {
-          // missing required 'name' field
-          status: 'connected',
+          // missing required fields
+          name: 'incomplete',
+          status: 'connected' as const,
         },
       ],
+      timestamp: '2025-01-08T12:00:00.000Z',
     };
 
     expect(() => ServersResponseSchema.parse(response)).toThrow();
   });
 });
 
-describe('ServerResponseSchema', () => {
-  it('should validate single server response', () => {
-    const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-      },
-      data: {
-        name: 'filesystem',
-        status: 'connected' as const,
-        uptime: 54321,
-      },
-    };
-
-    expect(() => ServerResponseSchema.parse(response)).not.toThrow();
-  });
-
-  it('should validate detailed server response', () => {
-    const response = {
-      status: 'success' as const,
-      meta: {
-        timestamp: '2025-01-08T12:00:00.000Z',
-        requestId: 'req-789',
-      },
-      data: {
-        name: 'github',
-        status: 'connected' as const,
-        displayName: 'GitHub MCP Server',
-        transportType: 'sse' as const,
-        uptime: 123456,
-        capabilities: {
-          tools: [
-            { name: 'create_issue', description: 'Create GitHub issue' },
-          ],
-        },
-      },
-    };
-
-    expect(() => ServerResponseSchema.parse(response)).not.toThrow();
-  });
-});
+// Note: ServerResponseSchema removed - envelope pattern no longer used
+// API now returns flat structures without envelope (status/meta/data)
+// See SCHEMA_API_MISMATCH_ANALYSIS.md for migration details

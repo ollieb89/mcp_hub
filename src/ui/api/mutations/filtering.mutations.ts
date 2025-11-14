@@ -6,7 +6,7 @@ import { queryKeys } from '@ui/utils/query-client';
 import {
   setFilteringMode,
   setFilteringEnabled,
-  type FilteringStatsResponse,
+  type FilteringStats,
   type FilteringMode,
 } from '../filtering';
 
@@ -62,12 +62,12 @@ export function useUpdateFilteringMode(options?: Parameters<typeof useMutation>[
       await queryClient.cancelQueries({ queryKey: queryKeys.filtering.stats });
 
       // Snapshot previous value
-      const previousStats = queryClient.getQueryData<FilteringStatsResponse>(
+      const previousStats = queryClient.getQueryData<FilteringStats>(
         queryKeys.filtering.stats
       );
 
       // Optimistically update mode
-      queryClient.setQueryData<FilteringStatsResponse>(
+      queryClient.setQueryData<FilteringStats>(
         queryKeys.filtering.stats,
         (old) => {
           if (!old) return old;
@@ -151,12 +151,12 @@ export function useToggleFiltering(options?: Parameters<typeof useMutation>[0]) 
       await queryClient.cancelQueries({ queryKey: queryKeys.filtering.stats });
 
       // Snapshot previous value
-      const previousStats = queryClient.getQueryData<FilteringStatsResponse>(
+      const previousStats = queryClient.getQueryData<FilteringStats>(
         queryKeys.filtering.stats
       );
 
       // Optimistically update enabled state
-      queryClient.setQueryData<FilteringStatsResponse>(
+      queryClient.setQueryData<FilteringStats>(
         queryKeys.filtering.stats,
         (old) => {
           if (!old) return old;

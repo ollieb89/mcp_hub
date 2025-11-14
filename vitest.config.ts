@@ -7,6 +7,9 @@ export default defineConfig({
     setupFiles: [path.resolve(__dirname, 'tests/setup.js')],
     globals: true,
   },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('test'),
+  },
   resolve: {
     alias: {
       '@ui': path.resolve(__dirname, 'src/ui'),

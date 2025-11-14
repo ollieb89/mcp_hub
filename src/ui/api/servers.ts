@@ -6,6 +6,9 @@ import {
   type ServersResponse
 } from "./schemas/server.schema";
 
+// Re-export types for convenience
+export type { ServersResponse, ServerInfo };
+
 /**
  * Fetch all MCP servers with their current status and capabilities
  * @returns Promise with validated servers data

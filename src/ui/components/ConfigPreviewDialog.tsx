@@ -12,7 +12,7 @@ import {
   Stack,
 } from "@mui/material";
 import ReactDiffViewer from "react-diff-viewer-continued";
-import type { HubConfig } from "@api/config";
+import type { ConfigData as HubConfig } from "@api/config";
 
 interface ConfigPreviewDialogProps {
   open: boolean;

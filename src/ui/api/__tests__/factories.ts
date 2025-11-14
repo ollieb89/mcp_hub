@@ -4,12 +4,15 @@
  */
 import type {
   ServerStatus,
+  ServerInfo,
   ServersResponse,
   HubConfig,
   FilteringStats,
   ToolsResponse,
+  ToolSummary,
   Tool,
   HealthResponse,
+  HealthServerInfo,
   ConfigResponse,
 } from '../schemas';
 
@@ -31,17 +34,24 @@ export const mockServerFactory = {
    * });
    * ```
    */
-  create: (overrides: Partial<ServerStatus> = {}): ServerStatus => ({
+  create: (overrides: Partial<ServerInfo> = {}): ServerInfo => ({
     name: 'test-server',
-    status: 'connected',
+    status: 'connected' as ServerStatus,
     displayName: 'Test Server',
     description: 'Test server description',
-    type: 'stdio',
+    transportType: 'stdio',
+    error: null,
     capabilities: {
-      tools: 10,
-      resources: 5,
-      prompts: 2,
+      tools: [],
+      resources: [],
+      resourceTemplates: [],
+      prompts: [],
     },
+    uptime: 0,
+    lastStarted: null,
+    authorizationUrl: null,
+    serverInfo: null,
+    config_source: 'test-config',
     ...overrides,
   }),
 
@@ -59,8 +69,8 @@ export const mockServerFactory = {
    */
   createList: (
     count: number,
-    overrides: Partial<ServerStatus> = {}
-  ): ServerStatus[] =>
+    overrides: Partial<ServerInfo> = {}
+  ): ServerInfo[] =>
     Array.from({ length: count }, (_, i) =>
       mockServerFactory.create({
         name: `server-${i}`,
@@ -175,12 +185,17 @@ export const mockFilteringStatsFactory = {
     enabled: true,
     mode: 'prompt-based',
     totalTools: 150,
+    filteredTools: 125,
     exposedTools: 25,
-    categories: ['github', 'filesystem', 'web'],
-    activeFilters: {
-      serverAllowlist: [],
-      categoryList: ['github', 'filesystem'],
-    },
+    filterRate: 0.83,
+    serverFilterMode: 'allowlist',
+    allowedServers: ['github', 'filesystem'],
+    allowedCategories: ['github', 'filesystem', 'web'],
+    categoryCacheSize: 50,
+    cacheHitRate: 0.95,
+    llmCacheSize: 100,
+    llmCacheHitRate: 0.85,
+    timestamp: new Date().toISOString(),
     ...overrides,
   }),
 };
@@ -210,8 +225,6 @@ export const mockToolFactory = {
       type: 'object',
       properties: {},
     },
-    serverName: 'test-server',
-    category: 'general',
     ...overrides,
   }),
 
@@ -238,6 +251,43 @@ export const mockToolFactory = {
 };
 
 /**
+ * Tool summary factory for API responses
+ */
+export const mockToolSummaryFactory = {
+  /**
+   * Create a single mock tool summary
+   *
+   * @param overrides - Properties to override
+   * @returns Mock tool summary
+   */
+  create: (overrides: Partial<ToolSummary> = {}): ToolSummary => ({
+    server: 'test-server',
+    serverDisplayName: 'Test Server',
+    name: 'test__tool',
+    description: 'Test tool description',
+    enabled: true,
+    categories: ['general'],
+    ...overrides,
+  }),
+
+  /**
+   * Create multiple mock tool summaries
+   *
+   * @param count - Number of tool summaries to create
+   * @param overrides - Properties to override for all tools
+   * @returns Array of mock tool summaries
+   */
+  createList: (count: number, overrides: Partial<ToolSummary> = {}): ToolSummary[] =>
+    Array.from({ length: count }, (_, i) =>
+      mockToolSummaryFactory.create({
+        name: `tool-${i}`,
+        description: `Tool ${i} description`,
+        ...overrides,
+      })
+    ),
+};
+
+/**
  * Tools response factory
  */
 export const mockToolsResponseFactory = {
@@ -250,15 +300,56 @@ export const mockToolsResponseFactory = {
    * @example
    * ```typescript
    * const response = mockToolsResponseFactory.create({
-   *   tools: mockToolFactory.createList(50),
+   *   tools: mockToolSummaryFactory.createList(50),
    * });
    * ```
    */
   create: (overrides: Partial<ToolsResponse> = {}): ToolsResponse => ({
     timestamp: new Date().toISOString(),
-    tools: mockToolFactory.createList(10),
+    tools: mockToolSummaryFactory.createList(10),
     ...overrides,
   }),
+};
+
+/**
+ * Health server info factory
+ */
+export const mockHealthServerInfoFactory = {
+  /**
+   * Create a single health server info
+   */
+  create: (overrides: Partial<HealthServerInfo> = {}): HealthServerInfo => ({
+    name: 'test-server',
+    displayName: 'Test Server',
+    description: 'Test server description',
+    transportType: 'stdio',
+    status: 'connected',
+    error: null,
+    capabilities: {
+      tools: [],
+      resources: [],
+      resourceTemplates: [],
+      prompts: [],
+    },
+    uptime: 0,
+    lastStarted: null,
+    authorizationUrl: null,
+    serverInfo: null,
+    config_source: 'test-config',
+    ...overrides,
+  }),
+
+  /**
+   * Create multiple health server infos
+   */
+  createList: (count: number, overrides: Partial<HealthServerInfo> = {}): HealthServerInfo[] =>
+    Array.from({ length: count }, (_, i) =>
+      mockHealthServerInfoFactory.create({
+        name: `server-${i}`,
+        displayName: `Server ${i}`,
+        ...overrides,
+      })
+    ),
 };
 
 /**
@@ -280,10 +371,13 @@ export const mockHealthResponseFactory = {
    * ```
    */
   create: (overrides: Partial<HealthResponse> = {}): HealthResponse => ({
-    timestamp: new Date().toISOString(),
+    status: 'ok',
     state: 'ready',
+    server_id: 'test-server-id',
+    version: '1.0.0',
     activeClients: 2,
-    servers: mockServerFactory.createList(3),
+    timestamp: new Date().toISOString(),
+    servers: mockHealthServerInfoFactory.createList(3),
     ...overrides,
   }),
 };

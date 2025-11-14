@@ -1,0 +1,1963 @@
+
+> mcp-hub@4.2.1 test
+> bun run vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.6 [39m[90m/home/ob/Development/Tools/mcp-hub[39m
+
+[2m11:40:00 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/MCPServer.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:00 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs/promises" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/config.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:00 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/config.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:00 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/filtering-performance.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "child_process" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/env-resolver.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "util" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/env-resolver.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs/promises" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/MCPOAuth.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/MCPOAuth.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/e2e-filtering.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "child_process" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/MCPConnection.integration.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "util" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/MCPConnection.integration.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/event-batcher.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/MCPConnection.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "child_process" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/env-resolver.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "util" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/env-resolver.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs/promises" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/config.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/config.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/config.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "node:path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/server.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/MCPHub.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "child_process" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/env-resolver.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "util" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/env-resolver.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "os" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/env-resolver.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/env-resolver.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/logger.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/logger.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/cli.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "url" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/cli.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/cli.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs/promises" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/oauth-provider.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/oauth-provider.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:01 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/sse-manager.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:02 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "os" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/xdg-paths.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:02 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/xdg-paths.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:02 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/xdg-paths.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+ [31m❯[39m src/ui/api/schemas/__tests__/common.schema.test.ts [2m([22m[2m14 tests[22m[2m | [22m[31m6 failed[39m[2m)[22m[32m 63[2mms[22m[39m
+[31m     [31m×[31m should validate valid ISO 8601 datetime strings[39m[32m 30[2mms[22m[39m
+     [32m✓[39m should reject invalid datetime strings[32m 3[2mms[22m[39m
+[31m     [31m×[31m should validate minimal base response[39m[32m 4[2mms[22m[39m
+[31m     [31m×[31m should validate base response with optional requestId[39m[32m 4[2mms[22m[39m
+     [32m✓[39m should reject invalid status[32m 1[2mms[22m[39m
+     [32m✓[39m should reject missing required fields[32m 2[2mms[22m[39m
+[31m     [31m×[31m should validate complete pagination info[39m[32m 2[2mms[22m[39m
+     [32m✓[39m should reject invalid page numbers[32m 1[2mms[22m[39m
+     [32m✓[39m should reject negative totals[32m 1[2mms[22m[39m
+     [32m✓[39m should reject non-integer values[32m 1[2mms[22m[39m
+[31m     [31m×[31m should validate minimal error response[39m[32m 5[2mms[22m[39m
+[31m     [31m×[31m should validate error with all optional fields[39m[32m 3[2mms[22m[39m
+     [32m✓[39m should reject invalid status[32m 1[2mms[22m[39m
+     [32m✓[39m should reject missing required error fields[32m 1[2mms[22m[39m
+ [31m❯[39m src/ui/api/schemas/__tests__/server.schema.test.ts [2m([22m[2m14 tests[22m[2m | [22m[31m9 failed[39m[2m)[22m[32m 235[2mms[22m[39m
+     [32m✓[39m should validate all valid status values[32m 59[2mms[22m[39m
+     [32m✓[39m should reject invalid status values[32m 70[2mms[22m[39m
+[31m     [31m×[31m should validate minimal server info[39m[32m 64[2mms[22m[39m
+[31m     [31m×[31m should validate complete server info with all fields[39m[32m 12[2mms[22m[39m
+[31m     [31m×[31m should validate SSE transport type[39m[32m 5[2mms[22m[39m
+[31m     [31m×[31m should validate streamable-http transport type[39m[32m 2[2mms[22m[39m
+     [32m✓[39m should reject invalid transport type[32m 1[2mms[22m[39m
+     [32m✓[39m should reject negative uptime[32m 1[2mms[22m[39m
+[31m     [31m×[31m should handle missing optional fields[39m[32m 2[2mms[22m[39m
+[31m     [31m×[31m should validate empty servers list[39m[32m 3[2mms[22m[39m
+[31m     [31m×[31m should validate response with multiple servers[39m[32m 2[2mms[22m[39m
+     [32m✓[39m should reject invalid server data[32m 1[2mms[22m[39m
+[31m     [31m×[31m should validate single server response[39m[32m 1[2mms[22m[39m
+[31m     [31m×[31m should validate detailed server response[39m[32m 2[2mms[22m[39m
+ [31m❯[39m src/ui/api/schemas/__tests__/capabilities.integration.test.ts [2m([22m[2m14 tests[22m[2m | [22m[31m11 failed[39m[2m)[22m[33m 349[2mms[22m[39m
+[31m       [31m×[31m should validate complete multi-server health response[39m[32m 196[2mms[22m[39m
+[31m       [31m×[31m should validate response with disconnected server[39m[32m 32[2mms[22m[39m
+[31m       [31m×[31m should validate response with unauthorized server[39m[32m 16[2mms[22m[39m
+[31m       [31m×[31m should handle server with minimal capabilities[39m[32m 9[2mms[22m[39m
+[31m       [31m×[31m should reject response with malformed tool (missing description)[39m[32m 32[2mms[22m[39m
+[31m       [31m×[31m should reject response with malformed resource (missing uri)[39m[32m 4[2mms[22m[39m
+[31m       [31m×[31m should reject response with empty tool name[39m[32m 19[2mms[22m[39m
+[31m       [31m×[31m should reject response with invalid prompt argument[39m[32m 4[2mms[22m[39m
+[31m       [31m×[31m should reject response with extra unknown fields in capabilities[39m[32m 5[2mms[22m[39m
+       [32m✓[39m should provide correct TypeScript types for nested capabilities[32m 2[2mms[22m[39m
+       [32m✓[39m should provide descriptive error for missing required field[32m 2[2mms[22m[39m
+[31m       [31m×[31m should provide path information for nested validation errors[39m[32m 3[2mms[22m[39m
+[31m     [31m×[31m should work with typical React Query usage pattern[39m[32m 4[2mms[22m[39m
+     [32m✓[39m should handle validation errors gracefully in React Query context[32m 2[2mms[22m[39m
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mConnection Establishment[2m > [22m[2mshould connect to SSE endpoint
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mConnection Establishment[2m > [22m[2mshould set connected state on successful connection
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mConnection Establishment[2m > [22m[2mshould not create duplicate connections
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mConnection Establishment[2m > [22m[2mshould get connection state
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mEvent Handling[2m > [22m[2mshould handle hub_state events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mEvent Handling[2m > [22m[2mshould handle tool_list_changed events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mEvent Handling[2m > [22m[2mshould handle servers_updated events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mEvent Handling[2m > [22m[2mshould handle config_changed events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mEvent Handling[2m > [22m[2mshould handle resource_list_changed events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mEvent Handling[2m > [22m[2mshould support multiple subscribers to same event
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mSubscription Management[2m > [22m[2mshould unsubscribe from events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mSubscription Management[2m > [22m[2mshould handle multiple unsubscribes safely
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mSubscription Management[2m > [22m[2mshould isolate subscriptions by event type
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mCache Invalidation[2m > [22m[2mshould invalidate health queries on hub_state events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mCache Invalidation[2m > [22m[2mshould invalidate tools queries on tool_list_changed events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mCache Invalidation[2m > [22m[2mshould invalidate servers queries on servers_updated events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mCache Invalidation[2m > [22m[2mshould invalidate config queries on config_changed events
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mCache Invalidation[2m > [22m[2mshould not invalidate queries for resource_list_changed
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mDisconnection[2m > [22m[2mshould disconnect and clean up resources
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+ [31m❯[39m tests/cli.test.js [2m([22m[2m9 tests[22m[2m | [22m[31m9 failed[39m[2m)[22m[33m 1000[2mms[22m[39m
+[31m     [31m×[31m should start server with valid arguments[39m[33m 681[2mms[22m[39m
+[31m     [31m×[31m should start server with watch flag[39m[32m 119[2mms[22m[39m
+[31m     [31m×[31m should handle port flag alias[39m[32m 33[2mms[22m[39m
+[31m     [31m×[31m should handle config flag alias[39m[32m 13[2mms[22m[39m
+[31m     [31m×[31m should handle watch flag alias[39m[32m 37[2mms[22m[39m
+[31m     [31m×[31m should fail when port is missing[39m[32m 33[2mms[22m[39m
+[31m     [31m×[31m should fail when config is missing[39m[32m 34[2mms[22m[39m
+[31m     [31m×[31m should handle server start errors[39m[32m 19[2mms[22m[39m
+[31m     [31m×[31m should handle fatal errors[39m[32m 26[2mms[22m[39m
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mError Scenarios[2m > [22m[2mshould handle connection error and update store
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+[90mstderr[2m | src/ui/utils/__tests__/sse-client.test.ts[2m > [22m[2mSSEConnectionManager[2m > [22m[2mError Scenarios[2m > [22m[2mshould handle invalid JSON in event data gracefully
+[22m[39m[vitest] The vi.fn() mock did not use 'function' or 'class' in its implementation, see https://vitest.dev/api/vi#vi-spyon for examples.
+
+ [31m❯[39m src/ui/utils/__tests__/sse-client.test.ts [2m([22m[2m27 tests[22m[2m | [22m[31m21 failed[39m[2m | [22m[33m4 skipped[39m[2m)[22m[32m 188[2mms[22m[39m
+[31m       [31m×[31m should connect to SSE endpoint[39m[32m 112[2mms[22m[39m
+[31m       [31m×[31m should set connected state on successful connection[39m[32m 8[2mms[22m[39m
+[31m       [31m×[31m should not create duplicate connections[39m[32m 9[2mms[22m[39m
+[31m       [31m×[31m should get connection state[39m[32m 7[2mms[22m[39m
+[31m       [31m×[31m should handle hub_state events[39m[32m 6[2mms[22m[39m
+[31m       [31m×[31m should handle tool_list_changed events[39m[32m 6[2mms[22m[39m
+[31m       [31m×[31m should handle servers_updated events[39m[32m 2[2mms[22m[39m
+[31m       [31m×[31m should handle config_changed events[39m[32m 2[2mms[22m[39m
+[31m       [31m×[31m should handle resource_list_changed events[39m[32m 2[2mms[22m[39m
+[31m       [31m×[31m should support multiple subscribers to same event[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should unsubscribe from events[39m[32m 2[2mms[22m[39m
+[31m       [31m×[31m should handle multiple unsubscribes safely[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should isolate subscriptions by event type[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should invalidate health queries on hub_state events[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should invalidate tools queries on tool_list_changed events[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should invalidate servers queries on servers_updated events[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should invalidate config queries on config_changed events[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should not invalidate queries for resource_list_changed[39m[32m 1[2mms[22m[39m
+       [2m[90m↓[39m[22m should reconnect with exponential backoff on error
+       [2m[90m↓[39m[22m should increment reconnect attempts in store
+       [2m[90m↓[39m[22m should stop reconnecting after max attempts
+       [2m[90m↓[39m[22m should reset reconnect attempts on successful connection
+[31m       [31m×[31m should disconnect and clean up resources[39m[32m 1[2mms[22m[39m
+       [32m✓[39m should handle disconnect when not connected[32m 4[2mms[22m[39m
+[31m       [31m×[31m should handle connection error and update store[39m[32m 1[2mms[22m[39m
+[31m       [31m×[31m should handle invalid JSON in event data gracefully[39m[32m 1[2mms[22m[39m
+       [32m✓[39m should handle EventSource not available[32m 1[2mms[22m[39m
+[90mstderr[2m | src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22m[2museServers[2m > [22m[2msuccessful data fetching[2m > [22m[2mshould fetch servers successfully
+[22m[39m`ReactDOMTestUtils.act` is deprecated in favor of `React.act`. Import `act` from `react` instead of `react-dom/test-utils`. See https://react.dev/warnings/react-dom-test-utils for more info.
+
+[90mstderr[2m | src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22m[2museStartServer[2m > [22m[2msuccessful mutations[2m > [22m[2mshould start a server successfully
+[22m[39m`ReactDOMTestUtils.act` is deprecated in favor of `React.act`. Import `act` from `react` instead of `react-dom/test-utils`. See https://react.dev/warnings/react-dom-test-utils for more info.
+
+ [31m❯[39m src/ui/api/hooks/__tests__/useServers.test.ts [2m([22m[2m11 tests[22m[2m | [22m[31m11 failed[39m[2m)[22m[32m 80[2mms[22m[39m
+[31m       [31m×[31m should fetch servers successfully[39m[32m 24[2mms[22m[39m
+[31m       [31m×[31m should use cached data on subsequent renders[39m[32m 12[2mms[22m[39m
+[31m       [31m×[31m should handle network errors[39m[32m 4[2mms[22m[39m
+[31m       [31m×[31m should handle API errors[39m[32m 6[2mms[22m[39m
+[31m       [31m×[31m should refetch on manual refetch call[39m[32m 9[2mms[22m[39m
+[31m       [31m×[31m should handle refetch errors gracefully[39m[32m 4[2mms[22m[39m
+[31m       [31m×[31m should differentiate between isLoading and isFetching[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should respect custom refetchInterval[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should respect enabled option[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should invalidate cache when queryClient invalidates[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should provide access to raw server data[39m[32m 2[2mms[22m[39m
+ [31m❯[39m src/ui/api/mutations/__tests__/server.mutations.test.ts [2m([22m[2m11 tests[22m[2m | [22m[31m11 failed[39m[2m)[22m[32m 96[2mms[22m[39m
+[31m       [31m×[31m should start a server successfully[39m[32m 34[2mms[22m[39m
+[31m       [31m×[31m should optimistically update server status to connecting[39m[32m 6[2mms[22m[39m
+[31m       [31m×[31m should preserve other servers during optimistic update[39m[32m 6[2mms[22m[39m
+[31m       [31m×[31m should rollback optimistic update on error[39m[32m 7[2mms[22m[39m
+[31m       [31m×[31m should provide error details in onError callback[39m[32m 9[2mms[22m[39m
+[31m       [31m×[31m should invalidate servers and health queries on success[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should execute onSuccess callback[39m[32m 2[2mms[22m[39m
+[31m       [31m×[31m should stop a server without disabling[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should stop and disable a server[39m[32m 5[2mms[22m[39m
+[31m       [31m×[31m should optimistically update server status to disconnecting[39m[32m 3[2mms[22m[39m
+[31m       [31m×[31m should rollback on stop failure[39m[32m 8[2mms[22m[39m
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs/promises" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/marketplace.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/marketplace.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "os" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/marketplace.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "child_process" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/marketplace.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "child_process" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/marketplace.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs/promises" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/marketplace.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/marketplace.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "util" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/marketplace.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "child_process" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/marketplace.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "child_process" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/marketplace.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/pino-logger.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/pino-logger.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "stream" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/pino-sse-transport.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/pino-logger.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/prompt-based-filtering.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:03 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/prompt-based-filtering.integration.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:04 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "events" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/tests/tool-filtering-integration.test.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:04 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "fs/promises" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/tool-filtering-service.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+[2m11:40:04 PM[22m [33m[1m[vite][22m[39m (client) warning: Module "path" has been externalized for browser compatibility, imported by "/home/ob/Development/Tools/mcp-hub/src/utils/tool-filtering-service.js". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.
+  Plugin: vite:resolve
+ [32m✓[39m tests/api-filtering-stats.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/ui/api/schemas/__tests__/config-filtering-tools-health.schema.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 25 [49m[22m[31m⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/MCPConnection.integration.test.js[2m [ tests/MCPConnection.integration.test.js ][22m
+[31m[1mError[22m: [vitest] No "default" export is defined on the "util" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+[39m
+vi.mock(import("util"), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    // your mocked methods
+  }
+})
+
+[36m [2m❯[22m new StorageManager src/utils/oauth-provider.js:[2m15:17[22m[39m
+    [90m 13| [39m[35mclass[39m [33mStorageManager[39m {
+    [90m 14| [39m  [34mconstructor[39m() {
+    [90m 15| [39m    [35mthis[39m[33m.[39mpath [33m=[39m path[33m.[39m[34mjoin[39m([34mgetDataDirectory[39m()[33m,[39m [32m'oauth-storage.json'[39m)[33m;[39m
+    [90m   | [39m                [31m^[39m
+    [90m 16| [39m  }
+    [90m 17| [39m
+[90m [2m❯[22m src/utils/oauth-provider.js:[2m57:17[22m[39m
+[90m [2m❯[22m src/MCPConnection.js:[2m10:1[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/MCPConnection.test.js[2m [ tests/MCPConnection.test.js ][22m
+[41m[1m FAIL [22m[49m tests/MCPHub.test.js[2m [ tests/MCPHub.test.js ][22m
+[41m[1m FAIL [22m[49m tests/MCPOAuth.test.js[2m [ tests/MCPOAuth.test.js ][22m
+[41m[1m FAIL [22m[49m tests/MCPServer.test.js[2m [ tests/MCPServer.test.js ][22m
+[41m[1m FAIL [22m[49m tests/api-config.test.js[2m [ tests/api-config.test.js ][22m
+[41m[1m FAIL [22m[49m tests/config.test.js[2m [ tests/config.test.js ][22m
+[41m[1m FAIL [22m[49m tests/e2e-filtering.test.js[2m [ tests/e2e-filtering.test.js ][22m
+[41m[1m FAIL [22m[49m tests/event-batcher.test.js[2m [ tests/event-batcher.test.js ][22m
+[41m[1m FAIL [22m[49m tests/filtering-performance.test.js[2m [ tests/filtering-performance.test.js ][22m
+[41m[1m FAIL [22m[49m tests/http-pool.integration.test.js[2m [ tests/http-pool.integration.test.js ][22m
+[41m[1m FAIL [22m[49m tests/http-pool.test.js[2m [ tests/http-pool.test.js ][22m
+[41m[1m FAIL [22m[49m tests/llm-provider.test.js[2m [ tests/llm-provider.test.js ][22m
+[41m[1m FAIL [22m[49m tests/pino-logger.test.js[2m [ tests/pino-logger.test.js ][22m
+[41m[1m FAIL [22m[49m tests/prompt-based-filtering.integration.test.js[2m [ tests/prompt-based-filtering.integration.test.js ][22m
+[41m[1m FAIL [22m[49m tests/prompt-based-filtering.test.js[2m [ tests/prompt-based-filtering.test.js ][22m
+[41m[1m FAIL [22m[49m tests/tool-filtering-integration.test.js[2m [ tests/tool-filtering-integration.test.js ][22m
+[41m[1m FAIL [22m[49m tests/tool-filtering-service.test.js[2m [ tests/tool-filtering-service.test.js ][22m
+[41m[1m FAIL [22m[49m tests/tool-filtering.benchmark.test.js[2m [ tests/tool-filtering.benchmark.test.js ][22m
+[31m[1mError[22m: No such built-in module: node:[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/env-resolver.test.js[2m [ tests/env-resolver.test.js ][22m
+[31m[1mError[22m: [vitest] No "default" export is defined on the "util" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+[39m
+vi.mock(import("util"), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    // your mocked methods
+  }
+})
+
+[36m [2m❯[22m src/utils/env-resolver.js:[2m1:91[22m[39m
+    [90m  1| [39m[35mimport[39m { exec } [35mfrom[39m [32m'child_process'[39m[33m;[39m
+    [90m  2| [39m[35mimport[39m { promisify } [35mfrom[39m [32m'util'[39m[33m;[39m
+    [90m   | [39m            [31m^[39m
+    [90m  3| [39m[35mimport[39m os [35mfrom[39m [32m'os'[39m[33m;[39m
+    [90m  4| [39m[35mimport[39m path [35mfrom[39m [32m'path'[39m[33m;[39m
+[90m [2m❯[22m tests/env-resolver.test.js:[2m2:1[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/marketplace.test.js[2m [ tests/marketplace.test.js ][22m
+[31m[1mError[22m: [vitest] No "default" export is defined on the "child_process" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+[39m
+vi.mock(import("child_process"), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    // your mocked methods
+  }
+})
+
+[36m [2m❯[22m src/utils/pino-sse-transport.js:[2m1:88[22m[39m
+    [90m  1| [39m[35mimport[39m { [33mWritable[39m } [35mfrom[39m [32m'stream'[39m[33m;[39m
+    [90m  2| [39m
+    [90m  3| [39m[90m/**
+    [90m   | [39m [31m^[39m
+    [90m  4| [39m * Creates a custom Pino transport that broadcasts log entries to SSEM…
+    [90m  5| [39m *
+[90m [2m❯[22m src/utils/pino-logger.js:[2m6:1[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/ui/DashboardPage.test.tsx[2m [ tests/ui/DashboardPage.test.tsx ][22m
+[31m[1mError[22m: Failed to resolve import "@utils/query-client" from "src/ui/pages/DashboardPage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36m/home/ob/Development/Tools/mcp-hub/src/ui/pages/DashboardPage.tsx[39m:14:26
+[33m  13 |  import { useFilteringStats } from "@api/hooks";
+  14 |  import { useUpdateFilteringMode, useToggleFiltering } from "@api/mutations";
+  15 |  import { queryKeys } from "@utils/query-client";
+     |                             ^
+  16 |  import FilteringCard from "@components/FilteringCard";
+  17 |  import MetricCard from "@components/MetricCard";[39m
+[90m [2m❯[22m TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/config.js:[2m31106:43[22m[39m
+[90m [2m❯[22m TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:[2m31103:14[22m[39m
+[90m [2m❯[22m normalizeUrl node_modules/vite/dist/node/chunks/config.js:[2m29590:18[22m[39m
+[90m [2m❯[22m node_modules/vite/dist/node/chunks/config.js:[2m29648:32[22m[39m
+[90m [2m❯[22m TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:[2m29616:4[22m[39m
+[90m [2m❯[22m EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:[2m30905:14[22m[39m
+[90m [2m❯[22m loadAndTransform node_modules/vite/dist/node/chunks/config.js:[2m26043:26[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/ui/ServersPage.test.tsx[2m [ tests/ui/ServersPage.test.tsx ][22m
+[31m[1mError[22m: Failed to resolve import "@utils/query-client" from "src/ui/pages/ServersPage.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36m/home/ob/Development/Tools/mcp-hub/src/ui/pages/ServersPage.tsx[39m:7:26
+[33m  5  |  import { useServers } from "@api/hooks";
+  6  |  import { useStartServer, useStopServer } from "@api/mutations";
+  7  |  import { queryKeys } from "@utils/query-client";
+     |                             ^
+  8  |  import ServersTable from "@components/ServersTable";
+  9  |  import { useSnackbar } from "@hooks/useSnackbar";[39m
+[90m [2m❯[22m TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/config.js:[2m31106:43[22m[39m
+[90m [2m❯[22m TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:[2m31103:14[22m[39m
+[90m [2m❯[22m normalizeUrl node_modules/vite/dist/node/chunks/config.js:[2m29590:18[22m[39m
+[90m [2m❯[22m node_modules/vite/dist/node/chunks/config.js:[2m29648:32[22m[39m
+[90m [2m❯[22m TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:[2m29616:4[22m[39m
+[90m [2m❯[22m EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:[2m30905:14[22m[39m
+[90m [2m❯[22m loadAndTransform node_modules/vite/dist/node/chunks/config.js:[2m26043:26[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.performance.test.ts[2m [ src/ui/api/schemas/__tests__/capabilities.performance.test.ts ][22m
+[31m[1mError[22m: Failed to resolve import "../capabilities.schema" from "src/ui/api/schemas/__tests__/capabilities.performance.test.ts". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36m/home/ob/Development/Tools/mcp-hub/src/ui/api/schemas/__tests__/capabilities.performance.test.ts[39m:10:35
+[33m  1  |  import { describe, it, expect } from "vitest";
+  2  |  import { HealthResponseSchema } from "../health.schema";
+  3  |  import { CapabilitiesSchema } from "../capabilities.schema";
+     |                                      ^
+  4  |  const SMALL_RESPONSE = {
+  5  |    status: "ok",[39m
+[90m [2m❯[22m TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/config.js:[2m31106:43[22m[39m
+[90m [2m❯[22m TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:[2m31103:14[22m[39m
+[90m [2m❯[22m normalizeUrl node_modules/vite/dist/node/chunks/config.js:[2m29590:18[22m[39m
+[90m [2m❯[22m node_modules/vite/dist/node/chunks/config.js:[2m29648:32[22m[39m
+[90m [2m❯[22m TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:[2m29616:4[22m[39m
+[90m [2m❯[22m EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:[2m30905:14[22m[39m
+[90m [2m❯[22m loadAndTransform node_modules/vite/dist/node/chunks/config.js:[2m26043:26[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.schema.test.ts[2m [ src/ui/api/schemas/__tests__/capabilities.schema.test.ts ][22m
+[31m[1mError[22m: Failed to resolve import "../capabilities.schema" from "src/ui/api/schemas/__tests__/capabilities.schema.test.ts". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36m/home/ob/Development/Tools/mcp-hub/src/ui/api/schemas/__tests__/capabilities.schema.test.ts[39m:16:7
+[33m  7  |    PromptSchemaMinimal,
+  8  |    CapabilitiesSchema
+  9  |  } from "../capabilities.schema";
+     |          ^
+  10 |  describe("ToolSchemaMinimal", () => {
+  11 |    describe("valid tool objects", () => {[39m
+[90m [2m❯[22m TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/config.js:[2m31106:43[22m[39m
+[90m [2m❯[22m TransformPluginContext.error node_modules/vite/dist/node/chunks/config.js:[2m31103:14[22m[39m
+[90m [2m❯[22m normalizeUrl node_modules/vite/dist/node/chunks/config.js:[2m29590:18[22m[39m
+[90m [2m❯[22m node_modules/vite/dist/node/chunks/config.js:[2m29648:32[22m[39m
+[90m [2m❯[22m TransformPluginContext.transform node_modules/vite/dist/node/chunks/config.js:[2m29616:4[22m[39m
+[90m [2m❯[22m EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/config.js:[2m30905:14[22m[39m
+[90m [2m❯[22m loadAndTransform node_modules/vite/dist/node/chunks/config.js:[2m26043:26[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/125]⎯[22m[39m
+
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 78 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/cli.test.js[2m > [22mCLI[2m > [22mshould start server with valid arguments
+[41m[1m FAIL [22m[49m tests/cli.test.js[2m > [22mCLI[2m > [22mshould start server with watch flag
+[41m[1m FAIL [22m[49m tests/cli.test.js[2m > [22mCLI[2m > [22mshould handle port flag alias
+[41m[1m FAIL [22m[49m tests/cli.test.js[2m > [22mCLI[2m > [22mshould handle config flag alias
+[41m[1m FAIL [22m[49m tests/cli.test.js[2m > [22mCLI[2m > [22mshould handle watch flag alias
+[41m[1m FAIL [22m[49m tests/cli.test.js[2m > [22mCLI[2m > [22mshould fail when port is missing
+[41m[1m FAIL [22m[49m tests/cli.test.js[2m > [22mCLI[2m > [22mshould fail when config is missing
+[41m[1m FAIL [22m[49m tests/cli.test.js[2m > [22mCLI[2m > [22mshould handle server start errors
+[41m[1m FAIL [22m[49m tests/cli.test.js[2m > [22mCLI[2m > [22mshould handle fatal errors
+[31m[1mError[22m: No such built-in module: node:[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mConnection Establishment[2m > [22mshould connect to SSE endpoint
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m105:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mConnection Establishment[2m > [22mshould set connected state on successful connection
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m112:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mConnection Establishment[2m > [22mshould not create duplicate connections
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m122:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mConnection Establishment[2m > [22mshould get connection state
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m130:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mEvent Handling[2m > [22mshould handle hub_state events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mEvent Handling[2m > [22mshould handle tool_list_changed events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mEvent Handling[2m > [22mshould handle servers_updated events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mEvent Handling[2m > [22mshould handle config_changed events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mEvent Handling[2m > [22mshould handle resource_list_changed events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mEvent Handling[2m > [22mshould support multiple subscribers to same event
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m143:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mSubscription Management[2m > [22mshould unsubscribe from events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mSubscription Management[2m > [22mshould handle multiple unsubscribes safely
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mSubscription Management[2m > [22mshould isolate subscriptions by event type
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m217:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mCache Invalidation[2m > [22mshould invalidate health queries on hub_state events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mCache Invalidation[2m > [22mshould invalidate tools queries on tool_list_changed events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mCache Invalidation[2m > [22mshould invalidate servers queries on servers_updated events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mCache Invalidation[2m > [22mshould invalidate config queries on config_changed events
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mCache Invalidation[2m > [22mshould not invalidate queries for resource_list_changed
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m266:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mDisconnection[2m > [22mshould disconnect and clean up resources
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m389:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mError Scenarios[2m > [22mshould handle connection error and update store
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m416:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/utils/__tests__/sse-client.test.ts[2m > [22mSSEConnectionManager[2m > [22mError Scenarios[2m > [22mshould handle invalid JSON in event data gracefully
+[31m[1mTypeError[22m: () => mockEventSource is not a constructor[39m
+[36m [2m❯[22m SSEConnectionManager.connect src/ui/utils/sse-client.ts:[2m35:24[22m[39m
+    [90m 33| [39m    store[33m.[39m[34msetConnecting[39m([35mtrue[39m)[33m;[39m
+    [90m 34| [39m
+    [90m 35| [39m    [35mthis[39m[33m.[39meventSource [33m=[39m [35mnew[39m [33mEventSource[39m([32m'/events'[39m)[33m;[39m
+    [90m   | [39m                       [31m^[39m
+    [90m 36| [39m
+    [90m 37| [39m    [35mthis[39m[33m.[39meventSource[33m.[39monopen [33m=[39m () [33m=>[39m {
+[90m [2m❯[22m src/ui/utils/__tests__/sse-client.test.ts:[2m425:18[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22msuccessful data fetching[2m > [22mshould fetch servers successfully
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m54:26[22m[39m
+    [90m 52| [39m
+    [90m 53| [39m      [90m// Act: Render hook[39m
+    [90m 54| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museServers[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m 55| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m 56| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22msuccessful data fetching[2m > [22mshould fetch servers successfully
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22msuccessful data fetching[2m > [22mshould use cached data on subsequent renders
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22merror handling[2m > [22mshould handle network errors
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22merror handling[2m > [22mshould handle API errors
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mrefetching behavior[2m > [22mshould refetch on manual refetch call
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mrefetching behavior[2m > [22mshould handle refetch errors gracefully
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mloading states[2m > [22mshould differentiate between isLoading and isFetching
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mcustom query options[2m > [22mshould respect custom refetchInterval
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mcustom query options[2m > [22mshould respect enabled option
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mcache invalidation[2m > [22mshould invalidate cache when queryClient invalidates
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mdata transformation[2m > [22mshould provide access to raw server data
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22msuccessful mutations[2m > [22mshould start a server successfully
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22moptimistic updates[2m > [22mshould optimistically update server status to connecting
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22moptimistic updates[2m > [22mshould preserve other servers during optimistic update
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22merror handling and rollback[2m > [22mshould rollback optimistic update on error
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22merror handling and rollback[2m > [22mshould provide error details in onError callback
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22mcache invalidation after mutation[2m > [22mshould invalidate servers and health queries on success
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22mcallbacks[2m > [22mshould execute onSuccess callback
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStopServer[2m > [22msuccessful mutations[2m > [22mshould stop a server without disabling
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStopServer[2m > [22msuccessful mutations[2m > [22mshould stop and disable a server
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStopServer[2m > [22moptimistic updates[2m > [22mshould optimistically update server status to disconnecting
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStopServer[2m > [22merror handling[2m > [22mshould rollback on stop failure
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/pure.js:[2m307:28[22m[39m
+[90m [2m❯[22m cleanup node_modules/@testing-library/react/dist/pure.js:[2m303:22[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/index.js:[2m28:25[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22msuccessful data fetching[2m > [22mshould use cached data on subsequent renders
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m83:26[22m[39m
+    [90m 81| [39m
+    [90m 82| [39m      [90m// Act: Render hook[39m
+    [90m 83| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museServers[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m 84| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m 85| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22merror handling[2m > [22mshould handle network errors
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m105:26[22m[39m
+    [90m103| [39m
+    [90m104| [39m      [90m// Act: Render hook[39m
+    [90m105| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museServers[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m106| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m107| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22merror handling[2m > [22mshould handle API errors
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m124:26[22m[39m
+    [90m122| [39m
+    [90m123| [39m      [90m// Act: Render hook[39m
+    [90m124| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museServers[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m125| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m126| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mrefetching behavior[2m > [22mshould refetch on manual refetch call
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m148:26[22m[39m
+    [90m146| [39m        [33m.[39m[34mmockResolvedValue[39m(initialData)[33m;[39m
+    [90m147| [39m
+    [90m148| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museServers[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m149| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m150| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mrefetching behavior[2m > [22mshould handle refetch errors gracefully
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m179:26[22m[39m
+    [90m177| [39m        [33m.[39m[34mmockResolvedValue[39m(initialData)[33m;[39m
+    [90m178| [39m
+    [90m179| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museServers[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m180| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m181| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mloading states[2m > [22mshould differentiate between isLoading and isFetching
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m214:26[22m[39m
+    [90m212| [39m
+    [90m213| [39m      [90m// Act: Render hook[39m
+    [90m214| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museServers[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m215| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m216| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mcustom query options[2m > [22mshould respect custom refetchInterval
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m239:26[22m[39m
+    [90m237| [39m
+    [90m238| [39m      [90m// Act: Enable polling with refetchInterval[39m
+    [90m239| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(
+    [90m   | [39m                         [31m^[39m
+    [90m240| [39m        () [33m=>[39m [34museServers[39m({ refetchInterval[33m:[39m [34m1000[39m })[33m,[39m
+    [90m241| [39m        {
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mcustom query options[2m > [22mshould respect enabled option
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m266:26[22m[39m
+    [90m264| [39m
+    [90m265| [39m      [90m// Act: Disabled query[39m
+    [90m266| [39m      const { result } = renderHook(() => useServers({ enabled: false …
+    [90m   | [39m                         [31m^[39m
+    [90m267| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m268| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mcache invalidation[2m > [22mshould invalidate cache when queryClient invalidates
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m291:26[22m[39m
+    [90m289| [39m        [33m.[39m[34mmockResolvedValue[39m(initialData)[33m;[39m
+    [90m290| [39m
+    [90m291| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museServers[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m292| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m293| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/hooks/__tests__/useServers.test.ts[2m > [22museServers[2m > [22mdata transformation[2m > [22mshould provide access to raw server data
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/hooks/__tests__/useServers.test.ts:[2m332:26[22m[39m
+    [90m330| [39m
+    [90m331| [39m      [90m// Act[39m
+    [90m332| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museServers[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m333| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m334| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22msuccessful mutations[2m > [22mshould start a server successfully
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m66:26[22m[39m
+    [90m 64| [39m
+    [90m 65| [39m      [90m// Act: Render mutation hook[39m
+    [90m 66| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStartServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m 67| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m 68| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22moptimistic updates[2m > [22mshould optimistically update server status to connecting
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m109:26[22m[39m
+    [90m107| [39m
+    [90m108| [39m      [90m// Act: Render and trigger mutation[39m
+    [90m109| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStartServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m110| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m111| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22moptimistic updates[2m > [22mshould preserve other servers during optimistic update
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m154:26[22m[39m
+    [90m152| [39m
+    [90m153| [39m      [90m// Act: Start github server[39m
+    [90m154| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStartServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m155| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m156| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22merror handling and rollback[2m > [22mshould rollback optimistic update on error
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m203:26[22m[39m
+    [90m201| [39m
+    [90m202| [39m      [90m// Act: Trigger mutation[39m
+    [90m203| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStartServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m204| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m205| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22merror handling and rollback[2m > [22mshould provide error details in onError callback
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m230:26[22m[39m
+    [90m228| [39m
+    [90m229| [39m      [90m// Act[39m
+    [90m230| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStartServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m231| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m232| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22mcache invalidation after mutation[2m > [22mshould invalidate servers and health queries on success
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m266:26[22m[39m
+    [90m264| [39m
+    [90m265| [39m      [90m// Act[39m
+    [90m266| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStartServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m267| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m268| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStartServer[2m > [22mcallbacks[2m > [22mshould execute onSuccess callback
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m300:26[22m[39m
+    [90m298| [39m
+    [90m299| [39m      [90m// Act[39m
+    [90m300| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStartServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m301| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m302| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStopServer[2m > [22msuccessful mutations[2m > [22mshould stop a server without disabling
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m355:26[22m[39m
+    [90m353| [39m
+    [90m354| [39m      [90m// Act[39m
+    [90m355| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStopServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m356| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m357| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStopServer[2m > [22msuccessful mutations[2m > [22mshould stop and disable a server
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m382:26[22m[39m
+    [90m380| [39m
+    [90m381| [39m      [90m// Act[39m
+    [90m382| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStopServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m383| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m384| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStopServer[2m > [22moptimistic updates[2m > [22mshould optimistically update server status to disconnecting
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m418:26[22m[39m
+    [90m416| [39m
+    [90m417| [39m      [90m// Act[39m
+    [90m418| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStopServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m419| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m420| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/mutations/__tests__/server.mutations.test.ts[2m > [22museStopServer[2m > [22merror handling[2m > [22mshould rollback on stop failure
+[31m[1mTypeError[22m: React.act is not a function[39m
+[90m [2m❯[22m exports.act node_modules/react-dom/cjs/react-dom-test-utils.production.js:[2m20:16[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/react/dist/act-compat.js:[2m47:25[22m[39m
+[90m [2m❯[22m renderRoot node_modules/@testing-library/react/dist/pure.js:[2m190:26[22m[39m
+[90m [2m❯[22m render node_modules/@testing-library/react/dist/pure.js:[2m292:10[22m[39m
+[90m [2m❯[22m renderHook node_modules/@testing-library/react/dist/pure.js:[2m340:7[22m[39m
+[36m [2m❯[22m src/ui/api/mutations/__tests__/server.mutations.test.ts:[2m461:26[22m[39m
+    [90m459| [39m
+    [90m460| [39m      [90m// Act[39m
+    [90m461| [39m      [35mconst[39m { result } [33m=[39m [34mrenderHook[39m(() [33m=>[39m [34museStopServer[39m()[33m,[39m {
+    [90m   | [39m                         [31m^[39m
+    [90m462| [39m        wrapper[33m:[39m [34mcreateQueryWrapper[39m(queryClient)[33m,[39m
+    [90m463| [39m      })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22mvalid backend responses[2m > [22mshould validate complete multi-server health response
+[31m[1mAssertionError[22m: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m166:30[22m[39m
+    [90m164| [39m      const result = HealthResponseSchema.safeParse(VALID_HEALTH_RESPO…
+    [90m165| [39m
+    [90m166| [39m      [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m167| [39m      [35mif[39m (result[33m.[39msuccess) {
+    [90m168| [39m        [90m// Verify structure[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22mvalid backend responses[2m > [22mshould validate response with disconnected server
+[31m[1mAssertionError[22m: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m194:30[22m[39m
+    [90m192| [39m      const result = HealthResponseSchema.safeParse(DISCONNECTED_SERVE…
+    [90m193| [39m
+    [90m194| [39m      [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m195| [39m      [35mif[39m (result[33m.[39msuccess) {
+    [90m196| [39m        [34mexpect[39m(result[33m.[39mdata[33m.[39mstatus)[33m.[39m[34mtoBe[39m([32m'degraded'[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22mvalid backend responses[2m > [22mshould validate response with unauthorized server
+[31m[1mAssertionError[22m: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m211:30[22m[39m
+    [90m209| [39m      const result = HealthResponseSchema.safeParse(UNAUTHORIZED_SERVE…
+    [90m210| [39m
+    [90m211| [39m      [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m212| [39m      [35mif[39m (result[33m.[39msuccess) {
+    [90m213| [39m        [35mconst[39m server [33m=[39m result[33m.[39mdata[33m.[39mservers[[34m0[39m][33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22mvalid backend responses[2m > [22mshould handle server with minimal capabilities
+[31m[1mAssertionError[22m: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m244:30[22m[39m
+    [90m242| [39m
+    [90m243| [39m      [35mconst[39m result [33m=[39m [33mHealthResponseSchema[39m[33m.[39m[34msafeParse[39m(minimalResponse)[33m;[39m
+    [90m244| [39m      [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m245| [39m    })[33m;[39m
+    [90m246| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22minvalid backend responses[2m > [22mshould reject response with malformed tool (missing description)
+[31m[1mAssertionError[22m: expected [ 'state' ] to include 'description'[39m
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m273:45[22m[39m
+    [90m271| [39m      [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mfalse[39m)[33m;[39m
+    [90m272| [39m      [35mif[39m ([33m![39mresult[33m.[39msuccess) {
+    [90m273| [39m        [34mexpect[39m(result[33m.[39merror[33m.[39missues[[34m0[39m][33m.[39mpath)[33m.[39m[34mtoContain[39m([32m'description'[39m)[33m;[39m
+    [90m   | [39m                                            [31m^[39m
+    [90m274| [39m      }
+    [90m275| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22minvalid backend responses[2m > [22mshould reject response with malformed resource (missing uri)
+[31m[1mAssertionError[22m: expected [ 'state' ] to include 'uri'[39m
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m301:45[22m[39m
+    [90m299| [39m      [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mfalse[39m)[33m;[39m
+    [90m300| [39m      [35mif[39m ([33m![39mresult[33m.[39msuccess) {
+    [90m301| [39m        [34mexpect[39m(result[33m.[39merror[33m.[39missues[[34m0[39m][33m.[39mpath)[33m.[39m[34mtoContain[39m([32m'uri'[39m)[33m;[39m
+    [90m   | [39m                                            [31m^[39m
+    [90m302| [39m      }
+    [90m303| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22minvalid backend responses[2m > [22mshould reject response with empty tool name
+[31m[1mAssertionError[22m: expected 'Invalid option: expected one of "star…' to contain 'cannot be empty'[39m
+
+Expected: [32m"cannot be empty"[39m
+Received: [31m"Invalid option: expected one of "starting"|"ready"|"restarting"|"restarted"|"stopped"|"stopping"|"error""[39m
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m329:48[22m[39m
+    [90m327| [39m      [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mfalse[39m)[33m;[39m
+    [90m328| [39m      [35mif[39m ([33m![39mresult[33m.[39msuccess) {
+    [90m329| [39m        expect(result.error.issues[0].message).toContain('cannot be em…
+    [90m   | [39m                                               [31m^[39m
+    [90m330| [39m      }
+    [90m331| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22minvalid backend responses[2m > [22mshould reject response with invalid prompt argument
+[31m[1mAssertionError[22m: expected [ 'state' ] to include 'required'[39m
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m362:45[22m[39m
+    [90m360| [39m      [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mfalse[39m)[33m;[39m
+    [90m361| [39m      [35mif[39m ([33m![39mresult[33m.[39msuccess) {
+    [90m362| [39m        [34mexpect[39m(result[33m.[39merror[33m.[39missues[[34m0[39m][33m.[39mpath)[33m.[39m[34mtoContain[39m([32m'required'[39m)[33m;[39m
+    [90m   | [39m                                            [31m^[39m
+    [90m363| [39m      }
+    [90m364| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22minvalid backend responses[2m > [22mshould reject response with extra unknown fields in capabilities
+[31m[1mAssertionError[22m: expected 'invalid_value' to be 'unrecognized_keys' // Object.is equality[39m
+
+Expected: [32m"unrecognized_keys"[39m
+Received: [31m"invalid_value"[39m
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m386:45[22m[39m
+    [90m384| [39m      [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mfalse[39m)[33m;[39m
+    [90m385| [39m      [35mif[39m ([33m![39mresult[33m.[39msuccess) {
+    [90m386| [39m        [34mexpect[39m(result[33m.[39merror[33m.[39missues[[34m0[39m][33m.[39mcode)[33m.[39m[34mtoBe[39m([32m'unrecognized_keys'[39m)[33m;[39m
+    [90m   | [39m                                            [31m^[39m
+    [90m387| [39m      }
+    [90m388| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mHealthResponse Schema Integration[2m > [22merror message quality[2m > [22mshould provide path information for nested validation errors
+[31m[1mAssertionError[22m: expected [ 'state' ] to include 'servers'[39m
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m480:27[22m[39m
+    [90m478| [39m        [35mconst[39m errorPath [33m=[39m result[33m.[39merror[33m.[39missues[[34m0[39m][33m.[39mpath[33m;[39m
+    [90m479| [39m        [90m// Should include full path to error[39m
+    [90m480| [39m        [34mexpect[39m(errorPath)[33m.[39m[34mtoContain[39m([32m'servers'[39m)[33m;[39m
+    [90m   | [39m                          [31m^[39m
+    [90m481| [39m        [34mexpect[39m(errorPath)[33m.[39m[34mtoContain[39m([32m'capabilities'[39m)[33m;[39m
+    [90m482| [39m        [34mexpect[39m(errorPath)[33m.[39m[34mtoContain[39m([32m'resources'[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/capabilities.integration.test.ts[2m > [22mReact Query Hook Integration[2m > [22mshould work with typical React Query usage pattern
+[31m[1mAssertionError[22m: expected false to be true // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- true[39m
+[31m+ false[39m
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/capabilities.integration.test.ts:[2m500:28[22m[39m
+    [90m498| [39m    [35mconst[39m result [33m=[39m [33mHealthResponseSchema[39m[33m.[39m[34msafeParse[39m(queryData)[33m;[39m
+    [90m499| [39m
+    [90m500| [39m    [34mexpect[39m(result[33m.[39msuccess)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m501| [39m
+    [90m502| [39m    [35mif[39m (result[33m.[39msuccess) {
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/common.schema.test.ts[2m > [22mTimestampSchema[2m > [22mshould validate valid ISO 8601 datetime strings
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but 'TypeError: Cannot read properties of …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"TypeError: Cannot read properties of undefined (reading 'parse')"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/common.schema.test.ts:[2m11:73[22m[39m
+    [90m  9| [39m[34mdescribe[39m([32m'TimestampSchema'[39m[33m,[39m () [33m=>[39m {
+    [90m 10| [39m  [34mit[39m([32m'should validate valid ISO 8601 datetime strings'[39m[33m,[39m () [33m=>[39m {
+    [90m 11| [39m    expect(() => TimestampSchema.parse('2025-01-08T12:00:00.000Z')).no…
+    [90m   | [39m                                                                        [31m^[39m
+    [90m 12| [39m    expect(() => TimestampSchema.parse('2025-01-08T12:00:00.123Z')).no…
+    [90m 13| [39m    expect(() => TimestampSchema.parse('2025-01-08T12:00:00Z')).not.to…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/common.schema.test.ts[2m > [22mBaseResponseSchema[2m > [22mshould validate minimal base response
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but 'TypeError: Cannot read properties of …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"TypeError: Cannot read properties of undefined (reading 'parse')"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/common.schema.test.ts:[2m32:58[22m[39m
+    [90m 30| [39m    }[33m;[39m
+    [90m 31| [39m
+    [90m 32| [39m    [34mexpect[39m(() [33m=>[39m [33mBaseResponseSchema[39m[33m.[39m[34mparse[39m(response))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                         [31m^[39m
+    [90m 33| [39m  })[33m;[39m
+    [90m 34| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[55/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/common.schema.test.ts[2m > [22mBaseResponseSchema[2m > [22mshould validate base response with optional requestId
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but 'TypeError: Cannot read properties of …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"TypeError: Cannot read properties of undefined (reading 'parse')"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/common.schema.test.ts:[2m44:58[22m[39m
+    [90m 42| [39m    }[33m;[39m
+    [90m 43| [39m
+    [90m 44| [39m    [34mexpect[39m(() [33m=>[39m [33mBaseResponseSchema[39m[33m.[39m[34mparse[39m(response))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                         [31m^[39m
+    [90m 45| [39m  })[33m;[39m
+    [90m 46| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[56/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/common.schema.test.ts[2m > [22mPaginationSchema[2m > [22mshould validate complete pagination info
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but 'TypeError: Cannot read properties of …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"TypeError: Cannot read properties of undefined (reading 'parse')"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/common.schema.test.ts:[2m79:58[22m[39m
+    [90m 77| [39m    }[33m;[39m
+    [90m 78| [39m
+    [90m 79| [39m    [34mexpect[39m(() [33m=>[39m [33mPaginationSchema[39m[33m.[39m[34mparse[39m(pagination))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                         [31m^[39m
+    [90m 80| [39m  })[33m;[39m
+    [90m 81| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[57/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/common.schema.test.ts[2m > [22mErrorResponseSchema[2m > [22mshould validate minimal error response
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but '[\n  {\n    "expected": "string",\n  …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"[
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"error\"
+    ],
+    \"message\": \"Invalid input: expected string, received object\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"code\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"timestamp\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  }
+]"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/common.schema.test.ts:[2m135:56[22m[39m
+    [90m133| [39m    }[33m;[39m
+    [90m134| [39m
+    [90m135| [39m    [34mexpect[39m(() [33m=>[39m [33mErrorResponseSchema[39m[33m.[39m[34mparse[39m(error))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                       [31m^[39m
+    [90m136| [39m  })[33m;[39m
+    [90m137| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[58/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/common.schema.test.ts[2m > [22mErrorResponseSchema[2m > [22mshould validate error with all optional fields
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but '[\n  {\n    "expected": "string",\n  …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"[
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"error\"
+    ],
+    \"message\": \"Invalid input: expected string, received object\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"code\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"timestamp\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  }
+]"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/common.schema.test.ts:[2m156:56[22m[39m
+    [90m154| [39m    }[33m;[39m
+    [90m155| [39m
+    [90m156| [39m    [34mexpect[39m(() [33m=>[39m [33mErrorResponseSchema[39m[33m.[39m[34mparse[39m(error))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                       [31m^[39m
+    [90m157| [39m  })[33m;[39m
+    [90m158| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[59/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/server.schema.test.ts[2m > [22mServerInfoSchema[2m > [22mshould validate minimal server info
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but '[\n  {\n    "expected": "string",\n  …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"[
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"displayName\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"description\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"code\": \"invalid_value\",
+    \"values\": [
+      \"stdio\",
+      \"sse\",
+      \"streamable-http\"
+    ],
+    \"path\": [
+      \"transportType\"
+    ],
+    \"message\": \"Invalid option: expected one of \\\"stdio\\\"|\\\"sse\\\"|\\\"streamable-http\\\"\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"error\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"object\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"capabilities\"
+    ],
+    \"message\": \"Invalid input: expected object, received undefined\"
+  },
+  {
+    \"expected\": \"number\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"uptime\"
+    ],
+    \"message\": \"Invalid input: expected number, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"lastStarted\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"authorizationUrl\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"object\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"serverInfo\"
+    ],
+    \"message\": \"Invalid input: expected object, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"config_source\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  }
+]"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/server.schema.test.ts:[2m32:54[22m[39m
+    [90m 30| [39m    }[33m;[39m
+    [90m 31| [39m
+    [90m 32| [39m    [34mexpect[39m(() [33m=>[39m [33mServerInfoSchema[39m[33m.[39m[34mparse[39m(server))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                     [31m^[39m
+    [90m 33| [39m  })[33m;[39m
+    [90m 34| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[60/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/server.schema.test.ts[2m > [22mServerInfoSchema[2m > [22mshould validate complete server info with all fields
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but '[\n  {\n    "expected": "string",\n  …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"[
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"description\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"error\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"array\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"capabilities\",
+      \"resources\"
+    ],
+    \"message\": \"Invalid input: expected array, received undefined\"
+  },
+  {
+    \"expected\": \"array\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"capabilities\",
+      \"resourceTemplates\"
+    ],
+    \"message\": \"Invalid input: expected array, received undefined\"
+  },
+  {
+    \"expected\": \"array\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"capabilities\",
+      \"prompts\"
+    ],
+    \"message\": \"Invalid input: expected array, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"lastStarted\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"authorizationUrl\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"object\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"serverInfo\"
+    ],
+    \"message\": \"Invalid input: expected object, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"config_source\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  }
+]"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/server.schema.test.ts:[2m52:54[22m[39m
+    [90m 50| [39m    }[33m;[39m
+    [90m 51| [39m
+    [90m 52| [39m    [34mexpect[39m(() [33m=>[39m [33mServerInfoSchema[39m[33m.[39m[34mparse[39m(server))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                     [31m^[39m
+    [90m 53| [39m  })[33m;[39m
+    [90m 54| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[61/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/server.schema.test.ts[2m > [22mServerInfoSchema[2m > [22mshould validate SSE transport type
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but '[\n  {\n    "expected": "string",\n  …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"[
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"displayName\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"description\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"error\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"object\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"capabilities\"
+    ],
+    \"message\": \"Invalid input: expected object, received undefined\"
+  },
+  {
+    \"expected\": \"number\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"uptime\"
+    ],
+    \"message\": \"Invalid input: expected number, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"lastStarted\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"authorizationUrl\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"object\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"serverInfo\"
+    ],
+    \"message\": \"Invalid input: expected object, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"config_source\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  }
+]"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/server.schema.test.ts:[2m62:54[22m[39m
+    [90m 60| [39m    }[33m;[39m
+    [90m 61| [39m
+    [90m 62| [39m    [34mexpect[39m(() [33m=>[39m [33mServerInfoSchema[39m[33m.[39m[34mparse[39m(server))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                     [31m^[39m
+    [90m 63| [39m  })[33m;[39m
+    [90m 64| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[62/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/server.schema.test.ts[2m > [22mServerInfoSchema[2m > [22mshould validate streamable-http transport type
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but '[\n  {\n    "expected": "string",\n  …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"[
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"displayName\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"description\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"error\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"object\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"capabilities\"
+    ],
+    \"message\": \"Invalid input: expected object, received undefined\"
+  },
+  {
+    \"expected\": \"number\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"uptime\"
+    ],
+    \"message\": \"Invalid input: expected number, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"lastStarted\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"authorizationUrl\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  },
+  {
+    \"expected\": \"object\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"serverInfo\"
+    ],
+    \"message\": \"Invalid input: expected object, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"config_source\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  }
+]"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/server.schema.test.ts:[2m72:54[22m[39m
+    [90m 70| [39m    }[33m;[39m
+    [90m 71| [39m
+    [90m 72| [39m    [34mexpect[39m(() [33m=>[39m [33mServerInfoSchema[39m[33m.[39m[34mparse[39m(server))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                     [31m^[39m
+    [90m 73| [39m  })[33m;[39m
+    [90m 74| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[63/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/server.schema.test.ts[2m > [22mServerInfoSchema[2m > [22mshould handle missing optional fields
+[31m[1mZodError[22m: [
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "displayName"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "description"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "code": "invalid_value",
+    "values": [
+      "stdio",
+      "sse",
+      "streamable-http"
+    ],
+    "path": [
+      "transportType"
+    ],
+    "message": "Invalid option: expected one of \"stdio\"|\"sse\"|\"streamable-http\""
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "error"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "object",
+    "code": "invalid_type",
+    "path": [
+      "capabilities"
+    ],
+    "message": "Invalid input: expected object, received undefined"
+  },
+  {
+    "expected": "number",
+    "code": "invalid_type",
+    "path": [
+      "uptime"
+    ],
+    "message": "Invalid input: expected number, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "lastStarted"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "authorizationUrl"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  },
+  {
+    "expected": "object",
+    "code": "invalid_type",
+    "path": [
+      "serverInfo"
+    ],
+    "message": "Invalid input: expected object, received undefined"
+  },
+  {
+    "expected": "string",
+    "code": "invalid_type",
+    "path": [
+      "config_source"
+    ],
+    "message": "Invalid input: expected string, received undefined"
+  }
+][39m
+[36m [2m❯[22m src/ui/api/schemas/__tests__/server.schema.test.ts:[2m101:37[22m[39m
+    [90m 99| [39m    }[33m;[39m
+    [90m100| [39m
+    [90m101| [39m    [35mconst[39m result [33m=[39m [33mServerInfoSchema[39m[33m.[39m[34mparse[39m(server)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m102| [39m    [34mexpect[39m(result[33m.[39mdisplayName)[33m.[39m[34mtoBeUndefined[39m()[33m;[39m
+    [90m103| [39m    [34mexpect[39m(result[33m.[39mtransportType)[33m.[39m[34mtoBeUndefined[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[64/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/server.schema.test.ts[2m > [22mServersResponseSchema[2m > [22mshould validate empty servers list
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but '[\n  {\n    "expected": "array",\n   …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"[
+  {
+    \"expected\": \"array\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"servers\"
+    ],
+    \"message\": \"Invalid input: expected array, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"timestamp\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  }
+]"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/server.schema.test.ts:[2m118:61[22m[39m
+    [90m116| [39m    }[33m;[39m
+    [90m117| [39m
+    [90m118| [39m    [34mexpect[39m(() [33m=>[39m [33mServersResponseSchema[39m[33m.[39m[34mparse[39m(response))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                            [31m^[39m
+    [90m119| [39m  })[33m;[39m
+    [90m120| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[65/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/server.schema.test.ts[2m > [22mServersResponseSchema[2m > [22mshould validate response with multiple servers
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but '[\n  {\n    "expected": "array",\n   …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"[
+  {
+    \"expected\": \"array\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"servers\"
+    ],
+    \"message\": \"Invalid input: expected array, received undefined\"
+  },
+  {
+    \"expected\": \"string\",
+    \"code\": \"invalid_type\",
+    \"path\": [
+      \"timestamp\"
+    ],
+    \"message\": \"Invalid input: expected string, received undefined\"
+  }
+]"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/server.schema.test.ts:[2m146:61[22m[39m
+    [90m144| [39m    }[33m;[39m
+    [90m145| [39m
+    [90m146| [39m    [34mexpect[39m(() [33m=>[39m [33mServersResponseSchema[39m[33m.[39m[34mparse[39m(response))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                            [31m^[39m
+    [90m147| [39m  })[33m;[39m
+    [90m148| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[66/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/server.schema.test.ts[2m > [22mServerResponseSchema[2m > [22mshould validate single server response
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but 'TypeError: Cannot read properties of …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"TypeError: Cannot read properties of undefined (reading 'parse')"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/server.schema.test.ts:[2m181:60[22m[39m
+    [90m179| [39m    }[33m;[39m
+    [90m180| [39m
+    [90m181| [39m    [34mexpect[39m(() [33m=>[39m [33mServerResponseSchema[39m[33m.[39m[34mparse[39m(response))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                           [31m^[39m
+    [90m182| [39m  })[33m;[39m
+    [90m183| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[67/125]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/ui/api/schemas/__tests__/server.schema.test.ts[2m > [22mServerResponseSchema[2m > [22mshould validate detailed server response
+[31m[1mAssertionError[22m: expected [Function] to not throw an error but 'TypeError: Cannot read properties of …' was thrown[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"TypeError: Cannot read properties of undefined (reading 'parse')"
+
+[36m [2m❯[22m src/ui/api/schemas/__tests__/server.schema.test.ts:[2m205:60[22m[39m
+    [90m203| [39m    }[33m;[39m
+    [90m204| [39m
+    [90m205| [39m    [34mexpect[39m(() [33m=>[39m [33mServerResponseSchema[39m[33m.[39m[34mparse[39m(response))[33m.[39mnot[33m.[39m[34mtoThrow[39m()[33m;[39m
+    [90m   | [39m                                                           [31m^[39m
+    [90m206| [39m  })[33m;[39m
+    [90m207| [39m})[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[68/125]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m32 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (34)[39m
+[2m      Tests [22m [1m[31m78 failed[39m[22m[2m | [22m[1m[32m47 passed[39m[22m[2m | [22m[33m4 skipped[39m[90m (129)[39m
+[2m   Start at [22m 23:39:55
+[2m   Duration [22m 8.58s[2m (transform 20.31s, setup 14.33s, collect 12.05s, tests 2.05s, environment 90.39s, prepare 1.70s)[22m
+
+error: "vitest" exited with code 1

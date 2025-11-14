@@ -20,6 +20,9 @@ const ConfigSaveResponseSchema = z.object({
 
 export type ConfigSaveResponse = z.infer<typeof ConfigSaveResponseSchema>;
 
+// Re-export types for convenience
+export type { ConfigData, ConfigResponse };
+
 /**
  * Fetch current MCP Hub configuration
  * @returns Promise with validated config data

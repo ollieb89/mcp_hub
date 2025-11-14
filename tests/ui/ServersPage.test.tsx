@@ -5,22 +5,51 @@ import { describe, it, expect, vi } from "vitest";
 
 const mockRefresh = vi.fn();
 
-vi.mock("@hooks/usePolling", () => ({
-  usePolling: () => ({
-    data: [
-      {
-        name: "example",
-        displayName: "Example Server",
-        status: "disabled",
-        transportType: "sse",
-        capabilities: { tools: [] },
-        uptime: 0,
-      },
-    ],
-    loading: false,
+// Mock React Query hook instead of deprecated usePolling
+vi.mock("@api/hooks", () => ({
+  useServers: () => ({
+    data: {
+      servers: [
+        {
+          name: "example",
+          displayName: "Example Server",
+          status: "disabled",
+          transportType: "sse",
+          capabilities: { tools: [] },
+          uptime: 0,
+        },
+      ],
+    },
+    isLoading: false,
     error: null,
-    refresh: mockRefresh,
+    refetch: mockRefresh,
   }),
+}));
+
+vi.mock("@api/mutations", () => ({
+  useStartServer: () => ({
+    mutate: vi.fn().mockImplementation((name, callbacks) => {
+      callbacks?.onSuccess?.();
+    }),
+    mutateAsync: vi.fn().mockResolvedValue(undefined),
+  }),
+  useStopServer: () => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
+vi.mock("@hooks/useSnackbar", () => ({
+  useSnackbar: () => ({
+    message: null,
+    open: false,
+    showSnackbar: vi.fn(),
+    closeSnackbar: vi.fn(),
+  }),
+}));
+
+vi.mock("@hooks/useSSESubscription", () => ({
+  useSSESubscription: vi.fn(),
 }));
 
 vi.mock("@api/servers", () => ({
@@ -48,3 +77,4 @@ describe("ServersPage", () => {
     });
   });
 });
+

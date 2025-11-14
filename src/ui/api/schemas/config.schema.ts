@@ -121,3 +121,6 @@ export type ConnectionPool = z.infer<typeof ConnectionPoolSchema>;
 export type ConfigData = z.infer<typeof ConfigDataSchema>;
 export type ConfigResponse = z.infer<typeof ConfigResponseSchema>;
 export type ConfigSaveRequest = z.infer<typeof ConfigSaveRequestSchema>;
+
+// Alias for backwards compatibility
+export type HubConfig = ConfigData;

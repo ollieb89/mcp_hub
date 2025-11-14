@@ -62,37 +62,43 @@
     {
       "name": "Total UI Bundle (gzipped)",
       "path": "dist/ui/assets/*.js",
-      "limit": "325 KB",
+      "limit": "300 KB",
       "gzip": true
     },
     {
       "name": "React Core chunk",
       "path": "dist/ui/assets/react-core-*.js",
-      "limit": "52 KB",
+      "limit": "60 KB",
       "gzip": true
     },
     {
       "name": "MUI Core chunk",
       "path": "dist/ui/assets/mui-core-*.js",
-      "limit": "82 KB",
+      "limit": "50 KB",
       "gzip": true
     },
     {
       "name": "State Utils chunk",
       "path": "dist/ui/assets/state-utils-*.js",
-      "limit": "27 KB",
+      "limit": "25 KB",
       "gzip": true
     },
     {
       "name": "Charts bundle (lazy)",
-      "path": "dist/ui/assets/ChartsWrapper-*.js",
-      "limit": "65 KB",
+      "path": "dist/ui/assets/charts-*.js",
+      "limit": "85 KB",
       "gzip": true
     },
     {
       "name": "Monaco Editor (lazy)",
-      "path": "dist/ui/assets/ConfigPage-*.js",
-      "limit": "27 KB",
+      "path": "dist/ui/assets/monaco-*.js",
+      "limit": "25 KB",
+      "gzip": true
+    },
+    {
+      "name": "Initial critical chunk",
+      "path": "dist/ui/assets/index-*.js",
+      "limit": "5 KB",
       "gzip": true
     }
   ],

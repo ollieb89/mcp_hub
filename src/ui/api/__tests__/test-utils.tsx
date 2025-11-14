@@ -30,11 +30,6 @@ export function createTestQueryClient() {
         retry: false,
       },
     },
-    logger: {
-      log: console.log,
-      warn: console.warn,
-      error: () => {}, // Silence expected errors in tests
-    },
   });
 }
 

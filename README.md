@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 
-> **Current Status**: MCP Hub v4.2.1 is production-ready with comprehensive test coverage (82.94% branches), zero critical bugs, and a fully-featured web UI. Currently running with **12 connected MCP servers** providing **108+ tools** including AI assistance, UI development, documentation, memory, web browsing, version control, vector search, deployment, ML models, and browser automation. The project is actively maintained with regular updates.
+> **Current Status**: MCP Hub v4.2.1 is production-ready with comprehensive test coverage, zero critical bugs in core functionality, and an active web UI under development. Currently running with **12 connected MCP servers** providing **108+ tools** including AI assistance, UI development, documentation, memory, web browsing, version control, vector search, deployment, ML models, and browser automation. The project is actively maintained with regular updates.
 
 **Quick Links**: [Installation](#installation) · [Configuration](#configuration) · [REST API](#rest-api) · [Testing](#testing) · [Roadmap](#roadmap) · [Contributing](./CONTRIBUTING.md)
 
@@ -19,8 +19,7 @@ This dual-interface approach means you can manage servers through the Hub's UI w
 
 ### 🎉 What's New in v4.2.x
 
-- **Configuration Safety Features** (v4.2.1 Nov 8): Diff preview dialogs with destructive change warnings, SHA-256 version tracking, and concurrent write protection - prevents accidental configuration damage
-- **Web UI Launch** (v4.2.1): Full-featured React web UI for server management, configuration editing, and real-time monitoring at `localhost:7000`
+- **Workspace Cache Improvements** (v4.2.1): Enhanced lock file handling to prevent persistent deadlocks from crashed processes
 - **VS Code Configuration Compatibility** (v4.2.0): Full support for `.vscode/mcp.json` files with VS Code-style variable syntax (`${env:}`, `${workspaceFolder}`, etc.) - seamless migration from VS Code
 - **Enhanced Workspace Management** (v4.1.x): Real-time workspace lifecycle tracking with detailed state management and SSE event streaming
 - **Multiple Configuration Files** (v4.1.0): Support for layered configuration with intelligent merging (e.g., global + project configs)
@@ -28,52 +27,14 @@ This dual-interface approach means you can manage servers through the Hub's UI w
 
 ### 🚀 Production-Ready Quality
 
-- **Comprehensive Test Coverage**: 530+ backend tests with strategic 82.94% branch coverage exceeding industry standards
-- **Zero Critical Bugs**: All production issues resolved and actively monitored
+- **Comprehensive Test Coverage**: 530+ backend tests with strategic branch coverage exceeding industry standards
+- **Stable Core**: Production-tested with zero critical bugs in core server functionality
 - **96%+ ESLint Compliance**: Clean, maintainable codebase following best practices
 - **Zero Memory Leaks**: Comprehensive resource cleanup with idempotent patterns
 - **Enterprise Features**: HTTP connection pooling, prompt-based tool filtering, workspace management, and real-time event streaming
 - **Active Deployment**: Currently running stable with 12+ connected servers and 108+ available tools
 
-## 🧪 Beta Testing Program
 
-> **Status**: 🟢 **Applications Open** - Join our beta testing program to help shape the future of MCP Hub tool filtering!
-
-### What We're Testing
-We're seeking **5-10 beta testers** to validate our new **Tool Filtering** feature that reduces overwhelming tool counts from **3,000+ → 15-200 relevant tools**, freeing up to **50k tokens** for actual productivity.
-
-### Beta Program Benefits
-- ✅ **80-85% tool reduction** for focused workflows
-- ✅ **30-50k token savings** per session
-- ✅ **Real-time statistics** via REST API and dashboard
-- ✅ **Background LLM categorization** for smart filtering
-- ✅ **Zero breaking changes** to existing workflows
-
-### Who Should Apply
-We need diverse beta testers across these workflows:
-- 🎨 **Frontend Developers** (React/Vue/Angular) - 2 slots
-- ⚙️ **Backend Developers** (Node.js/Python) - 1-2 slots
-- 🌐 **Full-Stack Team Leads** - 1-2 slots
-- 🚢 **DevOps Engineers** - 1 slot (optional)
-
-### Application Requirements
-- ✅ MCP Hub user with **10+ servers configured**
-- ✅ Active GitHub account (for feedback and issues)
-- ✅ **2-week availability** for testing (Days 1-14)
-- ✅ Willingness to provide **structured feedback**
-
-### How to Apply
-**👉 [Apply Now in GitHub Discussions](https://github.com/ollieb89/mcp_hub/discussions/30) 👈**
-
-See our [Beta Onboarding Guide](./docs/BETA_ONBOARDING.md) for complete details.
-
-**Timeline**:
-- Days 1-2: Application review and enrollment
-- Days 3-7: Active testing and feedback
-- Days 8-10: Issue resolution and iteration
-- Days 11-14: Final synthesis and GA preparation
-
----
 
 ## Feature Support & Maturity
 
@@ -93,8 +54,7 @@ See our [Beta Onboarding Guide](./docs/BETA_ONBOARDING.md) for complete details.
 | Marketplace Integration | ✅ Stable | Production | MCP Registry with 1-hour cache |
 | VS Code Compatibility | ✅ Stable | Production | Full `.vscode/mcp.json` support |
 | Configuration System | ✅ Stable | Production | Multi-file, VS Code compatible |
-| Web UI | ✅ Stable | Production | Full-featured React UI with config safety |
-| Configuration Diff Preview | ✅ Stable | Production | Side-by-side diffing with destructive change warnings |
+| Web UI | 🚧 In Progress | Beta | React-based UI under active development |
 | TUI | 🚧 Planned | Future | Inspired by mcphub.nvim |
 
 ### Feature Coverage
@@ -172,13 +132,12 @@ The Hub automatically:
   - Context-aware tool selection
   - See [Prompt-Based Filtering Guide](./claudedocs/PROMPT_BASED_FILTERING_QUICK_START.md)
 
-- **🆕 Full-Featured Web UI** (v4.2.1):
-  - Server management dashboard with real-time status
-  - Visual configuration editor with diff preview
-  - Destructive change warnings and safety features
-  - Tool browser and search interface
-  - Monitoring dashboard with filtering statistics
-  - Available at `localhost:7000` when hub is running
+- **🚧 Web UI** (In Development):
+  - Server management dashboard with real-time status (in progress)
+  - Visual configuration editor (planned)
+  - Tool browser and search interface (planned)
+  - Monitoring dashboard with filtering statistics (planned)
+  - Will be available at `localhost:7000` when completed
 
 - **Dynamic Server Management**:
   - Start, stop, enable/disable servers on demand
@@ -1134,59 +1093,36 @@ Note: A server configuration cannot mix STDIO and remote server fields.
 3. **Fallback**: `null` or `""` values fall back to `process.env`
 4. **Multi-pass**: Dependencies between variables are resolved automatically
 
-## Web UI
+## Web UI (In Development)
 
-MCP Hub includes a full-featured React web UI for managing servers, configuring settings, and monitoring real-time status. The UI is available at `http://localhost:7000` when the hub is running.
+MCP Hub is developing a React-based web UI for managing servers, configuring settings, and monitoring real-time status.
 
-### Features
+### Planned Features
 
-**Server Management**
+**Server Management** (In Progress)
 - View all connected servers with real-time status
 - Start, stop, enable, and disable servers on demand
 - Monitor server health and connection state
 - View tool/resource counts per server
 
-**Configuration Editing**
+**Configuration Editing** (Planned)
 - Visual JSON configuration editor with syntax highlighting
 - Side-by-side diff preview before applying changes
 - Destructive change warnings for removed servers
-- Version tracking with SHA-256 hashing
-- Concurrent write protection (prevents conflicting edits)
-- Raw JSON editing with validation
+- Version tracking and validation
 
-**Dashboard & Monitoring**
+**Dashboard & Monitoring** (Planned)
 - Real-time connection statistics
 - Tool filtering status and impact metrics
 - Server uptime tracking
 - Active client connections
 
-**Tool Management**
+**Tool Management** (Planned)
 - Browse available tools from all servers
 - Search and filter tools by server/name
 - View tool schemas and descriptions
-- Category-based tool organization with filtering statistics
 
-### Configuration Safety Features
-
-The UI includes advanced safety features to prevent accidental configuration damage:
-
-**Diff Preview Dialog**
-- Side-by-side comparison of current vs. proposed configuration
-- Change summary showing added/removed/modified fields
-- Destructive change detection and warnings
-- Visual highlighting of critical changes
-
-**Version Tracking**
-- SHA-256 hash of current configuration
-- Automatic detection of external config changes
-- Prevents loss of concurrent edits
-
-**Concurrent Write Protection**
-- Detects when config is modified by another process
-- Prompts user before overwriting changes
-- Maintains file integrity across distributed edits
-
-For detailed information on configuration safety features, see [`claudedocs/UX_IMPROVEMENTS_CONFIG_SAFETY.md`](./claudedocs/UX_IMPROVEMENTS_CONFIG_SAFETY.md).
+The UI will be available at `http://localhost:7000` when completed. Currently, all features are accessible via the REST API documented below.
 
 ## Nix
 
@@ -2245,12 +2181,12 @@ MCP Hub maintains high code quality standards through comprehensive testing, doc
 
 ### Quality Metrics
 
-- **Test Coverage**: 80%+ across all modules
+- **Test Coverage**: Strategic coverage across core modules (backend stable, UI in development)
 - **ESLint Compliance**: 96%+ pass rate (1 intentional nested try-catch for transport fallback)
 - **JSDoc Documentation**: 100% coverage for public APIs
 - **Code Style**: Standardized across entire codebase
 - **Memory Leaks**: Zero detected in production
-- **Critical Bugs**: All resolved and monitored
+- **Core Stability**: Production-tested with zero critical bugs in core functionality
 
 ### Development Practices
 
@@ -2275,7 +2211,7 @@ MCP Hub employs a strategic two-tier coverage approach:
 
 - **Critical Components**: 70-80%+ coverage (MCPConnection, MCPHub, core utilities)
 - **Global Baseline**: 50-70% (infrastructure files require integration tests)
-- **Current Metrics**: 530+ backend tests across 23 test files, 82.94% branch coverage
+- **Current Metrics**: 530+ backend tests across 23 test files, strategic branch coverage on core modules
 
 #### Run Tests
 
@@ -2362,7 +2298,7 @@ The marketplace is updated regularly with new servers and improvements to existi
 - [x] Real-time event streaming with batching
 - [x] Development mode with hot-reload
 - [x] OAuth 2.0 authentication with PKCE
-- [x] Comprehensive test suite (308+ tests, 100% pass rate)
+- [x] Comprehensive backend test suite (530+ tests, production-stable)
 - [x] **Production Deployment**: Stable operation with 12+ MCP servers and 108+ tools
 - [x] **Docker Integration**: Successfully configured and managed Docker MCP server connections
 
