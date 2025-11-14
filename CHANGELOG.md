@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2025-11-14
+
+### Added
+
+- **ErrorBoundary Component for React UI**: Graceful error handling across all UI pages
+  - Automatic error recovery with exponential backoff retry strategy (1s → 30s max)
+  - Domain-specific recoverable error patterns for each page (network, connection, parsing, filter errors)
+  - Auto-retry UI with manual recovery actions for non-recoverable errors
+  - useErrorRecovery hook for functional components with configurable retry logic
+  - Custom fallback UI support with error context preservation
+
+- **Comprehensive ErrorBoundary Integration**: Production-ready error handling across 4 key pages
+  - DashboardPage: Network error recovery for filtering stats and metrics
+  - ServersPage: Connection error recovery for server management operations
+  - ConfigPage: JSON parsing and validation error recovery
+  - ToolsPage: Tool fetch and filter error recovery
+  - Domain-specific error patterns and recovery strategies per page
+
+- **ErrorBoundary Testing Suite**: 33 comprehensive tests validating error handling
+  - 19 unit tests covering core ErrorBoundary functionality (catching, recovery, callbacks)
+  - 14 integration tests validating page-level error scenarios
+  - Edge case coverage (null children, rapid retries, custom fallback UI)
+  - 70.49% statement coverage, 82.6% branch coverage
+
+### Enhanced
+
+- **Bundle Size Optimization**: Further reduced UI bundle during ErrorBoundary integration
+  - Current size: 242.12 KB gzipped (19% below 300 KB target)
+  - React Core: 56.85 KB, MUI Core: 46.72 KB, Charts: 76.77 KB (all within limits)
+  - Lazy-loaded Monaco editor and Charts components for better performance
+
+- **Vite Build Configuration**: Production-ready build optimization
+  - Babel plugin import for MUI tree-shaking
+  - Manual chunk splitting for optimal caching strategy
+  - Terser minification with disabled sourcemaps in production
+  - Build visualization plugin for bundle analysis
+
+### Documentation
+
+- **ErrorBoundary Developer Guide**: Comprehensive usage documentation
+  - API reference with TypeScript interfaces
+  - 4 implementation patterns (Dashboard, Servers, Config, Tools)
+  - Best practices for error classification and recovery
+  - Testing strategies with code examples
+  - Migration guide from deprecated usePolling hook
+  - Troubleshooting guide for common issues
+
+- **ErrorBoundary Quick Reference**: Developer quick-lookup guide
+  - One-minute setup guide with code templates
+  - Error pattern templates for common scenarios
+  - Test templates for consistent coverage
+
 ## [4.2.1] - 2025-08-22
 
 ### Fixed
