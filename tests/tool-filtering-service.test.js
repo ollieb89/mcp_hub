@@ -1450,7 +1450,10 @@ describe('ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests', () => {
 
       // Assert
       expect(service.llmCache.has('new_tool')).toBe(true);
-      expect(service.llmCache.get('new_tool')).toBe('web');
+      const cached = service.llmCache.get('new_tool');
+      expect(cached.category).toBe('web');
+      expect(cached.ttl).toBe(86400);
+      expect(typeof cached.confidence).toBe('number');
     });
 
     it('should mark cache as dirty after save', () => {
@@ -1582,7 +1585,7 @@ describe('ToolFilteringService - Sprint 3.1.2: Persistent Cache Tests', () => {
 
       // Assert
       const category = await service2._loadCachedCategory('persistent_tool');
-      expect(category).toBe('cloud');
+      expect(category.category).toBe('cloud');
 
       await service2.shutdown();
     });
@@ -1754,7 +1757,8 @@ describe('ToolFilteringService - Task 3.2.1: _categorizeByLLM', () => {
 
       // Assert - Cache should be updated
       expect(service.llmCache.has('aws_tool')).toBe(true);
-      expect(service.llmCache.get('aws_tool')).toBe('cloud');
+      const cached = service.llmCache.get('aws_tool');
+      expect(cached.category).toBe('cloud');
       expect(service.llmCacheDirty).toBe(true);
     });
   });

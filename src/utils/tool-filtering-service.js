@@ -158,6 +158,15 @@ class ToolFilteringService {
     this.llmCacheDirty = false;
     this.llmCacheWritesPending = 0;
     this.llmCacheFlushThreshold = 10;
+    
+    // Task 3.4: Cache refinement configuration
+    this.llmCacheTTL = this.config.llmCategorization?.cacheTTL ?? 86400; // 1 day default
+    this._cacheStats = {
+      llmHits: 0,
+      llmMisses: 0,
+      cacheMemoryUsageBytes: 0,
+      cacheEntryCount: 0
+    };
 
     // Statistics initialization (prevents NaN) (Sprint 0.5)
     this._checkedCount = 0;
@@ -396,6 +405,31 @@ class ToolFilteringService {
 
     this._cacheMisses++;
 
+    // Check LLM persistent cache for previously categorized tools (Task 3.4.4)
+    if (this.llmCache.has(toolName)) {
+      const cacheEntry = this.llmCache.get(toolName);
+      
+      // Task 3.4.2: Check TTL
+      const now = Math.floor(Date.now() / 1000);
+      const age = now - (cacheEntry.timestamp || 0);
+      const ttl = cacheEntry.ttl || this.llmCacheTTL;
+      
+      if (age < ttl) {
+        // Cache hit - entry is still valid
+        this._llmCacheHits++;
+        // Handle both old format (string) and new format (object)
+        const category = typeof cacheEntry === 'string' ? cacheEntry : (cacheEntry.category || 'other');
+        this.categoryCache.set(toolName, category);
+        return category;
+      } else {
+        // Cache miss - entry expired
+        this._llmCacheMisses++;
+        this.llmCache.delete(toolName);
+      }
+    } else {
+      this._llmCacheMisses++;
+    }
+
     // Try pattern matching (fast, synchronous)
     const category = this._categorizeBySyntax(toolName);
 
@@ -411,7 +445,10 @@ class ToolFilteringService {
     // NON-BLOCKING: Trigger LLM in background (fire-and-forget) (Sprint 0.1)
     if (this.config.llmCategorization?.enabled && this.llmClient) {
       this._queueLLMCategorization(toolName, toolDefinition)
-        .then(llmCategory => {
+        .then(llmResult => {
+          // llmResult now includes category, confidence, source
+          const llmCategory = typeof llmResult === 'string' ? llmResult : llmResult.category;
+          
           if (llmCategory !== defaultCategory) {
             logger.info(`LLM refined ${toolName}: '${defaultCategory}' → '${llmCategory}'`);
             this.categoryCache.set(toolName, llmCategory);
@@ -443,7 +480,8 @@ class ToolFilteringService {
     if (this._isCircuitBreakerOpen()) {
       logger.warn(`Circuit breaker is open, falling back to heuristics for ${toolName}`);
       this._llmMetrics.fallbacksUsed++;
-      return this._categorizeBySyntax(toolName);
+      const category = this._categorizeBySyntax(toolName);
+      return category;
     }
 
     // Add to rate-limited queue with retry logic (Task 3.3.1-3.3.3)
@@ -452,19 +490,48 @@ class ToolFilteringService {
 
       try {
         // Task 3.3.2: Call LLM with retry and exponential backoff
-        const category = await this._callLLMWithRetry(toolName, toolDefinition);
+        const llmResult = await this._callLLMWithRetry(toolName, toolDefinition);
+        
+        // Task 3.4.3: Extract confidence and source from LLM result
+        let cacheEntry;
+        if (typeof llmResult === 'object' && llmResult.category) {
+          // LLM returned structured result with confidence
+          cacheEntry = {
+            category: llmResult.category,
+            confidence: llmResult.confidence || 0.95,
+            source: llmResult.source || 'llm',
+            timestamp: Math.floor(Date.now() / 1000),
+            ttl: this.llmCacheTTL
+          };
+        } else {
+          // Legacy string result - convert to new format
+          cacheEntry = {
+            category: llmResult,
+            confidence: 0.95,
+            source: 'llm',
+            timestamp: Math.floor(Date.now() / 1000),
+            ttl: this.llmCacheTTL
+          };
+        }
 
         // Save to persistent cache (batched, not immediate) (Sprint 0.2)
-        this._saveCachedCategory(toolName, category);
+        this._saveCachedCategory(toolName, cacheEntry);
 
         this._updateQueueDepth(this.llmQueue.size);
-        return category;
+        return cacheEntry;
       } catch (error) {
         // Final safety net (shouldn't reach here as _callLLMWithRetry returns fallback)
         logger.error(`Unexpected error in LLM queue task for ${toolName}:`, error);
         this._llmMetrics.fallbacksUsed++;
         this._updateQueueDepth(this.llmQueue.size);
-        return this._categorizeBySyntax(toolName);
+        const category = this._categorizeBySyntax(toolName);
+        return {
+          category,
+          confidence: 0.60,
+          source: 'heuristic',
+          timestamp: Math.floor(Date.now() / 1000),
+          ttl: this.llmCacheTTL
+        };
       }
     });
   }
@@ -482,9 +549,11 @@ class ToolFilteringService {
     // Check persistent cache
     const cached = await this._loadCachedCategory(toolName);
     if (cached) {
-      logger.debug(`LLM cache hit for ${toolName}: ${cached}`);
+      // Handle both old string format and new object format
+      const category = typeof cached === 'string' ? cached : cached.category;
+      logger.debug(`LLM cache hit for ${toolName}: ${category}`);
       this._llmCacheHits++;
-      return cached;
+      return category;
     }
 
     this._llmCacheMisses++;
@@ -510,24 +579,50 @@ class ToolFilteringService {
   }
 
   /**
-   * Rate-limited LLM call (Task 3.2.1)
+   * Rate-limited LLM call with timeout (Task 3.5.1)
    * Uses PQueue for concurrency and rate limiting
+   * Enforces 5-second timeout per API call
    * 
    * @private
    * @param {string} toolName - Name of the tool
    * @param {object} toolDefinition - Tool definition object
-   * @returns {Promise<string>} Category name
+   * @returns {Promise<string>} Category name or throws TimeoutError on timeout
+   * @throws {Error} Timeout error if API call exceeds 5 seconds
    */
   async _callLLMWithRateLimit(toolName, toolDefinition) {
     const validCategories = [...Object.keys(this.defaultCategories), 'other'];
     
-    const category = await this.llmClient.categorize(
-      toolName,
-      toolDefinition,
-      validCategories
-    );
+    // Task 3.5.1: Enforce 5-second timeout on API call
+    const LLM_CALL_TIMEOUT = 5000; // 5 seconds
+    
+    try {
+      const category = await Promise.race([
+        this.llmClient.categorize(
+          toolName,
+          toolDefinition,
+          validCategories
+        ),
+        new Promise((_, reject) => 
+          setTimeout(() => {
+            const error = new Error('LLM API call timeout');
+            error.code = 'TIMEOUT';
+            reject(error);
+          }, LLM_CALL_TIMEOUT)
+        )
+      ]);
 
-    return category;
+      return category;
+    } catch (error) {
+      // Log timeout separately for monitoring (Task 3.5.1)
+      if (error.code === 'TIMEOUT' || error.message?.includes('timeout')) {
+        this._llmMetrics.timeouts++;
+        logger.warn(`LLM API timeout after ${LLM_CALL_TIMEOUT}ms for ${toolName}`, {
+          timeout: LLM_CALL_TIMEOUT,
+          tool: toolName
+        });
+      }
+      throw error;
+    }
   }
 
   /**
@@ -592,10 +687,31 @@ class ToolFilteringService {
    * @private
    */
   async _loadCachedCategory(toolName) {
-    if (this.llmCache.has(toolName)) {
-      return this.llmCache.get(toolName);
+    if (!this.llmCache.has(toolName)) {
+      return null;
     }
-    return null;
+    
+    const cacheEntry = this.llmCache.get(toolName);
+    
+    // Handle both old string format and new object format
+    if (typeof cacheEntry === 'string') {
+      // Legacy format - return as-is (no TTL for old format)
+      return cacheEntry;
+    }
+    
+    // Task 3.4.2: Check TTL validity for new format
+    const now = Math.floor(Date.now() / 1000);
+    const age = now - (cacheEntry.timestamp || 0);
+    const ttl = cacheEntry.ttl || this.llmCacheTTL;
+    
+    if (age >= ttl) {
+      // Entry expired, remove from cache
+      this.llmCache.delete(toolName);
+      return null;
+    }
+    
+    // Return the cache entry (new format with confidence and metadata)
+    return cacheEntry;
   }
 
   /**
@@ -614,12 +730,41 @@ class ToolFilteringService {
       const data = await fs.readFile(this.llmCacheFile, 'utf-8');
       const cacheObj = JSON.parse(data);
       
-      // Load into Map
-      for (const [toolName, category] of Object.entries(cacheObj)) {
-        this.llmCache.set(toolName, category);
+      const now = Math.floor(Date.now() / 1000);
+      let loadedCount = 0;
+      let expiredCount = 0;
+
+      // Load into Map with TTL enforcement (Task 3.4.2)
+      for (const [toolName, cacheEntry] of Object.entries(cacheObj)) {
+        // Handle both old format (string) and new format (object)
+        if (typeof cacheEntry === 'string') {
+          // Backward compatibility: migrate old format
+          this.llmCache.set(toolName, {
+            category: cacheEntry,
+            confidence: 0.85, // Default confidence for migrated entries
+            source: 'heuristic',
+            timestamp: now,
+            ttl: this.llmCacheTTL
+          });
+          loadedCount++;
+        } else if (typeof cacheEntry === 'object' && cacheEntry.category) {
+          // New format: check TTL (Task 3.4.2)
+          const entryTime = cacheEntry.timestamp || now;
+          const entryTTL = cacheEntry.ttl || this.llmCacheTTL;
+          const age = now - entryTime;
+
+          if (age < entryTTL) {
+            this.llmCache.set(toolName, cacheEntry);
+            loadedCount++;
+          } else {
+            // Entry expired, skip it
+            expiredCount++;
+          }
+        }
       }
       
-      logger.info(`Loaded ${this.llmCache.size} cached tool categories from ${this.llmCacheFile}`);
+      this._updateCacheMemoryUsage();
+      logger.info(`Loaded ${loadedCount} cached tool categories (${expiredCount} expired) from ${this.llmCacheFile}`);
     } catch (error) {
       if (error.code === 'ENOENT') {
         logger.info('No existing LLM cache found, will create on first categorization');
@@ -634,10 +779,37 @@ class ToolFilteringService {
    * Reduces disk I/O by 10-100x through threshold-based writes
    * @private
    */
-  _saveCachedCategory(toolName, category) {
-    this.llmCache.set(toolName, category);
+  _saveCachedCategory(toolName, categoryData) {
+    // Task 3.4.1: Accept enhanced cache entry structure
+    // Can be called with either:
+    // - { category, confidence, source, timestamp?, ttl? }
+    // - Just a category string (for backward compatibility)
+    
+    let entry;
+    if (typeof categoryData === 'string') {
+      // Legacy format - wrap in new structure
+      entry = {
+        category: categoryData,
+        confidence: 0.85,
+        source: 'heuristic',
+        timestamp: Math.floor(Date.now() / 1000),
+        ttl: this.llmCacheTTL
+      };
+    } else {
+      // New format - ensure required fields
+      entry = {
+        category: categoryData.category,
+        confidence: categoryData.confidence ?? 0.85,
+        source: categoryData.source ?? 'heuristic',
+        timestamp: categoryData.timestamp ?? Math.floor(Date.now() / 1000),
+        ttl: categoryData.ttl ?? this.llmCacheTTL
+      };
+    }
+    
+    this.llmCache.set(toolName, entry);
     this.llmCacheDirty = true;
     this.llmCacheWritesPending++;
+    this._updateCacheMemoryUsage();
 
     // Flush if threshold reached
     if (this.llmCacheWritesPending >= this.llmCacheFlushThreshold) {
@@ -656,7 +828,21 @@ class ToolFilteringService {
     if (!this.llmCacheDirty || !this.llmCacheFile) return;
 
     try {
-      const cacheObj = Object.fromEntries(this.llmCache);
+      // Task 3.4: Prepare cache object with enhanced structure
+      const cacheObj = {};
+      const now = Math.floor(Date.now() / 1000);
+      
+      for (const [toolName, entry] of this.llmCache.entries()) {
+        // Skip expired entries (Task 3.4.2)
+        const age = now - (entry.timestamp || 0);
+        const ttl = entry.ttl || this.llmCacheTTL;
+        
+        if (age < ttl) {
+          // Keep valid entries
+          cacheObj[toolName] = entry;
+        }
+      }
+      
       const tempFile = `${this.llmCacheFile}.tmp`;
 
       // Ensure parent directory exists
@@ -682,7 +868,7 @@ class ToolFilteringService {
       this.llmCacheDirty = false;
       this.llmCacheWritesPending = 0;
 
-      logger.debug(`Flushed ${this.llmCache.size} entries to LLM cache`);
+      logger.debug(`Flushed ${Object.keys(cacheObj).length} entries to LLM cache`);
     } catch (error) {
       logger.error('Failed to flush LLM cache:', error);
       // Don't throw - allow tests to continue
@@ -1010,6 +1196,85 @@ class ToolFilteringService {
    * @private
    * @param {number} depth - Current queue depth
    */
+  // Task 3.4.5: Monitor cache memory usage
+  _updateCacheMemoryUsage() {
+    let memoryBytes = 0;
+    
+    for (const [toolName, entry] of this.llmCache.entries()) {
+      // Estimate memory: tool name + entry object
+      memoryBytes += toolName.length * 2; // UTF-16 encoding estimate
+      
+      if (typeof entry === 'object') {
+        // Enhanced structure
+        memoryBytes += (entry.category?.length || 0) * 2;
+        memoryBytes += 8; // confidence (float)
+        memoryBytes += (entry.source?.length || 0) * 2;
+        memoryBytes += 8; // timestamp (number)
+        memoryBytes += 8; // ttl (number)
+        memoryBytes += 100; // Overhead for object structure
+      } else {
+        // Legacy string entry
+        memoryBytes += (entry?.length || 0) * 2;
+      }
+    }
+    
+    this._cacheStats.cacheMemoryUsageBytes = memoryBytes;
+    this._cacheStats.cacheEntryCount = this.llmCache.size;
+  }
+
+  // Task 3.4.6: Prewarm cache with known tools
+  async _prewarmCache(knownTools = []) {
+    if (!knownTools || knownTools.length === 0) {
+      return;
+    }
+
+    const categoriesToPreload = [];
+    
+    for (const toolName of knownTools) {
+      if (!this.llmCache.has(toolName) && !this.categoryCache.has(toolName)) {
+        const category = this._categorizeBySyntax(toolName);
+        if (category) {
+          categoriesToPreload.push({ toolName, category });
+          this.categoryCache.set(toolName, category);
+        }
+      }
+    }
+
+    // Save prewarmed categories to cache
+    for (const { toolName, category } of categoriesToPreload) {
+      this._saveCachedCategory(toolName, {
+        category,
+        confidence: 0.80, // Heuristic confidence
+        source: 'heuristic',
+        timestamp: Math.floor(Date.now() / 1000),
+        ttl: this.llmCacheTTL
+      });
+    }
+
+    if (categoriesToPreload.length > 0) {
+      await this._flushCache();
+      logger.info(`Cache prewarming: loaded ${categoriesToPreload.length} known tools`);
+    }
+  }
+
+  // Task 3.4: Helper to get cache entry details (for debugging/monitoring)
+  _getCacheEntry(toolName) {
+    const entry = this.llmCache.get(toolName);
+    if (!entry) return null;
+    
+    const now = Math.floor(Date.now() / 1000);
+    const age = now - (entry.timestamp || 0);
+    const ttl = entry.ttl || this.llmCacheTTL;
+    const isExpired = age >= ttl;
+    
+    return {
+      ...entry,
+      age,
+      isExpired,
+      remainingTTL: Math.max(0, ttl - age)
+    };
+  }
+
   _updateQueueDepth(depth) {
     this._llmMetrics.queueDepth = depth;
   }
@@ -1043,6 +1308,20 @@ class ToolFilteringService {
         : 0
     };
 
+    // Task 3.4: Enhanced cache statistics
+    const cacheStats = {
+      size: this.llmCache.size,
+      hitRate: totalLLMCacheAccess > 0
+        ? (this._llmCacheHits / totalLLMCacheAccess).toFixed(4)
+        : 0,
+      hits: this._llmCacheHits,
+      misses: this._llmCacheMisses,
+      memoryUsageBytes: this._cacheStats.cacheMemoryUsageBytes,
+      memoryUsageMB: (this._cacheStats.cacheMemoryUsageBytes / (1024 * 1024)).toFixed(2),
+      ttlSeconds: this.llmCacheTTL,
+      entryCount: this._cacheStats.cacheEntryCount
+    };
+
     return {
       enabled: this.config.enabled,
       mode: this.config.mode,
@@ -1060,6 +1339,7 @@ class ToolFilteringService {
       llmCacheHitRate: totalLLMCacheAccess > 0
         ? this._llmCacheHits / totalLLMCacheAccess
         : 0,
+      llmCache: cacheStats,
       llm: llmStats,
       allowedServers: this.config.serverFilter?.servers || [],
       allowedCategories: this.config.categoryFilter?.categories || []
