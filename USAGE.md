@@ -74,3 +74,146 @@ Your setup includes:
 4. **Vercel** - Disabled (OAuth limitations)
 
 All servers are accessible through MCP Hub at `http://localhost:7000`.
+
+## Tool Filtering & LLM Categorization
+
+MCP Hub can automatically filter and categorize tools using pattern matching and LLM analysis. This reduces token usage by exposing only relevant tools to AI models.
+
+### Quick Start: Enable Tool Filtering
+
+1. **Minimal config** (pattern-based only):
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "category",
+    "categoryFilter": {
+      "categories": ["filesystem", "web", "search"]
+    }
+  }
+}
+```
+
+2. **With LLM enhancement** (requires API key):
+```json
+{
+  "toolFiltering": {
+    "enabled": true,
+    "mode": "category",
+    "categoryFilter": {
+      "categories": ["filesystem", "web", "search"]
+    },
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "openai",
+      "apiKey": "${env:OPENAI_API_KEY}",
+      "model": "gpt-4o-mini"
+    }
+  }
+}
+```
+
+### LLM Queue Reliability Configuration
+
+For production use with LLM categorization, configure retry and circuit breaker settings:
+
+**Conservative approach** (fewer API calls, more fallback):
+```json
+{
+  "toolFiltering": {
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "openai",
+      "apiKey": "${env:OPENAI_API_KEY}",
+      "retryCount": 2,
+      "backoffBase": 500,
+      "maxBackoff": 15000,
+      "circuitBreakerThreshold": 3,
+      "circuitBreakerTimeout": 20000
+    }
+  }
+}
+```
+
+**Aggressive approach** (more retries, higher reliability):
+```json
+{
+  "toolFiltering": {
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "anthropic",
+      "apiKey": "${env:ANTHROPIC_API_KEY}",
+      "retryCount": 5,
+      "backoffBase": 2000,
+      "maxBackoff": 60000,
+      "circuitBreakerThreshold": 10,
+      "circuitBreakerTimeout": 60000
+    }
+  }
+}
+```
+
+**Balanced approach** (recommended defaults):
+```json
+{
+  "toolFiltering": {
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "gemini",
+      "apiKey": "${env:GOOGLE_API_KEY}",
+      "retryCount": 3,
+      "backoffBase": 1000,
+      "maxBackoff": 30000,
+      "circuitBreakerThreshold": 5,
+      "circuitBreakerTimeout": 30000
+    }
+  }
+}
+```
+
+### Configuration Parameters Explained
+
+| Parameter | Default | Min | Max | Purpose |
+|-----------|---------|-----|-----|---------|
+| `retryCount` | 3 | 0 | 10 | Retry attempts on transient errors (timeout, 429, 503) |
+| `backoffBase` | 1000 | 100 | 10,000 | Initial backoff delay in milliseconds |
+| `maxBackoff` | 30,000 | 1,000 | 120,000 | Maximum backoff delay in milliseconds |
+| `circuitBreakerThreshold` | 5 | 1 | 100 | Consecutive failures before circuit opens |
+| `circuitBreakerTimeout` | 30,000 | 1,000 | 600,000 | Wait time before retrying when circuit is open |
+
+### Monitoring Queue Health
+
+Check filtering and LLM queue statistics:
+
+```bash
+# Get all filtering stats
+curl http://localhost:3000/api/filtering/stats | jq
+
+# Get just LLM queue metrics
+curl http://localhost:3000/api/filtering/stats | jq '.llm'
+```
+
+**Key metrics:**
+- `successRate`: Percentage of successful LLM calls (0.967 = 96.7%)
+- `circuitBreakerState`: `closed` (normal), `open` (failing), `half-open` (recovering)
+- `p95Latency`: 95th percentile response time in milliseconds
+- `totalRetries`: Number of API calls requiring retry
+- `fallbacksUsed`: Times heuristic fallback was invoked
+
+### Troubleshooting
+
+**Issue: LLM categorization too slow**
+- Increase `backoffBase` to reduce retry wait time
+- Reduce `retryCount` for faster failure
+- Check `p99Latency` in stats - if >3s, consider circuit breaker tuning
+
+**Issue: Circuit breaker frequently opens**
+- Check API quota and rate limits
+- Increase `circuitBreakerThreshold` to allow more failures before opening
+- Increase `circuitBreakerTimeout` to give API more recovery time
+
+**Issue: Too many API calls despite filtering**
+- Reduce tool exposure with stricter `categoryFilter`
+- Enable LLM caching by using longer session lifetimes
+- Check `fallbacksUsed` - if high, circuit breaker is activating
+

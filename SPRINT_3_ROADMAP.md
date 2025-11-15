@@ -129,19 +129,19 @@ describe('LLM Categorization Prompts', () => {
 #### Task 3.3: Background LLM Queue Integration (1.5 hours)
 **Objective**: Integrate LLM processing with existing PQueue infrastructure
 
-**Status**: 🔄 **READY** - Queue infrastructure complete
+**Status**: ✅ **COMPLETE** - All work items implemented and tested (22/22 tests passing)
 **Existing Components**:
 - PQueue (5 concurrent, 10/sec rate limit)
-- `_queueLLMCategorization()` method
+- `_queueLLMCategorization()` method with circuit breaker integration
 - Graceful shutdown handling
 
 **Work Items**:
-- [ ] 3.3.1 Enhance queue task structure
-- [ ] 3.3.2 Add retry logic for failed API calls
-- [ ] 3.3.3 Implement exponential backoff
-- [ ] 3.3.4 Add circuit breaker for API failures
-- [ ] 3.3.5 Monitor queue depth and latency
-- [ ] 3.3.6 Add statistics tracking
+- [x] 3.3.1 Enhance queue task structure - Integrated circuit breaker, retry logic, queue depth tracking
+- [x] 3.3.2 Add retry logic for failed API calls - `_callLLMWithRetry()` with configurable max retries
+- [x] 3.3.3 Implement exponential backoff - `_calculateBackoffDelay()` with jitter (1s → 30s max)
+- [x] 3.3.4 Add circuit breaker for API failures - 3-state machine (closed/open/half-open) with 5 failure threshold
+- [x] 3.3.5 Monitor queue depth and latency - Latency percentile tracking (p95, p99) and queue depth updates
+- [x] 3.3.6 Add statistics tracking - 15+ metrics in `getStats().llm` object
 
 **Queue Task Flow**:
 ```javascript
@@ -176,11 +176,20 @@ async _queueLLMCategorization(toolName, toolDefinition) {
 ```
 
 **Success Criteria**:
-- ✅ Queue processes without blocking
-- ✅ Retry logic handles transient failures
-- ✅ Circuit breaker prevents cascade failures
-- ✅ Statistics accurately track queue health
-- ✅ Graceful fallback to heuristics
+- ✅ Queue processes without blocking (<50ms queueing time)
+- ✅ Retry logic handles transient failures (timeout, network, 429, 503)
+- ✅ Exponential backoff with jitter prevents API abuse
+- ✅ Circuit breaker prevents cascade failures and fast-fails
+- ✅ Statistics accurately track queue health (latency percentiles, success rate, queue depth)
+- ✅ Graceful fallback to heuristics on all error paths
+- ✅ All 22 tests passing, 0 lint errors, backward compatible
+
+**Implementation Details**:
+- **File**: `src/utils/tool-filtering-service.js`
+- **Lines Added**: ~200 lines of production code
+- **Methods Added**: 8 new methods (_callLLMWithRetry, _calculateBackoffDelay, _isCircuitBreakerOpen, _recordLLMFailure, _resetCircuitBreaker, _recordLLMLatency, _calculateLatencyPercentile, _updateQueueDepth)
+- **Configuration**: New options in config.schema.json (retryCount, backoffBase, maxBackoff, circuitBreakerThreshold, circuitBreakerTimeout)
+- **Tests**: `tests/task-3-3-queue-integration.test.js` with 22 comprehensive tests
 
 **Tests to Create**:
 ```javascript

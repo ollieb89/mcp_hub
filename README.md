@@ -907,6 +907,101 @@ Response includes LLM metrics:
 **Cost**: ~$0.01 per 100 tools (cached after first categorization)  
 **Reliability**: Automatic retry handles 80%+ of transient failures
 
+### Background Queue Reliability
+
+The LLM categorization queue includes production-ready reliability features to handle API failures gracefully:
+
+**Built-in Resilience:**
+- ✅ **Automatic Retries**: Transient failures (429, 503, timeout, network) automatically retried up to 3 times (configurable)
+- ✅ **Exponential Backoff**: Delay increases as 1s → 2s → 4s → 8s → 16s → 30s max with jitter to prevent thundering herd
+- ✅ **Circuit Breaker**: Detects persistent API failures and switches to heuristic fallback after 5 consecutive failures
+- ✅ **Queue Monitoring**: Real-time tracking of queue depth, latency percentiles (p95, p99), and success rates
+- ✅ **Graceful Degradation**: Always falls back to pattern-based heuristics if LLM unavailable
+
+**Configuration** (optional - defaults work well):
+```json
+{
+  "toolFiltering": {
+    "llmCategorization": {
+      "enabled": true,
+      "provider": "openai",
+      "apiKey": "${env:OPENAI_API_KEY}",
+      
+      // Retry and Backoff Configuration
+      "retryCount": 3,                  // Max retry attempts on transient errors
+      "backoffBase": 1000,              // Initial backoff delay (ms)
+      "maxBackoff": 30000,              // Maximum backoff delay (ms)
+      
+      // Circuit Breaker Configuration
+      "circuitBreakerThreshold": 5,     // Failures before circuit opens
+      "circuitBreakerTimeout": 30000    // Time before half-open retry (ms)
+    }
+  }
+}
+```
+
+**Queue Health Monitoring:**
+
+Check queue reliability metrics in stats API:
+```bash
+curl http://localhost:3000/api/filtering/stats | jq '.llm'
+```
+
+**Example response:**
+```json
+{
+  "llm": {
+    "enabled": true,
+    "queueDepth": 2,
+    "totalCalls": 150,
+    "successfulCalls": 145,
+    "failedCalls": 5,
+    "averageLatency": 245,
+    "p95Latency": 1200,
+    "p99Latency": 2100,
+    "timeouts": 1,
+    "totalRetries": 8,
+    "fallbacksUsed": 0,
+    "circuitBreakerTrips": 0,
+    "circuitBreakerState": "closed",
+    "circuitBreakerFailures": 0,
+    "successRate": 0.967
+  }
+}
+```
+
+**Metrics Explanation:**
+- `successRate`: Percentage of successful LLM calls (0.967 = 96.7%)
+- `totalRetries`: API calls that required retry after initial failure
+- `fallbacksUsed`: Times fallback to heuristics was invoked
+- `p95Latency`: 95th percentile response time (95% of calls are faster)
+- `circuitBreakerState`: `closed` (normal), `open` (failing, using fallback), `half-open` (recovering)
+
+**Common Scenarios:**
+
+1. **High rate limit errors**: Increase `backoffBase` and `circuitBreakerTimeout`
+   ```json
+   {
+     "backoffBase": 2000,
+     "circuitBreakerTimeout": 60000
+   }
+   ```
+
+2. **Frequent timeouts**: Extend retry count and max backoff
+   ```json
+   {
+     "retryCount": 5,
+     "maxBackoff": 60000
+   }
+   ```
+
+3. **Graceful degradation**: Reduce circuit breaker threshold to fail fast
+   ```json
+   {
+     "circuitBreakerThreshold": 3
+   }
+   ```
+
 ### Monitoring & Statistics
 
 Check filtering effectiveness via REST API:

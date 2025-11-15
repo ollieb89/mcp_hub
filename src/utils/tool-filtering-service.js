@@ -167,6 +167,37 @@ class ToolFilteringService {
     this._llmCacheHits = 0;
     this._llmCacheMisses = 0;
 
+    // Task 3.3: Retry and Circuit Breaker Configuration
+    this.llmRetryConfig = {
+      maxRetries: this.config.llmCategorization?.retryCount ?? 3,
+      backoffBase: this.config.llmCategorization?.backoffBase ?? 1000,
+      maxBackoff: this.config.llmCategorization?.maxBackoff ?? 30000
+    };
+
+    // Task 3.3: Circuit Breaker State Machine
+    this.circuitBreaker = {
+      state: 'closed', // 'closed' | 'open' | 'half-open'
+      consecutiveFailures: 0,
+      threshold: this.config.llmCategorization?.circuitBreakerThreshold ?? 5,
+      timeout: this.config.llmCategorization?.circuitBreakerTimeout ?? 30000,
+      lastFailureTime: null,
+      tripTime: null // When circuit was opened
+    };
+
+    // Task 3.3: Queue Monitoring Metrics
+    this._llmMetrics = {
+      totalCalls: 0,
+      successfulCalls: 0,
+      failedCalls: 0,
+      timeouts: 0,
+      totalRetries: 0,
+      fallbacksUsed: 0,
+      callLatencies: [], // Array of response times (ms)
+      circuitBreakerTrips: 0,
+      lastCallTime: null,
+      queueDepth: 0 // Current pending requests
+    };
+
     // Initialize LLM client if enabled
     if (this.config.llmCategorization?.enabled) {
       this._initializationPromise = this._initializeLLM().catch(err => {
@@ -408,20 +439,33 @@ class ToolFilteringService {
 
     this._llmCacheMisses++;
 
-    // Add to rate-limited queue
+    // Task 3.3.4: Check if circuit breaker is open (blocking API calls)
+    if (this._isCircuitBreakerOpen()) {
+      logger.warn(`Circuit breaker is open, falling back to heuristics for ${toolName}`);
+      this._llmMetrics.fallbacksUsed++;
+      return this._categorizeBySyntax(toolName);
+    }
+
+    // Add to rate-limited queue with retry logic (Task 3.3.1-3.3.3)
     return this.llmQueue.add(async () => {
-      const validCategories = [...Object.keys(this.defaultCategories), 'other'];
+      this._updateQueueDepth(this.llmQueue.size);
 
-      const category = await this.llmClient.categorize(
-        toolName,
-        toolDefinition,
-        validCategories
-      );
+      try {
+        // Task 3.3.2: Call LLM with retry and exponential backoff
+        const category = await this._callLLMWithRetry(toolName, toolDefinition);
 
-      // Save to persistent cache (batched, not immediate) (Sprint 0.2)
-      this._saveCachedCategory(toolName, category);
+        // Save to persistent cache (batched, not immediate) (Sprint 0.2)
+        this._saveCachedCategory(toolName, category);
 
-      return category;
+        this._updateQueueDepth(this.llmQueue.size);
+        return category;
+      } catch (error) {
+        // Final safety net (shouldn't reach here as _callLLMWithRetry returns fallback)
+        logger.error(`Unexpected error in LLM queue task for ${toolName}:`, error);
+        this._llmMetrics.fallbacksUsed++;
+        this._updateQueueDepth(this.llmQueue.size);
+        return this._categorizeBySyntax(toolName);
+      }
     });
   }
 
@@ -475,17 +519,15 @@ class ToolFilteringService {
    * @returns {Promise<string>} Category name
    */
   async _callLLMWithRateLimit(toolName, toolDefinition) {
-    return this.llmQueue.add(async () => {
-      const validCategories = [...Object.keys(this.defaultCategories), 'other'];
+    const validCategories = [...Object.keys(this.defaultCategories), 'other'];
+    
+    const category = await this.llmClient.categorize(
+      toolName,
+      toolDefinition,
+      validCategories
+    );
 
-      const category = await this.llmClient.categorize(
-        toolName,
-        toolDefinition,
-        validCategories
-      );
-
-      return category;
-    });
+    return category;
   }
 
   /**
@@ -737,9 +779,269 @@ class ToolFilteringService {
    *   - allowedServers: string[] - servers in allowlist
    *   - allowedCategories: string[] - categories in allowlist
    */
+  /**
+   * Task 3.3.3: Calculate exponential backoff delay with jitter
+   * Formula: min(base * (2^retryCount), maxDelay)
+   * @private
+   * @param {number} retryCount - Current retry attempt (0-based)
+   * @returns {number} Delay in milliseconds
+   */
+  _calculateBackoffDelay(retryCount) {
+    const { backoffBase, maxBackoff } = this.llmRetryConfig;
+    const delay = Math.min(
+      backoffBase * Math.pow(2, retryCount),
+      maxBackoff
+    );
+    // Add small jitter (±10%) to prevent thundering herd
+    const jitter = delay * 0.1 * (Math.random() - 0.5);
+    return Math.max(1, Math.floor(delay + jitter));
+  }
+
+  /**
+   * Task 3.3.2: Call LLM with retry logic and exponential backoff
+   * Retries on transient errors (timeout, network, 429, 503)
+   * Does NOT retry on permanent errors (auth, validation)
+   * @private
+   * @param {string} toolName - Tool to categorize
+   * @param {object} toolDefinition - Tool definition
+   * @returns {Promise<string>} Category name
+   */
+  async _callLLMWithRetry(toolName, toolDefinition) {
+    let lastError;
+
+    for (let attempt = 0; attempt <= this.llmRetryConfig.maxRetries; attempt++) {
+      try {
+        this._llmMetrics.totalCalls++;
+        const startTime = performance.now();
+
+        // Call LLM through rate-limited queue
+        const category = await this._callLLMWithRateLimit(toolName, toolDefinition);
+
+        // Record success metrics
+        const latency = performance.now() - startTime;
+        this._recordLLMLatency(latency);
+        this._llmMetrics.successfulCalls++;
+        this._resetCircuitBreaker();
+
+        logger.debug(`LLM categorized ${toolName} as ${category} (attempt ${attempt + 1}, ${latency.toFixed(0)}ms)`);
+        return category;
+      } catch (error) {
+        lastError = error;
+        this._llmMetrics.failedCalls++;
+        this._recordLLMFailure();
+
+        // Determine if error is transient (retryable)
+        const isTransient = this._isTransientError(error);
+        const isLastAttempt = attempt >= this.llmRetryConfig.maxRetries;
+
+        if (!isTransient || isLastAttempt) {
+          // Permanent error or max retries exceeded
+          logger.warn(`LLM categorization failed for ${toolName}: ${error.message} (permanent)`, {
+            attempt: attempt + 1,
+            maxRetries: this.llmRetryConfig.maxRetries,
+            error: error.constructor.name
+          });
+          break;
+        }
+
+        // Transient error - wait and retry
+        const delay = this._calculateBackoffDelay(attempt);
+        this._llmMetrics.totalRetries++;
+        logger.debug(`Retrying LLM categorization for ${toolName} after ${delay}ms (attempt ${attempt + 1})`, {
+          error: error.message,
+          nextAttempt: attempt + 2
+        });
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    // All retries exhausted - fall back to heuristics
+    logger.warn(`LLM categorization exhausted retries for ${toolName}, using heuristics`, {
+      lastError: lastError?.message,
+      attempts: this.llmRetryConfig.maxRetries + 1
+    });
+    this._llmMetrics.fallbacksUsed++;
+    return this._categorizeBySyntax(toolName);
+  }
+
+  /**
+   * Task 3.3.2: Determine if an error is transient (retryable)
+   * Transient: timeout, network errors, 429/503 status
+   * Permanent: auth, validation, 400/401/403 status
+   * @private
+   * @param {Error} error - Error to classify
+   * @returns {boolean} true if transient, false if permanent
+   */
+  _isTransientError(error) {
+    const message = error.message || '';
+    const name = error.constructor.name || '';
+
+    // Timeout errors (transient)
+    if (message.includes('timeout') || message.includes('TIMEOUT')) {
+      this._llmMetrics.timeouts++;
+      return true;
+    }
+
+    // Network errors (transient)
+    if (name.includes('NetworkError') || 
+        message.includes('ECONNREFUSED') || 
+        message.includes('ENOTFOUND') ||
+        message.includes('socket hang up')) {
+      return true;
+    }
+
+    // HTTP status codes
+    const status = error.status;
+    if (status) {
+      // Rate limit and service unavailable (transient)
+      if (status === 429 || status === 503) {
+        return true;
+      }
+      // Auth, validation, not found (permanent)
+      if (status === 401 || status === 403 || status === 400 || status === 404) {
+        return false;
+      }
+    }
+
+    // Unknown errors - assume transient and retry once
+    return true;
+  }
+
+  /**
+   * Task 3.3.4: Check if circuit breaker is open (blocking API calls)
+   * States: closed (allow) → open (block) → half-open (try once)
+   * @private
+   * @returns {boolean} true if breaker is open, false if closed/half-open
+   */
+  _isCircuitBreakerOpen() {
+    const { state, timeout, tripTime } = this.circuitBreaker;
+
+    if (state === 'closed') {
+      return false; // Normal operation
+    }
+
+    if (state === 'open') {
+      // Check if timeout expired to transition to half-open
+      const timeSinceTripMs = Date.now() - tripTime;
+      if (timeSinceTripMs >= timeout) {
+        this.circuitBreaker.state = 'half-open';
+        logger.info(`Circuit breaker transitioned to half-open (timeout: ${timeout}ms)`);
+        return false; // Allow one attempt in half-open state
+      }
+      return true; // Still open, block
+    }
+
+    // Half-open: allow attempt
+    return false;
+  }
+
+  /**
+   * Task 3.3.4: Record LLM failure and update circuit breaker state
+   * Tracks consecutive failures, opens breaker after threshold
+   * @private
+   */
+  _recordLLMFailure() {
+    const { threshold } = this.circuitBreaker;
+
+    this.circuitBreaker.consecutiveFailures++;
+    this.circuitBreaker.lastFailureTime = Date.now();
+
+    if (this.circuitBreaker.consecutiveFailures >= threshold &&
+        this.circuitBreaker.state !== 'open') {
+      this.circuitBreaker.state = 'open';
+      this.circuitBreaker.tripTime = Date.now();
+      this._llmMetrics.circuitBreakerTrips++;
+      logger.warn(`Circuit breaker opened after ${threshold} consecutive failures`, {
+        timeout: this.circuitBreaker.timeout,
+        nextHalfOpenAttempt: new Date(this.circuitBreaker.tripTime + this.circuitBreaker.timeout)
+      });
+    }
+  }
+
+  /**
+   * Task 3.3.4: Reset circuit breaker on successful LLM call
+   * @private
+   */
+  _resetCircuitBreaker() {
+    if (this.circuitBreaker.state !== 'closed') {
+      const wasState = this.circuitBreaker.state;
+      this.circuitBreaker.state = 'closed';
+      this.circuitBreaker.consecutiveFailures = 0;
+      logger.info(`Circuit breaker reset from ${wasState} to closed`);
+    }
+  }
+
+  /**
+   * Task 3.3.5: Record LLM API call latency
+   * Tracks latencies for percentile calculation (p95, p99)
+   * Keeps last 1000 measurements for memory efficiency
+   * @private
+   * @param {number} latencyMs - Response time in milliseconds
+   */
+  _recordLLMLatency(latencyMs) {
+    this._llmMetrics.callLatencies.push(latencyMs);
+    this._llmMetrics.lastCallTime = Date.now();
+
+    // Keep only last 1000 measurements for memory efficiency
+    if (this._llmMetrics.callLatencies.length > 1000) {
+      this._llmMetrics.callLatencies.shift();
+    }
+  }
+
+  /**
+   * Task 3.3.5: Calculate latency percentiles from recorded metrics
+   * @private
+   * @param {number} percentile - Percentile to calculate (0-100)
+   * @returns {number} Latency in milliseconds, or 0 if no data
+   */
+  _calculateLatencyPercentile(percentile) {
+    const latencies = this._llmMetrics.callLatencies;
+    if (latencies.length === 0) return 0;
+
+    const sorted = [...latencies].sort((a, b) => a - b);
+    const index = Math.ceil((percentile / 100) * sorted.length) - 1;
+    return sorted[Math.max(0, index)] || 0;
+  }
+
+  /**
+   * Task 3.3.5: Update queue depth metric
+   * Called when adding/removing items from queue
+   * @private
+   * @param {number} depth - Current queue depth
+   */
+  _updateQueueDepth(depth) {
+    this._llmMetrics.queueDepth = depth;
+  }
+
   getStats() {
     const totalCacheAccess = this._cacheHits + this._cacheMisses;
     const totalLLMCacheAccess = this._llmCacheHits + this._llmCacheMisses;
+
+    // Task 3.3: Calculate LLM metrics
+    const avgLatency = this._llmMetrics.callLatencies.length > 0
+      ? this._llmMetrics.callLatencies.reduce((a, b) => a + b, 0) / this._llmMetrics.callLatencies.length
+      : 0;
+
+    const llmStats = {
+      enabled: this.config.llmCategorization?.enabled || false,
+      queueDepth: this._llmMetrics.queueDepth,
+      totalCalls: this._llmMetrics.totalCalls,
+      successfulCalls: this._llmMetrics.successfulCalls,
+      failedCalls: this._llmMetrics.failedCalls,
+      averageLatency: Math.round(avgLatency),
+      p95Latency: Math.round(this._calculateLatencyPercentile(95)),
+      p99Latency: Math.round(this._calculateLatencyPercentile(99)),
+      timeouts: this._llmMetrics.timeouts,
+      totalRetries: this._llmMetrics.totalRetries,
+      fallbacksUsed: this._llmMetrics.fallbacksUsed,
+      circuitBreakerTrips: this._llmMetrics.circuitBreakerTrips,
+      circuitBreakerState: this.circuitBreaker.state,
+      circuitBreakerFailures: this.circuitBreaker.consecutiveFailures,
+      successRate: this._llmMetrics.totalCalls > 0
+        ? (this._llmMetrics.successfulCalls / this._llmMetrics.totalCalls).toFixed(3)
+        : 0
+    };
 
     return {
       enabled: this.config.enabled,
@@ -758,6 +1060,7 @@ class ToolFilteringService {
       llmCacheHitRate: totalLLMCacheAccess > 0
         ? this._llmCacheHits / totalLLMCacheAccess
         : 0,
+      llm: llmStats,
       allowedServers: this.config.serverFilter?.servers || [],
       allowedCategories: this.config.categoryFilter?.categories || []
     };

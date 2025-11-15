@@ -196,7 +196,42 @@
               "minimum": 0,
               "maximum": 10,
               "default": 3,
-              "description": "Maximum retry attempts for LLM API calls. Default: 3"
+              "description": "Maximum retry attempts for LLM API calls (deprecated, use retryCount). Default: 3"
+            },
+            "retryCount": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10,
+              "default": 3,
+              "description": "Maximum retry attempts for LLM API calls on transient errors. Default: 3"
+            },
+            "backoffBase": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 10000,
+              "default": 1000,
+              "description": "Initial exponential backoff delay in milliseconds. Default: 1000ms. Increases as 1s, 2s, 4s, 8s, 16s..."
+            },
+            "maxBackoff": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 120000,
+              "default": 30000,
+              "description": "Maximum exponential backoff delay in milliseconds. Default: 30000ms (30s)"
+            },
+            "circuitBreakerThreshold": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 5,
+              "description": "Number of consecutive failures before circuit breaker opens. Default: 5"
+            },
+            "circuitBreakerTimeout": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 600000,
+              "default": 30000,
+              "description": "Time in milliseconds before attempting half-open retry after circuit breaker opens. Default: 30000ms (30s)"
             }
           },
           "required": ["enabled", "provider"],
