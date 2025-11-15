@@ -125,6 +125,9 @@ class ToolFilteringService {
     this.config = config.toolFiltering || {};
     this.mcpHub = mcpHub;
 
+    // Validate LLM configuration schema early (Task 3.1.5)
+    this._validateLLMConfig();
+
     // Memory cache for categorized tools
     this.categoryCache = new Map(); // toolName → category
 
@@ -186,17 +189,18 @@ class ToolFilteringService {
 
   /**
    * Initialize LLM client and cache
+   * Validates configuration and API key on startup (Task 3.1.3)
    * @private
    */
   async _initializeLLM() {
     try {
-      // Validate API key (Sprint 0.5)
+      // Validate API key presence and format (Task 3.1.3)
       if (!this.config.llmCategorization.apiKey) {
-        logger.error('LLM categorization enabled but no API key provided');
-        return;
+        logger.warn('LLM categorization enabled but no API key provided - will use heuristics');
+        return; // Graceful degradation (Task 3.1.4)
       }
 
-      // Initialize LLM client
+      // Initialize LLM client (Task 3.1.2)
       this.llmClient = await this._createLLMClient();
 
       // Set up persistent cache location
@@ -215,13 +219,15 @@ class ToolFilteringService {
         }
       }, 30000);
 
-      logger.info('LLM categorization initialized', {
+      logger.info('LLM categorization initialized successfully', {
         provider: this.config.llmCategorization.provider,
+        model: this.config.llmCategorization.model || 'default',
         cacheFile: this.llmCacheFile
       });
     } catch (error) {
-      logger.error('Failed to initialize LLM categorization:', error);
+      logger.warn(`LLM categorization initialization failed - using heuristics: ${error.message}`);
       this.llmClient = null;
+      // Don't re-throw - allow graceful degradation (Task 3.1.4)
     }
   }
 
@@ -346,11 +352,11 @@ class ToolFilteringService {
    * Priority: customMappings > patternMatch > LLM (async) > 'other'
    * 
    * @param {string} toolName - Tool name
-   * @param {string} serverName - Server name
+   * @param {string} _serverName - Server name (reserved for future use)
    * @param {object} toolDefinition - Tool definition
    * @returns {string} - Category name ('filesystem', 'web', etc.)
    */
-  getToolCategory(toolName, serverName, toolDefinition = {}) {
+  getToolCategory(toolName, _serverName, toolDefinition = {}) {
     // Check memory cache first
     if (this.categoryCache.has(toolName)) {
       this._cacheHits++;
@@ -360,7 +366,7 @@ class ToolFilteringService {
     this._cacheMisses++;
 
     // Try pattern matching (fast, synchronous)
-    const category = this._categorizeBySyntax(toolName, serverName);
+    const category = this._categorizeBySyntax(toolName);
 
     if (category) {
       this.categoryCache.set(toolName, category);
@@ -487,10 +493,9 @@ class ToolFilteringService {
    * Checks custom mappings first, then default categories
    * @private
    * @param {string} toolName - Name of the tool
-   * @param {string} serverName - Name of the server
    * @returns {string|null} Category name or null if no match
    */
-  _categorizeBySyntax(toolName, serverName) {
+  _categorizeBySyntax(toolName) {
     // Check custom mappings first (higher priority)
     for (const [pattern, category] of Object.entries(this.customMappings)) {
       if (this._matchesPattern(toolName, pattern)) {
@@ -555,16 +560,6 @@ class ToolFilteringService {
    * Load LLM cache from disk
    * @private
    */
-  /**
-   * Clear LLM cache and reset dirty flag (for testing and cleanup)
-   * @public
-   */
-  clearLLMCache() {
-    this.llmCache.clear();
-    this.llmCacheDirty = false;
-    this.llmCacheWritesPending = 0;
-  }
-
   async _loadLLMCache() {
     if (!this.llmCacheFile) return;
 
@@ -636,7 +631,7 @@ class ToolFilteringService {
         // If rename fails, try to clean up temp file
         try {
           await fs.unlink(tempFile);
-        } catch (unlinkError) {
+        } catch {
           // Ignore cleanup errors
         }
         throw renameError;
@@ -652,6 +647,16 @@ class ToolFilteringService {
       this.llmCacheDirty = false;
       this.llmCacheWritesPending = 0;
     }
+  }
+
+  /**
+   * Clear LLM cache and reset dirty flag (for testing and cleanup)
+   * @public
+   */
+  clearLLMCache() {
+    this.llmCache.clear();
+    this.llmCacheDirty = false;
+    this.llmCacheWritesPending = 0;
   }
 
   /**
@@ -776,32 +781,135 @@ class ToolFilteringService {
       throw new Error(`API key required for ${config.provider} provider`);
     }
     
-    // Resolve environment variables in the configuration
+    // Resolve environment variables in the configuration (Task 3.1.1)
     const resolvedConfig = await envResolver.resolveConfig(config, ['apiKey', 'baseURL', 'model']);
 
-    // Validate API key format for OpenAI (Sprint 0.5)
-    if (resolvedConfig.provider === 'openai' && resolvedConfig.apiKey) {
-      if (!resolvedConfig.apiKey.startsWith('sk-')) {
-        logger.warn('OpenAI API key does not start with "sk-", may be invalid');
-      }
-    }
+    // Validate API key format for each provider (Task 3.1.3)
+    this._validateAPIKey(resolvedConfig);
     
-    // Create provider using factory (supports OpenAI, Anthropic, and Gemini)
+    // Create provider using factory (supports OpenAI, Anthropic, and Gemini) (Task 3.1.2)
     try {
       const provider = createLLMProvider({
         provider: resolvedConfig.provider,
         apiKey: resolvedConfig.apiKey,
         model: resolvedConfig.model,
-        baseURL: resolvedConfig.baseURL
+        baseURL: resolvedConfig.baseURL,
+        anthropicVersion: resolvedConfig.anthropicVersion
       });
       
-      logger.info(`LLM categorization initialized: ${resolvedConfig.provider} (${resolvedConfig.model || 'default model'})`);
+      logger.info(`LLM provider created successfully`, {
+        provider: resolvedConfig.provider,
+        model: resolvedConfig.model || 'default',
+        hasBaseURL: !!resolvedConfig.baseURL
+      });
       
       return provider;
     } catch (error) {
-      logger.error(`Failed to create LLM provider: ${error.message}`);
+      logger.error(`Failed to create LLM provider: ${error.message}`, {
+        provider: resolvedConfig.provider,
+        error: error.message
+      });
       throw error;
     }
+  }
+
+  /**
+   * Validate API key format for the specified provider (Task 3.1.3)
+   * @private
+   * @param {object} config - Resolved LLM configuration
+   */
+  _validateAPIKey(config) {
+    const { provider, apiKey } = config;
+    
+    if (!apiKey) {
+      throw new Error(`API key is empty for ${provider} provider`);
+    }
+
+    // Provider-specific validation
+    switch (provider.toLowerCase()) {
+      case 'openai':
+        // OpenAI keys should start with 'sk-'
+        if (!apiKey.startsWith('sk-')) {
+          logger.warn('OpenAI API key does not start with "sk-" - may be invalid');
+        }
+        if (apiKey.length < 20) {
+          logger.warn('OpenAI API key appears to be too short');
+        }
+        break;
+
+      case 'anthropic':
+        // Anthropic keys should start with 'sk-ant-'
+        if (!apiKey.startsWith('sk-ant-')) {
+          logger.warn('Anthropic API key does not start with "sk-ant-" - may be invalid');
+        }
+        if (apiKey.length < 20) {
+          logger.warn('Anthropic API key appears to be too short');
+        }
+        break;
+
+      case 'gemini':
+        // Gemini API keys are typically alphanumeric, no specific format requirement
+        if (apiKey.length < 20) {
+          logger.warn('Gemini API key appears to be too short');
+        }
+        break;
+
+      default:
+        logger.warn(`Unknown LLM provider: ${provider}`);
+    }
+  }
+
+  /**
+   * Validate LLM categorization configuration against schema (Task 3.1.5)
+   * @private
+   */
+  _validateLLMConfig() {
+    const config = this.config.llmCategorization;
+
+    if (!config) {
+      return; // No LLM config - fine for static/server-allowlist modes
+    }
+
+    // Validate required fields
+    if (typeof config.enabled !== 'boolean') {
+      throw new Error('llmCategorization.enabled must be a boolean');
+    }
+
+    if (config.enabled) {
+      // Provider is required when enabled
+      if (!config.provider) {
+        throw new Error('llmCategorization.provider is required when enabled=true');
+      }
+
+      // Validate provider enum
+      const validProviders = ['openai', 'anthropic', 'gemini'];
+      if (!validProviders.includes(config.provider.toLowerCase())) {
+        throw new Error(
+          `llmCategorization.provider must be one of: ${validProviders.join(', ')}, got: ${config.provider}`
+        );
+      }
+    }
+
+    // Validate optional fields
+    if (config.temperature !== undefined) {
+      const temp = Number(config.temperature);
+      if (Number.isNaN(temp) || temp < 0 || temp > 2) {
+        throw new Error('llmCategorization.temperature must be a number between 0 and 2');
+      }
+    }
+
+    if (config.maxRetries !== undefined) {
+      const retries = Number(config.maxRetries);
+      if (!Number.isInteger(retries) || retries < 0 || retries > 10) {
+        throw new Error('llmCategorization.maxRetries must be an integer between 0 and 10');
+      }
+    }
+
+    if (config.model !== undefined && typeof config.model !== 'string') {
+      throw new Error('llmCategorization.model must be a string');
+    }
+
+    logger.debug('LLM configuration validated successfully');
   }
 
   /**

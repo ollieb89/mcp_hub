@@ -90,7 +90,7 @@ Rules:
    */
   _parseAnalysisResponse(response, validCategories) {
     // Step 1: Remove markdown code blocks
-    let jsonText = response.trim()
+    const jsonText = response.trim()
       .replace(/^```(?:json)?\s*\n?/m, '')
       .replace(/\n?```\s*$/m, '');
 
@@ -253,7 +253,7 @@ export class OpenAIProvider extends LLMProvider {
   }
 
   /**
-   * Categorize a tool using OpenAI's API
+   * Categorize a tool using OpenAI's API (Task 3.2)
    * @param {string} toolName - Name of the tool to categorize
    * @param {object} toolDefinition - Tool definition with description and inputSchema
    * @param {string[]} validCategories - Array of valid category names
@@ -268,7 +268,7 @@ export class OpenAIProvider extends LLMProvider {
         messages: [
           {
             role: 'system',
-            content: 'You are a tool categorization expert. Respond with ONLY the category name, nothing else.'
+            content: this._buildSystemPrompt()
           },
           {
             role: 'user',
@@ -276,21 +276,16 @@ export class OpenAIProvider extends LLMProvider {
           }
         ],
         temperature: 0,
-        max_tokens: 20
+        max_tokens: 150,
+        response_format: { type: 'json_object' }
       });
 
-      const category = completion.choices[0]?.message?.content?.trim().toLowerCase();
-
-      // Validate response
-      if (!category || !validCategories.includes(category)) {
-        logger.warn(`LLM returned invalid category: ${category}, defaulting to 'other'`, {
-          toolName,
-          validCategories: validCategories.join(', ')
-        });
-        return 'other';
+      const response = completion.choices[0]?.message?.content;
+      if (!response) {
+        throw new Error('No response from OpenAI API');
       }
 
-      return category;
+      return this._parseCategorizationResponse(response, validCategories);
     } catch (error) {
       // Enhanced error handling with typed errors
       if (error instanceof OpenAI.APIError) {
@@ -384,20 +379,90 @@ export class OpenAIProvider extends LLMProvider {
   }
 
   /**
-   * Build the prompt for tool categorization
+   * Build system prompt for categorization (Task 3.2.1)
+   * @protected
+   * @returns {string} System prompt for categorization
+   */
+  _buildSystemPrompt() {
+    return `You are an expert at categorizing MCP (Model Context Protocol) tools. Analyze tools based on their functionality, naming patterns, and descriptions. Categorize them accurately into the appropriate category.
+
+Your task:
+1. Analyze the tool name, description, and schema
+2. Match it to one of the valid categories
+3. Provide a confidence score (0-1) based on how well it fits the category
+4. Return ONLY a valid JSON object with no additional text or markdown
+
+Guidelines:
+- filesystem: File operations (read, write, delete, move, copy)
+- web: HTTP requests, web scraping, browser automation
+- search: Search engines and query tools
+- database: Database operations and SQL execution
+- version-control: Git, GitHub, GitLab operations
+- docker: Container and orchestration tools
+- cloud: Cloud provider services (AWS, Azure, GCP)
+- development: Build tools, linters, formatters, package managers
+- communication: Chat, email, notification systems
+- other: Tools that don't fit the above categories
+
+Be precise in your categorization. If uncertain, provide a lower confidence score.`;
+  }
+
+  /**
+   * Build the prompt for tool categorization (Task 3.2.2)
    * @param {string} toolName - Name of the tool
    * @param {object} toolDefinition - Tool definition
    * @param {string[]} validCategories - Valid category names
    * @returns {string} Formatted prompt
    */
   _buildPrompt(toolName, toolDefinition, validCategories) {
-    return `Categorize this MCP tool into ONE of these categories: ${validCategories.join(', ')}
+    return `Analyze this MCP tool and categorize it accurately.
 
 Tool Name: ${toolName}
-Description: ${toolDefinition.description || 'N/A'}
-Input Schema: ${JSON.stringify(toolDefinition.inputSchema || {}, null, 2)}
+Description: ${toolDefinition.description || 'No description provided'}
 
-Respond with ONLY the category name.`;
+Valid categories: ${validCategories.join(', ')}
+
+Respond with ONLY a JSON object in this format (no markdown, no extra text):
+{"category": "<one of the valid categories>", "confidence": <number between 0 and 1>}
+
+Example: {"category": "filesystem", "confidence": 0.95}`;
+  }
+
+  /**
+   * Parse categorization response from LLM (Task 3.2.3)
+   * @protected
+   * @param {string} response - LLM response text
+   * @param {string[]} validCategories - Valid category names
+   * @returns {string} Validated category name
+   */
+  _parseCategorizationResponse(response, validCategories) {
+    try {
+      // Remove markdown code blocks if present
+      let jsonText = response.trim()
+        .replace(/^```(?:json)?\s*\n?/m, '')
+        .replace(/\n?```\s*$/m, '');
+
+      // Parse JSON
+      const parsed = JSON.parse(jsonText);
+      const category = String(parsed.category).toLowerCase().trim();
+      const confidence = Number(parsed.confidence) || 0.5;
+
+      // Validate category
+      if (!validCategories.includes(category)) {
+        logger.warn(`Parsed category '${category}' not in valid list, using fallback`);
+        return 'other';
+      }
+
+      // Validate confidence
+      if (confidence < 0 || confidence > 1) {
+        logger.warn(`Invalid confidence ${confidence}, clamping to valid range`);
+      }
+
+      return category;
+    } catch (error) {
+      logger.warn(`Failed to parse categorization response: ${error.message}`);
+      return 'other';
+    }
   }
 }
 
@@ -553,20 +618,90 @@ export class AnthropicProvider extends LLMProvider {
   }
 
   /**
-   * Build the prompt for tool categorization
+   * Build system prompt for categorization (Task 3.2.1)
+   * @protected
+   * @returns {string} System prompt for categorization
+   */
+  _buildSystemPrompt() {
+    return `You are an expert at categorizing MCP (Model Context Protocol) tools. Analyze tools based on their functionality, naming patterns, and descriptions. Categorize them accurately into the appropriate category.
+
+Your task:
+1. Analyze the tool name, description, and schema
+2. Match it to one of the valid categories
+3. Provide a confidence score (0-1) based on how well it fits the category
+4. Return ONLY a valid JSON object with no additional text or markdown
+
+Guidelines:
+- filesystem: File operations (read, write, delete, move, copy)
+- web: HTTP requests, web scraping, browser automation
+- search: Search engines and query tools
+- database: Database operations and SQL execution
+- version-control: Git, GitHub, GitLab operations
+- docker: Container and orchestration tools
+- cloud: Cloud provider services (AWS, Azure, GCP)
+- development: Build tools, linters, formatters, package managers
+- communication: Chat, email, notification systems
+- other: Tools that don't fit the above categories
+
+Be precise in your categorization. If uncertain, provide a lower confidence score.`;
+  }
+
+  /**
+   * Build the prompt for tool categorization (Task 3.2.2)
    * @param {string} toolName - Name of the tool
    * @param {object} toolDefinition - Tool definition
    * @param {string[]} validCategories - Valid category names
    * @returns {string} Formatted prompt
    */
   _buildPrompt(toolName, toolDefinition, validCategories) {
-    return `Categorize this MCP tool into ONE of these categories: ${validCategories.join(', ')}
+    return `Analyze this MCP tool and categorize it accurately.
 
 Tool Name: ${toolName}
-Description: ${toolDefinition.description || 'N/A'}
-Input Schema: ${JSON.stringify(toolDefinition.inputSchema || {}, null, 2)}
+Description: ${toolDefinition.description || 'No description provided'}
 
-Respond with ONLY the category name.`;
+Valid categories: ${validCategories.join(', ')}
+
+Respond with ONLY a JSON object in this format (no markdown, no extra text):
+{"category": "<one of the valid categories>", "confidence": <number between 0 and 1>}
+
+Example: {"category": "filesystem", "confidence": 0.95}`;
+  }
+
+  /**
+   * Parse categorization response from LLM (Task 3.2.3)
+   * @protected
+   * @param {string} response - LLM response text
+   * @param {string[]} validCategories - Valid category names
+   * @returns {string} Validated category name
+   */
+  _parseCategorizationResponse(response, validCategories) {
+    try {
+      // Remove markdown code blocks if present
+      const jsonText = response.trim()
+        .replace(/^```(?:json)?\\s*\\n?/m, '')
+        .replace(/\\n?```\\s*$/m, '');
+
+      // Parse JSON
+      const parsed = JSON.parse(jsonText);
+      const category = String(parsed.category).toLowerCase().trim();
+      const confidence = Number(parsed.confidence) || 0.5;
+
+      // Validate category
+      if (!validCategories.includes(category)) {
+        logger.warn(`Parsed category '${category}' not in valid list, using fallback`);
+        return 'other';
+      }
+
+      // Validate confidence
+      if (confidence < 0 || confidence > 1) {
+        logger.warn(`Invalid confidence ${confidence}, clamping to valid range`);
+      }
+
+      return category;
+    } catch (error) {
+      logger.warn(`Failed to parse categorization response: ${error.message}`);
+      return 'other';
+    }
   }
 }
 
@@ -734,20 +869,90 @@ export class GeminiProvider extends LLMProvider {
   }
 
   /**
-   * Build the prompt for tool categorization
+   * Build system prompt for categorization (Task 3.2.1)
+   * @protected
+   * @returns {string} System prompt for categorization
+   */
+  _buildSystemPrompt() {
+    return `You are an expert at categorizing MCP (Model Context Protocol) tools. Analyze tools based on their functionality, naming patterns, and descriptions. Categorize them accurately into the appropriate category.
+
+Your task:
+1. Analyze the tool name, description, and schema
+2. Match it to one of the valid categories
+3. Provide a confidence score (0-1) based on how well it fits the category
+4. Return ONLY a valid JSON object with no additional text or markdown
+
+Guidelines:
+- filesystem: File operations (read, write, delete, move, copy)
+- web: HTTP requests, web scraping, browser automation
+- search: Search engines and query tools
+- database: Database operations and SQL execution
+- version-control: Git, GitHub, GitLab operations
+- docker: Container and orchestration tools
+- cloud: Cloud provider services (AWS, Azure, GCP)
+- development: Build tools, linters, formatters, package managers
+- communication: Chat, email, notification systems
+- other: Tools that don't fit the above categories
+
+Be precise in your categorization. If uncertain, provide a lower confidence score.`;
+  }
+
+  /**
+   * Build the prompt for tool categorization (Task 3.2.2)
    * @param {string} toolName - Name of the tool
    * @param {object} toolDefinition - Tool definition
    * @param {string[]} validCategories - Valid category names
    * @returns {string} Formatted prompt
    */
   _buildPrompt(toolName, toolDefinition, validCategories) {
-    return `Categorize this MCP tool into ONE of these categories: ${validCategories.join(', ')}
+    return `Analyze this MCP tool and categorize it accurately.
 
 Tool Name: ${toolName}
-Description: ${toolDefinition.description || 'N/A'}
-Input Schema: ${JSON.stringify(toolDefinition.inputSchema || {}, null, 2)}
+Description: ${toolDefinition.description || 'No description provided'}
 
-Respond with ONLY the category name.`;
+Valid categories: ${validCategories.join(', ')}
+
+Respond with ONLY a JSON object in this format (no markdown, no extra text):
+{"category": "<one of the valid categories>", "confidence": <number between 0 and 1>}
+
+Example: {"category": "filesystem", "confidence": 0.95}`;
+  }
+
+  /**
+   * Parse categorization response from LLM (Task 3.2.3)
+   * @protected
+   * @param {string} response - LLM response text
+   * @param {string[]} validCategories - Valid category names
+   * @returns {string} Validated category name
+   */
+  _parseCategorizationResponse(response, validCategories) {
+    try {
+      // Remove markdown code blocks if present
+      const jsonText = response.trim()
+        .replace(/^```(?:json)?\\s*\\n?/m, '')
+        .replace(/\\n?```\\s*$/m, '');
+
+      // Parse JSON
+      const parsed = JSON.parse(jsonText);
+      const category = String(parsed.category).toLowerCase().trim();
+      const confidence = Number(parsed.confidence) || 0.5;
+
+      // Validate category
+      if (!validCategories.includes(category)) {
+        logger.warn(`Parsed category '${category}' not in valid list, using fallback`);
+        return 'other';
+      }
+
+      // Validate confidence
+      if (confidence < 0 || confidence > 1) {
+        logger.warn(`Invalid confidence ${confidence}, clamping to valid range`);
+      }
+
+      return category;
+    } catch (error) {
+      logger.warn(`Failed to parse categorization response: ${error.message}`);
+      return 'other';
+    }
   }
 }
 
