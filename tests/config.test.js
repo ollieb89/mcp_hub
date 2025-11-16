@@ -867,7 +867,7 @@ describe("ConfigManager", () => {
         vi.spyOn(fs, "readFile").mockResolvedValue(JSON.stringify(validConfig));
 
         configManager = new ConfigManager("/path/to/config.json");
-        await expect(configManager.loadConfig()).resolves.not.toThrow();
+        await expect(configManager.loadConfig()).resolves.toBeDefined();
       });
     });
   });
