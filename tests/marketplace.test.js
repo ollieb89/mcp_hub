@@ -8,6 +8,17 @@ import os from "os";
 global.fetch = vi.fn();
 global.URL = URL; // Polyfill URL for tests
 
+// Mock child_process exec for curl fallback (Bun-compatible)
+vi.mock('child_process', () => ({
+  exec: vi.fn((cmd, callback) => {
+    if (cmd.includes('curl --version')) {
+      callback(null, { stdout: 'curl 7.x.x', stderr: '' });
+    } else {
+      callback(null, { stdout: '{}', stderr: '' });
+    }
+  })
+}));
+
 // Mock sample registry data
 const mockRegistryData = {
   version: "1.0.0",
@@ -82,21 +93,6 @@ describe("Marketplace", () => {
 
     // Reset fetch mock
     fetch.mockReset();
-
-    // Mock exec for curl fallback to always succeed for 'curl --version'
-    vi.mock('child_process', async (importOriginal) => {
-      const actual = await importOriginal();
-      return {
-        ...actual,
-        exec: vi.fn((cmd) => {
-          if (cmd.includes('curl --version')) {
-            return Promise.resolve({ stdout: 'curl 7.x.x', stderr: '' });
-          }
-          // For actual curl calls, use a generic success for now
-          return Promise.resolve({ stdout: '{}', stderr: '' });
-        }),
-      };
-    });
   });
 
   afterEach(async () => {
@@ -331,9 +327,9 @@ describe("Marketplace", () => {
       // ARRANGE: Mock both fetch and curl to fail
       fetch.mockRejectedValueOnce(new Error("Network error during registry fetch"));
 
-      const { exec } = await import('child_process');
-      const execMock = vi.mocked(exec);
-      execMock.mockImplementationOnce((cmd, callback) => {
+      // Access the already-mocked exec function (Bun-compatible)
+      const childProcess = await import('child_process');
+      childProcess.exec.mockImplementationOnce((cmd, callback) => {
         callback(new Error("curl: command not found"));
       });
 
