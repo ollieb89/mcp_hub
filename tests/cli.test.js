@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as server from "../src/server.js";
+import { run } from "../src/utils/cli.js";
 
 // Mock process.argv
 const originalArgv = process.argv;
@@ -33,10 +34,13 @@ process.kill = mockKill;
 
 describe("CLI", () => {
   beforeEach(() => {
-    vi.resetModules();
     vi.clearAllMocks();
     mockKill.mockReset();
     mockExit.mockReset();
+
+    // Set NODE_ENV to test to prevent auto-execution, but use production for VERSION
+    process.env.NODE_ENV = "test";
+    process.env.VERSION = "v1.0.0-test";
 
     // Mock process.exit
     process.exit = mockExit;
@@ -44,14 +48,16 @@ describe("CLI", () => {
 
   afterEach(() => {
     process.argv = originalArgv;
+    delete process.env.NODE_ENV;
+    delete process.env.VERSION;
   });
 
   it("should start server with valid arguments", async () => {
     // ARRANGE: Set CLI arguments
     setArgv(["--port", "3000", "--config", "./config.json"]);
-    
-    // ACT: Import CLI module to trigger argument parsing
-    await import("../src/utils/cli.js");
+
+    // ACT: Run CLI with arguments
+    await run();
 
     // ASSERT: Verify server started with correct options
     expect(server.startServer).toHaveBeenCalledWith({
@@ -66,9 +72,9 @@ describe("CLI", () => {
   it("should start server with watch flag", async () => {
     // ARRANGE: Set CLI arguments with watch flag
     setArgv(["--port", "3000", "--config", "./config.json", "--watch"]);
-    
-    // ACT: Import CLI module
-    await import("../src/utils/cli.js");
+
+    // ACT: Run CLI with arguments
+    await run();
 
     // ASSERT: Verify watch mode enabled
     expect(server.startServer).toHaveBeenCalledWith({
@@ -83,9 +89,9 @@ describe("CLI", () => {
   it("should handle port flag alias", async () => {
     // ARRANGE: Use -p alias for port
     setArgv(["-p", "3000", "--config", "./config.json"]);
-    
-    // ACT: Import CLI module
-    await import("../src/utils/cli.js");
+
+    // ACT: Run CLI with arguments
+    await run();
 
     // ASSERT: Verify -p alias resolves to port
     expect(server.startServer).toHaveBeenCalledWith({
@@ -100,9 +106,9 @@ describe("CLI", () => {
   it("should handle config flag alias", async () => {
     // ARRANGE: Use -c alias for config
     setArgv(["--port", "3000", "-c", "./config.json"]);
-    
-    // ACT: Import CLI module
-    await import("../src/utils/cli.js");
+
+    // ACT: Run CLI with arguments
+    await run();
 
     // ASSERT: Verify -c alias resolves to config
     expect(server.startServer).toHaveBeenCalledWith({
@@ -117,9 +123,9 @@ describe("CLI", () => {
   it("should handle watch flag alias", async () => {
     // ARRANGE: Use -w alias for watch
     setArgv(["--port", "3000", "--config", "./config.json", "-w"]);
-    
-    // ACT: Import CLI module
-    await import("../src/utils/cli.js");
+
+    // ACT: Run CLI with arguments
+    await run();
 
     // ASSERT: Verify -w alias enables watch mode
     expect(server.startServer).toHaveBeenCalledWith({
@@ -134,10 +140,10 @@ describe("CLI", () => {
   it("should fail when port is missing", async () => {
     // ARRANGE: Set args without required port
     setArgv(["--config", "./config.json"]);
-    
-    // ACT: Import CLI module
-    await import("../src/utils/cli.js");
-    
+
+    // ACT: Run CLI with arguments
+    await run();
+
     // ASSERT: Verify exits with error code
     expect(mockExit).toHaveBeenCalledWith(1);
   });
@@ -145,10 +151,10 @@ describe("CLI", () => {
   it("should fail when config is missing", async () => {
     // ARRANGE: Set args without required config
     setArgv(["--port", "3000"]);
-    
-    // ACT: Import CLI module
-    await import("../src/utils/cli.js");
-    
+
+    // ACT: Run CLI with arguments
+    await run();
+
     // ASSERT: Verify exits with error code
     expect(mockExit).toHaveBeenCalledWith(1);
   });
@@ -159,8 +165,8 @@ describe("CLI", () => {
     server.startServer.mockRejectedValueOnce(error);
     setArgv(["--port", "3000", "--config", "./config.json"]);
 
-    // ACT: Import CLI module
-    await import("../src/utils/cli.js");
+    // ACT: Run CLI with arguments
+    await run();
 
     // ASSERT: Verify exits with error code
     expect(mockExit).toHaveBeenCalledWith(1);
@@ -172,8 +178,8 @@ describe("CLI", () => {
     server.startServer.mockRejectedValueOnce(fatalError);
     setArgv(["--port", "3000", "--config", "./config.json"]);
 
-    // ACT: Import CLI module
-    await import("../src/utils/cli.js");
+    // ACT: Run CLI with arguments
+    await run();
 
     // ASSERT: Verify exits with error code
     expect(mockExit).toHaveBeenCalledWith(1);

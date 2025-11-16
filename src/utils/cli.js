@@ -75,7 +75,7 @@ function handleParseError(msg, err) {
 }
 
 
-async function run() {
+export async function run() {
   const argv = yargs(hideBin(process.argv))
     .usage("Usage: mcp-hub [options]")
     .version(VERSION || "v0.0.0")
@@ -129,4 +129,7 @@ async function run() {
   }
 }
 
-run()
+// Only run if not in test environment (Bun doesn't support vi.resetModules)
+if (process.env.NODE_ENV !== "test" && !globalThis.__VITEST__) {
+  run();
+}
