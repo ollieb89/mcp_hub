@@ -3,6 +3,28 @@ import ToolFilteringService, { DEFAULT_CATEGORIES } from '../src/utils/tool-filt
 import logger from '../src/utils/logger.js';
 
 /**
+ * Simple waitFor utility for async test conditions
+ * Polls callback until it returns true or timeout is reached
+ */
+async function waitFor(callback, options = {}) {
+  const { timeout = 1000, interval = 50 } = options;
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    try {
+      callback();
+      return; // Success - callback didn't throw
+    } catch (error) {
+      // Wait and retry
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+  }
+
+  // Final attempt - let it throw if it fails
+  callback();
+}
+
+/**
  * Test Suite: ToolFilteringService - Sprint 0.1 Non-Blocking Architecture
  *
  * Focus: Validates that Sprint 0.1 critical architecture is correctly implemented
@@ -162,7 +184,7 @@ describe('ToolFilteringService - Sprint 0.1: Non-Blocking Architecture', () => {
       expect(category).toBe('other');
 
       // Wait for background processing
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(mockCategorize).toHaveBeenCalledWith(
           'unknown_tool',
           { description: 'Test tool' },
@@ -206,7 +228,7 @@ describe('ToolFilteringService - Sprint 0.1: Non-Blocking Architecture', () => {
       expect(initialCategory).toBe('other');
 
       // Wait for background refinement
-      await vi.waitFor(() => {
+      await waitFor(() => {
         const refinedCategory = service.categoryCache.get('custom_browser_tool');
         expect(refinedCategory).toBe('web');
       }, { timeout: 1000 });
@@ -2045,7 +2067,7 @@ describe('ToolFilteringService - Task 3.2.2: Non-Blocking LLM Integration', () =
     expect(initialCategory).toBe('other');
 
     // Wait for background LLM to complete
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockCategorize).toHaveBeenCalledWith(
         'custom_dev_tool',
         { description: 'Custom development tool' },
@@ -2054,7 +2076,7 @@ describe('ToolFilteringService - Task 3.2.2: Non-Blocking LLM Integration', () =
     }, { timeout: 1000 });
 
     // Verify category was refined in cache
-    await vi.waitFor(() => {
+    await waitFor(() => {
       const refinedCategory = service.categoryCache.get('custom_dev_tool');
       expect(refinedCategory).toBe('development');
     }, { timeout: 1000 });
@@ -2092,7 +2114,7 @@ describe('ToolFilteringService - Task 3.2.2: Non-Blocking LLM Integration', () =
     expect(firstCategory).toBe('other');
 
     // Wait for background LLM refinement
-    await vi.waitFor(() => {
+    await waitFor(() => {
       const refined = service.categoryCache.get('browser_automation');
       expect(refined).toBe('web');
     }, { timeout: 1000 });
@@ -2141,7 +2163,7 @@ describe('ToolFilteringService - Task 3.2.2: Non-Blocking LLM Integration', () =
     });
 
     // Wait for processing
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockCategorize).toHaveBeenCalledTimes(20);
     }, { timeout: 5000 });
 
@@ -2280,7 +2302,7 @@ describe('ToolFilteringService - Task 3.3.2: LLM Categorization', () => {
     expect(initialCategory).toBe('other');
 
     // Wait for background LLM categorization
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockLLMClient.categorize).toHaveBeenCalledWith(
         'mysterious_custom_tool',
         { description: 'Run database query' },
@@ -2289,7 +2311,7 @@ describe('ToolFilteringService - Task 3.3.2: LLM Categorization', () => {
     }, { timeout: 1000 });
 
     // After background processing, cache should be updated
-    await vi.waitFor(() => {
+    await waitFor(() => {
       const refinedCategory = service.categoryCache.get('mysterious_custom_tool');
       expect(refinedCategory).toBe('database');
     }, { timeout: 1000 });
@@ -2369,7 +2391,7 @@ describe('ToolFilteringService - Task 3.3.2: LLM Categorization', () => {
     expect(category).toBe('other');
 
     // Wait for background LLM attempt
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(mockLLMClient.categorize).toHaveBeenCalled();
     }, { timeout: 1000 });
 

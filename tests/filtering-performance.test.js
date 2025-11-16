@@ -22,6 +22,25 @@ import { MCPServerEndpoint } from '../src/mcp/server.js';
 import ToolFilteringService from '../src/utils/tool-filtering-service.js';
 import { EventEmitter } from 'events';
 
+/**
+ * Simple waitFor utility for async test conditions
+ */
+async function waitFor(callback, options = {}) {
+  const { timeout = 1000, interval = 50 } = options;
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    try {
+      callback();
+      return;
+    } catch (error) {
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+  }
+
+  callback();
+}
+
 // Mock logger
 vi.mock('../src/utils/logger.js', () => ({
   default: {
@@ -508,7 +527,7 @@ describe('Tool Filtering Performance Benchmarks (Sprint 4.3.2)', () => {
       expect(syncElapsed).toBeLessThan(200);
 
       // Wait for background LLM processing
-      await vi.waitFor(() => {
+      await waitFor(() => {
         expect(callCount).toBeGreaterThan(0);
       }, { timeout: 5000 });
 
