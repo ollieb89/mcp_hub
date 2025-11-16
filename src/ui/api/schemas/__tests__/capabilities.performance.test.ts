@@ -6,8 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { HealthResponseSchema } from '../health.schema';
-import { CapabilitiesSchema } from '../capabilities.schema';
+import { HealthResponseSchema, CapabilitiesSchema } from '../health.schema';
 
 // ============================================================================
 // Performance Test Data

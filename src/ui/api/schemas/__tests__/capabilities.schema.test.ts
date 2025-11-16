@@ -13,7 +13,7 @@ import {
   PromptArgumentSchemaMinimal,
   PromptSchemaMinimal,
   CapabilitiesSchema,
-} from '../capabilities.schema';
+} from '../health.schema';
 
 // ============================================================================
 // Tool Schema Tests
