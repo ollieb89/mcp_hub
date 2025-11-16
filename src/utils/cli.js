@@ -46,15 +46,20 @@ loadEnvFile();
 // Read version from package.json while in dev mode to get the latest version
 // In production, VERSION will be injected at build time via esbuild define
 let VERSION;
-if (process.env.NODE_ENV != "production") {
-  // Get the directory path of the current module
-  const __dirname = fileURLToPath(new URL('.', import.meta.url));
-  // Navigate up two directories to find package.json
-  const pkgPath = join(__dirname, '..', '..', 'package.json');
-  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-  VERSION = pkg.version;
+if (process.env.NODE_ENV != "production" && process.env.NODE_ENV != "test") {
+  try {
+    // Get the directory path of the current module
+    const __dirname = fileURLToPath(new URL('.', import.meta.url));
+    // Navigate up two directories to find package.json
+    const pkgPath = join(__dirname, '..', '..', 'package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    VERSION = pkg.version;
+  } catch (error) {
+    // Fallback for test environments or when import.meta.url is not available
+    VERSION = process.env.VERSION || "v0.0.0-dev";
+  }
 } else {
-  // In production, use the version defined at build time
+  // In production/test, use the version defined at build time
   VERSION = process.env.VERSION || "v0.0.0";
 }
 

@@ -9,15 +9,20 @@ global.fetch = vi.fn();
 global.URL = URL; // Polyfill URL for tests
 
 // Mock child_process exec for curl fallback (Bun-compatible)
-vi.mock('child_process', () => ({
-  exec: vi.fn((cmd, callback) => {
+vi.mock('child_process', () => {
+  const execMock = vi.fn((cmd, callback) => {
     if (cmd.includes('curl --version')) {
       callback(null, { stdout: 'curl 7.x.x', stderr: '' });
     } else {
       callback(null, { stdout: '{}', stderr: '' });
     }
-  })
-}));
+  });
+
+  return {
+    exec: execMock,
+    default: { exec: execMock }  // Add default export for compatibility
+  };
+});
 
 // Mock sample registry data
 const mockRegistryData = {
