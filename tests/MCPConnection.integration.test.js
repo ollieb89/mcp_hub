@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MCPConnection } from "../src/MCPConnection.js";
-import { ConfigError, ValidationError } from "../src/utils/errors.js";
-import { 
-  createStdioConfig, 
+import {
+  createStdioConfig,
   createSSEConfig,
   createHttpConfig,
   createMockClient,
@@ -80,27 +78,59 @@ vi.mock("../src/utils/dev-watcher.js", () => ({
 }));
 
 // Mock child_process for EnvResolver
-let mockExecPromise;
+const mockExecPromise = vi.fn();
+const mockExec = vi.fn();
+const mockExecFile = vi.fn();
+const mockExecFileSync = vi.fn();
+const mockExecSync = vi.fn();
+const mockSpawn = vi.fn();
+const mockFork = vi.fn();
+
 vi.mock('child_process', () => ({
-  exec: vi.fn()
+  exec: mockExec,
+  execFile: mockExecFile,
+  execFileSync: mockExecFileSync,
+  execSync: mockExecSync,
+  spawn: mockSpawn,
+  fork: mockFork,
+  default: {
+    exec: mockExec,
+    execFile: mockExecFile,
+    execFileSync: mockExecFileSync,
+    execSync: mockExecSync,
+    spawn: mockSpawn,
+    fork: mockFork
+  }
 }));
 
 vi.mock('util', () => ({
-  promisify: vi.fn().mockImplementation(() => {
-    return (...args) => mockExecPromise(...args);
-  })
+  promisify: (fn) => {
+    // Return mockExecPromise for any promisified function
+    return mockExecPromise;
+  }
 }));
 
 describe("MCPConnection Integration Tests", () => {
   let connection;
   let mockClient;
   let mockTransport;
+  let MCPConnection;
+  let ConfigError;
+  let ValidationError;
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Setup exec mock for EnvResolver
-    mockExecPromise = vi.fn();
+    // Reset exec mock for EnvResolver
+    mockExecPromise.mockReset();
+
+    // Dynamically import modules AFTER mocks are set up
+    const mcpModule = await import("../src/MCPConnection.js");
+    MCPConnection = mcpModule.MCPConnection;
+
+    const errorsModule = await import("../src/utils/errors.js");
+    ConfigError = errorsModule.ConfigError;
+    ValidationError = errorsModule.ValidationError;
 
     // Setup fresh process.env for each test
     process.env = {
@@ -711,7 +741,7 @@ describe("MCPConnection Integration Tests", () => {
       vi.clearAllMocks();
       
       // Setup exec mock for EnvResolver
-      mockExecPromise = vi.fn();
+      mockExecPromise.mockReset();
 
       // Setup fresh process.env for each test
       process.env = {
@@ -906,7 +936,7 @@ describe("MCPConnection Integration Tests", () => {
       vi.clearAllMocks();
       
       // Setup exec mock for EnvResolver
-      mockExecPromise = vi.fn();
+      mockExecPromise.mockReset();
 
       // Setup fresh process.env
       process.env = {
@@ -1039,7 +1069,7 @@ describe("MCPConnection Integration Tests", () => {
       vi.clearAllMocks();
       
       // Setup exec mock for EnvResolver
-      mockExecPromise = vi.fn();
+      mockExecPromise.mockReset();
 
       // Setup fresh process.env
       process.env = {
@@ -1260,7 +1290,7 @@ describe("MCPConnection Integration Tests", () => {
       vi.clearAllMocks();
       
       // Setup exec mock for EnvResolver
-      mockExecPromise = vi.fn();
+      mockExecPromise.mockReset();
 
       // Setup fresh process.env
       process.env = {
