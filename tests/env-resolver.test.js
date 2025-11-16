@@ -1,20 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { EnvResolver, envResolver } from "../src/utils/env-resolver.js";
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
-// Define mock functions at module level BEFORE vi.mock() calls
+// Define mock at module level - mockExecPromise will be the promisified function
 const mockExecPromise = vi.fn();
-const mockExec = vi.fn();
+const mockExec = vi.fn((cmd, callback) => {
+  // Default behavior: call callback with error
+  callback(new Error('Mock exec not configured'));
+});
 
 vi.mock('child_process', () => ({
   exec: mockExec,
-  default: { exec: mockExec }  // Add default export for compatibility
+  default: { exec: mockExec }
 }));
 
+// Mock util.promisify to wrap exec and return our controlled promise function
 vi.mock('util', () => ({
-  promisify: vi.fn().mockImplementation(() => mockExecPromise),
-  default: { promisify: vi.fn().mockImplementation(() => mockExecPromise) }
+  promisify: (fn) => {
+    // Return mockExecPromise for any promisified function
+    return mockExecPromise;
+  }
 }));
 
 // Mock logger
@@ -30,8 +33,10 @@ vi.mock("../src/utils/logger.js", () => ({
 describe("EnvResolver", () => {
   let resolver;
   let originalProcessEnv;
+  let EnvResolver;
+  let envResolver;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     // Store original process.env
@@ -48,6 +53,11 @@ describe("EnvResolver", () => {
     // mockExecPromise is now hoisted, no need to redefine
     // Reset mock implementation for each test
     mockExecPromise.mockReset();
+
+    // Dynamically import EnvResolver AFTER mocks are set up
+    const module = await import("../src/utils/env-resolver.js");
+    EnvResolver = module.EnvResolver;
+    envResolver = module.envResolver;
 
     // Create new resolver instance
     resolver = new EnvResolver();
