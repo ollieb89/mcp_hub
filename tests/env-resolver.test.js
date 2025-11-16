@@ -3,17 +3,18 @@ import { EnvResolver, envResolver } from "../src/utils/env-resolver.js";
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
-// Mock child_process and util together
-let mockExecPromise;
+// Define mock functions at module level BEFORE vi.mock() calls
+const mockExecPromise = vi.fn();
+const mockExec = vi.fn();
 
 vi.mock('child_process', () => ({
-  exec: vi.fn()
+  exec: mockExec,
+  default: { exec: mockExec }  // Add default export for compatibility
 }));
 
 vi.mock('util', () => ({
-  promisify: vi.fn().mockImplementation(() => {
-    return (...args) => mockExecPromise(...args);
-  })
+  promisify: vi.fn().mockImplementation(() => mockExecPromise),
+  default: { promisify: vi.fn().mockImplementation(() => mockExecPromise) }
 }));
 
 // Mock logger
@@ -44,8 +45,9 @@ describe("EnvResolver", () => {
       DATABASE_URL: 'postgres://localhost:5432/test'
     };
 
-    // Setup exec mock
-    mockExecPromise = vi.fn();
+    // mockExecPromise is now hoisted, no need to redefine
+    // Reset mock implementation for each test
+    mockExecPromise.mockReset();
 
     // Create new resolver instance
     resolver = new EnvResolver();
