@@ -317,19 +317,71 @@ See `claudedocs/PROMPT_BASED_FILTERING_QUICK_START.md` for complete guide.
 
 ## Testing Strategy
 
-**Current Status**: 482/482 tests passing (100% pass rate), 82.94% branches coverage
+### Test Suite Architecture
 
-**Test Files:**
-- `tests/MCPHub.test.js` - Hub orchestration logic
-- `tests/MCPConnection.test.js` - Connection management unit tests
-- `tests/http-pool.test.js` - HTTP connection pool unit tests (30 tests)
-- `tests/http-pool.integration.test.js` - Connection pool integration tests (13 tests)
-- `tests/MCPConnection.integration.test.js` - Transport integration tests
-- `tests/config.test.js` - Configuration loading and merging
-- `tests/env-resolver.test.js` - Placeholder resolution
-- `tests/marketplace.test.js` - Marketplace integration
-- `tests/cli.test.js` - CLI argument parsing
-- `tests/pino-logger.test.js` - Pino logger API compatibility and SSE integration (26 tests)
+MCP Hub uses a two-tier test strategy to maintain quality while enabling rapid feature development:
+
+#### Baseline Tests (273 tests - MUST maintain 100% pass rate)
+
+Core functionality tests that protect foundational systems:
+
+| File | Tests | Purpose |
+|------|-------|---------|
+| `tests/env-resolver.test.js` | 55 | Placeholder resolution system |
+| `tests/config.test.js` | 41 | Configuration loading and merging |
+| `tests/MCPConnection.integration.test.js` | 33 | Transport integration (STDIO, SSE, HTTP) |
+| `tests/MCPConnection.test.js` | 32 | Connection management unit tests |
+| `tests/http-pool.test.js` | 28 | HTTP connection pool unit tests |
+| `tests/pino-logger.test.js` | 26 | Logger API compatibility and SSE integration |
+| `tests/MCPHub.test.js` | 20 | Hub orchestration logic |
+| `tests/marketplace.test.js` | 16 | Marketplace integration |
+| `tests/http-pool.integration.test.js` | 13 | Connection pool integration tests |
+| `tests/cli.test.js` | 9 | CLI argument parsing |
+
+**Quality Gate**: Baseline tests MUST pass before PR merge. These tests validate core MCP Hub functionality that existed before Sprint 1 feature additions.
+
+**Run Command**: `bun run test:baseline`
+
+**Current Status**: See `claudedocs/BASELINE_TEST_VALIDATION_REPORT.md` for latest validation results.
+
+#### Feature Tests (~576 tests - Target 80%+ pass rate)
+
+Sprint 1-4 feature additions and enhancements:
+- Tool filtering system (`tests/tool-filtering*.test.js`)
+- LLM integration (`tests/task-3-*.test.js`)
+- Prompt-based filtering (`tests/prompt-based*.test.js`)
+- API schemas (`src/ui/api/schemas/__tests__/*.test.ts`)
+- Event batching (`tests/event-batcher.test.js`)
+- Background queue (`tests/background-queue.test.js`)
+
+**Quality Standard**: Target 80%+ pass rate. Regressions investigated but don't block PRs.
+
+**Run Command**: `bun run test:features`
+
+#### Test Execution Commands
+
+```bash
+# Run baseline tests only (core functionality)
+bun run test:baseline
+
+# Run baseline tests with watch mode
+bun run test:baseline:watch
+
+# Run baseline tests with fail-fast (stops on first failure)
+bun run test:baseline:strict
+
+# Run feature tests only (Sprint 1-4 additions)
+bun run test:features
+
+# Run all tests
+bun test
+
+# Run all tests with coverage
+bun run test:coverage
+
+# Run specific test file
+bun test tests/MCPHub.test.js
+```
 
 **Testing Tools:**
 - Vitest for test execution

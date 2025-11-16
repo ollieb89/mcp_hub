@@ -11,6 +11,7 @@
       "@components/*": ["src/ui/components/*"],
       "@pages/*": ["src/ui/pages/*"],
       "@hooks/*": ["src/ui/hooks/*"],
+      "@utils/*": ["src/ui/utils/*"],
       "@theme": ["src/ui/theme/index"],
       "@theme/*": ["src/ui/theme/*"]
     }
