@@ -107,6 +107,11 @@ vi.mock('util', () => ({
   promisify: (fn) => {
     // Return mockExecPromise for any promisified function
     return mockExecPromise;
+  },
+  default: {
+    promisify: (fn) => {
+      return mockExecPromise;
+    }
   }
 }));
 
@@ -444,8 +449,8 @@ describe("MCPConnection Integration Tests", () => {
         expect.objectContaining({ timeout: 30000, encoding: 'utf8' })
       );
 
-      // Status remains "connecting" because error happens during config resolution (before try block)
-      expect(connection.status).toBe("connecting");
+      // Status is set to "disconnected" by cleanup() after connection failure
+      expect(connection.status).toBe("disconnected");
     });
 
     it("should handle transport creation errors", async () => {

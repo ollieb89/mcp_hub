@@ -17,6 +17,11 @@ vi.mock('util', () => ({
   promisify: (fn) => {
     // Return mockExecPromise for any promisified function
     return mockExecPromise;
+  },
+  default: {
+    promisify: (fn) => {
+      return mockExecPromise;
+    }
   }
 }));
 
