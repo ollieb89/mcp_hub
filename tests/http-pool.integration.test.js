@@ -158,8 +158,8 @@ describe('HTTP Connection Pool Integration', () => {
 
       connection = new MCPConnection('test-stdio-cleanup', config, null, 'http://localhost:3000');
 
-      // ACT & ASSERT: Should not throw
-      await expect(connection.cleanup()).resolves.not.toThrow();
+      // ACT & ASSERT: Should complete successfully
+      await expect(connection.cleanup()).resolves.toBeUndefined();
     });
 
     test('cleanup is idempotent', async () => {
@@ -174,8 +174,8 @@ describe('HTTP Connection Pool Integration', () => {
       // ACT: Cleanup twice
       await connection.cleanup();
 
-      // ASSERT: Second cleanup should not throw
-      await expect(connection.cleanup()).resolves.not.toThrow();
+      // ASSERT: Second cleanup should complete successfully
+      await expect(connection.cleanup()).resolves.toBeUndefined();
     });
   });
 
