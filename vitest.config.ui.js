@@ -4,22 +4,13 @@ import path from 'node:path';
 export default defineConfig({
   test: {
     environment: 'jsdom',
-    setupFiles: [path.resolve(__dirname, 'tests/setup.js')],
+    setupFiles: [path.resolve(__dirname, 'tests/setup-ui.js')],
     globals: true,
+    include: ['src/ui/**/*.test.ts', 'src/ui/**/*.test.tsx', 'tests/ui/**/*.test.ts', 'tests/ui/**/*.test.tsx'],
     exclude: [
       'node_modules/**',
       'dist/**',
       '**/*.d.ts',
-      // Exclude failing UI tests with schema validation and React hooks issues (tracked for follow-up)
-      'src/ui/api/mutations/__tests__/server.mutations.test.ts',
-      'src/ui/api/schemas/__tests__/capabilities.integration.test.ts',
-      'src/ui/api/schemas/__tests__/capabilities.performance.test.ts',
-      'src/ui/api/schemas/__tests__/capabilities.schema.test.ts',
-      'src/ui/utils/__tests__/sse-client.test.ts',
-      'tests/ui/**',
-      // Exclude LLM tests temporarily to allow coverage calculation (prompt format changes)
-      'tests/llm-provider.test.js',
-      'tests/filtering-performance.test.js'
     ],
     coverage: {
       exclude: [
@@ -28,10 +19,8 @@ export default defineConfig({
         '**/*.d.ts',
         'tests/**',
         'scripts/**',
-        // Exclude UI source code from coverage since UI tests are excluded
-        'src/ui/**'
-      ]
-    }
+      ],
+    },
   },
   define: {
     'process.env.NODE_ENV': JSON.stringify('test'),

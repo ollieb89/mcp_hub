@@ -363,9 +363,11 @@ describe('HealthResponse Schema Integration', () => {
       };
 
       const result = HealthResponseSchema.safeParse(response);
-      // Zod string() doesn't reject empty by default, but we validate it passes
-      // Real validation would happen at business logic level
-      expect(result.success).toBe(true);
+      // Schema uses .min(1) validation which rejects empty strings
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toContain('cannot be empty');
+      }
     });
 
     it('should reject response with missing required server fields', () => {

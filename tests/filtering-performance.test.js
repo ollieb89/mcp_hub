@@ -457,7 +457,10 @@ describe('Tool Filtering Performance Benchmarks (Sprint 4.3.2)', () => {
           categoryFilter: {
             categories: ['filesystem']
           },
-          llmCategorization: { enabled: true }
+          llmCategorization: {
+            enabled: true,
+            provider: 'gemini'
+          }
         }
       };
 
@@ -497,7 +500,10 @@ describe('Tool Filtering Performance Benchmarks (Sprint 4.3.2)', () => {
           categoryFilter: {
             categories: ['filesystem']
           },
-          llmCategorization: { enabled: true }
+          llmCategorization: {
+            enabled: true,
+            provider: 'gemini'
+          }
         }
       };
 
@@ -589,7 +595,10 @@ describe('Tool Filtering Performance Benchmarks (Sprint 4.3.2)', () => {
           categoryFilter: {
             categories: ['filesystem']
           },
-          llmCategorization: { enabled: true }
+          llmCategorization: {
+            enabled: true,
+            provider: 'gemini'
+          }
         }
       };
 

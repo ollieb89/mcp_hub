@@ -5,7 +5,8 @@ describe('EventBatcher', () => {
   let batcher;
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    // Use real timers for Bun compatibility
+    // Bun's Vitest doesn't fully support fake timer APIs
   });
 
   afterEach(() => {
@@ -13,7 +14,6 @@ describe('EventBatcher', () => {
       batcher.destroy();
     }
     vi.restoreAllMocks();
-    vi.useRealTimers();
   });
 
   describe('Constructor and Configuration', () => {
@@ -85,10 +85,10 @@ describe('EventBatcher', () => {
 
   describe('Time-Based Flushing', () => {
     beforeEach(() => {
-      batcher = new EventBatcher({ batchWindow: 100 });
+      batcher = new EventBatcher({ batchWindow: 10 }); // Small window for fast tests
     });
 
-    it('should flush batch after time window', () => {
+    it('should flush batch after time window', async () => {
       const flushSpy = vi.fn();
       batcher.on('flush', flushSpy);
 
@@ -97,8 +97,8 @@ describe('EventBatcher', () => {
 
       expect(flushSpy).not.toHaveBeenCalled();
 
-      // Advance time past batch window
-      vi.advanceTimersByTime(100);
+      // Wait for batch window to elapse
+      await new Promise(resolve => setTimeout(resolve, 15));
 
       expect(flushSpy).toHaveBeenCalledOnce();
       expect(flushSpy.mock.calls[0][0]).toMatchObject({
@@ -108,32 +108,31 @@ describe('EventBatcher', () => {
       });
     });
 
-    it('should clear batch after flushing', () => {
+    it('should clear batch after flushing', async () => {
       const flushSpy = vi.fn();
       batcher.on('flush', flushSpy);
 
       batcher.enqueue('tool_list_changed', { server: 'server1' });
 
-      vi.advanceTimersByTime(100);
+      await new Promise(resolve => setTimeout(resolve, 15));
 
       expect(batcher.batches.has('tool_list_changed')).toBe(false);
       expect(batcher.timers.has('tool_list_changed')).toBe(false);
     });
 
-    it('should handle multiple event types with separate timers', () => {
+    it('should handle multiple event types with separate timers', async () => {
       const flushSpy = vi.fn();
       batcher.on('flush', flushSpy);
 
       batcher.enqueue('tool_list_changed', { server: 'server1' });
-      vi.advanceTimersByTime(50);
-      batcher.enqueue('resource_list_changed', { server: 'server1' });
-      vi.advanceTimersByTime(50);
+      await new Promise(resolve => setTimeout(resolve, 15));
 
       // First event type should have flushed
       expect(flushSpy).toHaveBeenCalledOnce();
       expect(flushSpy.mock.calls[0][0].type).toBe('tool_list_changed');
 
-      vi.advanceTimersByTime(50);
+      batcher.enqueue('resource_list_changed', { server: 'server1' });
+      await new Promise(resolve => setTimeout(resolve, 15));
 
       // Second event type should now flush
       expect(flushSpy).toHaveBeenCalledTimes(2);
@@ -191,56 +190,56 @@ describe('EventBatcher', () => {
 
   describe('Deduplication', () => {
     beforeEach(() => {
-      batcher = new EventBatcher({ batchWindow: 100 });
+      batcher = new EventBatcher({ batchWindow: 10 });
     });
 
-    it('should deduplicate events from same server', () => {
+    it('should deduplicate events from same server', async () => {
       const flushSpy = vi.fn();
       batcher.on('flush', flushSpy);
 
       batcher.enqueue('tool_list_changed', { server: 'server1', tools: ['tool1'] });
       batcher.enqueue('tool_list_changed', { server: 'server1', tools: ['tool2'] });
 
-      vi.advanceTimersByTime(100);
+      await new Promise(resolve => setTimeout(resolve, 15));
 
       expect(flushSpy).toHaveBeenCalledOnce();
       expect(flushSpy.mock.calls[0][0].batchSize).toBe(1);
     });
 
-    it('should not deduplicate events from different servers', () => {
+    it('should not deduplicate events from different servers', async () => {
       const flushSpy = vi.fn();
       batcher.on('flush', flushSpy);
 
       batcher.enqueue('tool_list_changed', { server: 'server1', tools: [] });
       batcher.enqueue('tool_list_changed', { server: 'server2', tools: [] });
 
-      vi.advanceTimersByTime(100);
+      await new Promise(resolve => setTimeout(resolve, 15));
 
       expect(flushSpy).toHaveBeenCalledOnce();
       expect(flushSpy.mock.calls[0][0].batchSize).toBe(2);
     });
 
-    it('should deduplicate identical events without server field', () => {
+    it('should deduplicate identical events without server field', async () => {
       const flushSpy = vi.fn();
       batcher.on('flush', flushSpy);
 
       batcher.enqueue('config_changed', { setting: 'value1' });
       batcher.enqueue('config_changed', { setting: 'value1' });
 
-      vi.advanceTimersByTime(100);
+      await new Promise(resolve => setTimeout(resolve, 15));
 
       expect(flushSpy).toHaveBeenCalledOnce();
       expect(flushSpy.mock.calls[0][0].batchSize).toBe(1);
     });
 
-    it('should not deduplicate different events without server field', () => {
+    it('should not deduplicate different events without server field', async () => {
       const flushSpy = vi.fn();
       batcher.on('flush', flushSpy);
 
       batcher.enqueue('config_changed', { setting: 'value1' });
       batcher.enqueue('config_changed', { setting: 'value2' });
 
-      vi.advanceTimersByTime(100);
+      await new Promise(resolve => setTimeout(resolve, 15));
 
       expect(flushSpy).toHaveBeenCalledOnce();
       expect(flushSpy.mock.calls[0][0].batchSize).toBe(2);
@@ -387,27 +386,27 @@ describe('EventBatcher', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty event data', () => {
-      batcher = new EventBatcher({ batchWindow: 100 });
+    it('should handle empty event data', async () => {
+      batcher = new EventBatcher({ batchWindow: 10 });
       const flushSpy = vi.fn();
       batcher.on('flush', flushSpy);
 
       batcher.enqueue('tool_list_changed', {});
 
-      vi.advanceTimersByTime(100);
+      await new Promise(resolve => setTimeout(resolve, 15));
 
       expect(flushSpy).toHaveBeenCalledOnce();
       expect(flushSpy.mock.calls[0][0].batch[0]).toHaveProperty('timestamp');
     });
 
-    it('should handle very small batch window', () => {
+    it('should handle very small batch window', async () => {
       batcher = new EventBatcher({ batchWindow: 1 });
       const flushSpy = vi.fn();
       batcher.on('flush', flushSpy);
 
       batcher.enqueue('tool_list_changed', { server: 'server1' });
 
-      vi.advanceTimersByTime(1);
+      await new Promise(resolve => setTimeout(resolve, 5));
 
       expect(flushSpy).toHaveBeenCalledOnce();
     });

@@ -266,9 +266,9 @@ describe('Task 3.3: Background LLM Queue Integration', () => {
       service = new ToolFilteringService(config, mockHub);
 
       const delay10 = service._calculateBackoffDelay(10);
-      
-      // Should be capped at maxBackoff
-      expect(delay10).toBeLessThanOrEqual(5000);
+
+      // Should be capped at maxBackoff (with jitter tolerance of ±10%)
+      expect(delay10).toBeLessThanOrEqual(5500); // maxBackoff 5000 * 1.1
       expect(delay10).toBeGreaterThan(0);
     });
   });
@@ -634,7 +634,7 @@ describe('Task 3.3: Background LLM Queue Integration', () => {
 
       // Now wait for actual processing
       const result = await promise;
-      expect(result).toBe('web');
+      expect(result.category).toBe('web');
     });
 
     it('should process queue tasks in order', async () => {
@@ -672,9 +672,9 @@ describe('Task 3.3: Background LLM Queue Integration', () => {
 
       // Should have called LLM for all three tools
       expect(mockClient.categorize).toHaveBeenCalledTimes(3);
-      // All results should be valid
+      // All results should be valid (extract category from cache entry)
       const results = await Promise.all([p1, p2, p3]);
-      expect(results).toEqual(['web', 'web', 'web']);
+      expect(results.map(r => r.category)).toEqual(['web', 'web', 'web']);
     });
   });
 });

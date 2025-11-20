@@ -1,0 +1,63 @@
+# MCP Hub Systemd Service
+# Install: sudo cp config/mcp-hub.service /etc/systemd/system/
+# Enable: sudo systemctl enable mcp-hub
+# Start: sudo systemctl start mcp-hub
+# Status: sudo systemctl status mcp-hub
+# Logs: sudo journalctl -u mcp-hub -f
+
+[Unit]
+Description=MCP Hub - Model Context Protocol Server Manager
+Documentation=https://github.com/ollieb89/mcp_hub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mcp-hub
+Group=mcp-hub
+WorkingDirectory=/opt/mcp-hub
+
+# Environment configuration
+Environment="NODE_ENV=production"
+Environment="PORT=7000"
+Environment="LOG_LEVEL=info"
+Environment="ENABLE_PINO_LOGGER=true"
+
+# Load secrets from environment file
+EnvironmentFile=/opt/mcp-hub/.env.production
+
+# Start command
+ExecStart=/usr/local/bin/bun start
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=120
+StartLimitBurst=5
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryLimit=8G
+CPUQuota=400%
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mcp-hub
+ReadWritePaths=/home/mcp-hub/.cache/mcp-hub
+ReadWritePaths=/home/mcp-hub/.local/state/mcp-hub
+
+# Standard output to journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mcp-hub
+
+# Health check
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

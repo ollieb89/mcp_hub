@@ -689,7 +689,7 @@ export class MCPServerEndpoint {
         logger.debug({ sessionId, categories: analysis.categories },
           'CHECKPOINT 4: Updating client tools');
 
-        await this.updateClientTools(sessionId, analysis.categories, false);
+        await this.updateClientTools(sessionId, analysis.categories, 'additive');
 
         // Debug checkpoint 5: After tool update
         logger.debug({ sessionId }, 'CHECKPOINT 5: Client tools updated');

@@ -90,9 +90,11 @@ describe('SSEConnectionManager', () => {
     // Reset React Query cache
     queryClient.clear();
 
-    // Mock EventSource constructor
+    // Mock EventSource constructor - must return MockEventSource instance when called with 'new'
     mockEventSource = new MockEventSource('/events');
-    global.EventSource = vi.fn(() => mockEventSource) as any;
+    global.EventSource = vi.fn(function (this: any, url: string) {
+      return mockEventSource;
+    }) as any;
   });
 
   afterEach(() => {

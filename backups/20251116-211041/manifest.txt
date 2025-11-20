@@ -1,0 +1,5 @@
+Backup created: Sun Nov 16 09:10:41 PM CET 2025
+Git commit: 39785c0e06a1587022019c92d63302b67ee64b0c
+Git branch: main
+MCP Hub version: 4.3.0
+Backup size: 36K

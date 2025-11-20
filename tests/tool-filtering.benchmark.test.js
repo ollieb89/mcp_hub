@@ -36,7 +36,12 @@ describe('LLM Filtering Performance', () => {
         categoryFilter: {
           categories: ['filesystem', 'web']
         },
-        llmCategorization: { enabled: true }
+        llmCategorization: {
+          enabled: true,
+          provider: 'gemini',
+          apiKey: 'test-key',
+          model: 'gemini-2.5-flash'
+        }
       }
     };
 
@@ -78,20 +83,30 @@ describe('LLM Filtering Performance', () => {
         categoryFilter: {
           categories: ['web']
         },
-        llmCategorization: { enabled: true }
+        llmCategorization: {
+          enabled: true,
+          provider: 'gemini',
+          apiKey: 'test-key',
+          model: 'gemini-2.5-flash'
+        }
       }
     };
 
     service = new ToolFilteringService(config, mockMcpHub);
+    await service.waitForInitialization();
 
-    // Mock LLM to track call count
+    // Clear persistent cache to ensure fresh test
+    service.clearLLMCache();
+
+    // Replace real LLM client with mock to track call count
     service.llmClient = {
       categorize: vi.fn().mockResolvedValue('web')
     };
 
     // Act - categorize same tool 100 times
-    const toolName = 'custom__tool';
-    
+    // Use tool name without '__' to avoid default pattern matching
+    const toolName = 'customtool';
+
     // First call: pattern match fails, returns 'other', queues background LLM
     for (let i = 0; i < 100; i++) {
       service.getToolCategory(toolName, 'custom', {
@@ -99,10 +114,8 @@ describe('LLM Filtering Performance', () => {
       });
     }
 
-    // Wait for background LLM to complete
-    await vi.waitFor(() => {
-      expect(service.llmClient.categorize).toHaveBeenCalled();
-    }, { timeout: 1000 });
+    // Wait for background LLM to complete (use simple delay)
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Assert - LLM should only be called once (first time, then cached)
     expect(service.llmClient.categorize).toHaveBeenCalledTimes(1);

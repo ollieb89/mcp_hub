@@ -17,16 +17,24 @@ import { HealthResponseSchema, CapabilitiesSchema } from '../health.schema';
  */
 const SMALL_RESPONSE = {
   status: 'ok' as const,
-  timestamp: '2025-01-08T12:00:00Z',
-  totalServers: 2,
-  connectedServers: 2,
+  state: 'ready' as const,
+  server_id: 'test-hub',
+  version: '1.0.0',
+  activeClients: 0,
+  timestamp: '2025-01-08T12:00:00.000Z',
   servers: [
     {
-      serverName: 'server1',
-      enabled: true,
-      connectionState: 'connected' as const,
+      name: 'server1',
+      displayName: 'Server 1',
+      description: 'Test server 1',
       transportType: 'stdio' as const,
-      lastError: null,
+      status: 'connected' as const,
+      error: null,
+      uptime: 1000,
+      lastStarted: '2025-01-08T11:00:00.000Z',
+      authorizationUrl: null,
+      serverInfo: { name: 'server1', version: '1.0.0' },
+      config_source: 'test',
       capabilities: {
         tools: Array.from({ length: 5 }, (_, i) => ({
           name: `tool_${i}`,
@@ -42,11 +50,17 @@ const SMALL_RESPONSE = {
       },
     },
     {
-      serverName: 'server2',
-      enabled: true,
-      connectionState: 'connected' as const,
+      name: 'server2',
+      displayName: 'Server 2',
+      description: 'Test server 2',
       transportType: 'stdio' as const,
-      lastError: null,
+      status: 'connected' as const,
+      error: null,
+      uptime: 1000,
+      lastStarted: '2025-01-08T11:00:00.000Z',
+      authorizationUrl: null,
+      serverInfo: { name: 'server2', version: '1.0.0' },
+      config_source: 'test',
       capabilities: {
         tools: Array.from({ length: 5 }, (_, i) => ({
           name: `tool_${i + 5}`,
@@ -65,15 +79,23 @@ const SMALL_RESPONSE = {
  */
 const MEDIUM_RESPONSE = {
   status: 'ok' as const,
-  timestamp: '2025-01-08T12:00:00Z',
-  totalServers: 10,
-  connectedServers: 10,
+  state: 'ready' as const,
+  server_id: 'test-hub',
+  version: '1.0.0',
+  activeClients: 0,
+  timestamp: '2025-01-08T12:00:00.000Z',
   servers: Array.from({ length: 10 }, (_, serverIdx) => ({
-    serverName: `server_${serverIdx}`,
-    enabled: true,
-    connectionState: 'connected' as const,
+    name: `server_${serverIdx}`,
+    displayName: `Server ${serverIdx}`,
+    description: `Test server ${serverIdx}`,
     transportType: 'stdio' as const,
-    lastError: null,
+    status: 'connected' as const,
+    error: null,
+    uptime: 1000,
+    lastStarted: '2025-01-08T11:00:00.000Z',
+    authorizationUrl: null,
+    serverInfo: { name: `server_${serverIdx}`, version: '1.0.0' },
+    config_source: 'test',
     capabilities: {
       tools: Array.from({ length: 10 }, (_, toolIdx) => ({
         name: `server${serverIdx}_tool${toolIdx}`,
@@ -87,14 +109,14 @@ const MEDIUM_RESPONSE = {
         },
       })),
       resources: Array.from({ length: 5 }, (_, resIdx) => ({
-        uri: `resource://server${serverIdx}/resource${resIdx}`,
         name: `Resource ${resIdx}`,
+        uri: `resource://server${serverIdx}/resource${resIdx}`,
         mimeType: 'application/json',
       })),
       resourceTemplates: [
         {
-          uriTemplate: `resource://server${serverIdx}/{path}`,
           name: 'Resource Template',
+          uriTemplate: `resource://server${serverIdx}/{path}`,
         },
       ],
       prompts: Array.from({ length: 3 }, (_, promptIdx) => ({
@@ -114,15 +136,23 @@ const MEDIUM_RESPONSE = {
  */
 const LARGE_RESPONSE = {
   status: 'ok' as const,
-  timestamp: '2025-01-08T12:00:00Z',
-  totalServers: 25,
-  connectedServers: 25,
+  state: 'ready' as const,
+  server_id: 'test-hub',
+  version: '1.0.0',
+  activeClients: 0,
+  timestamp: '2025-01-08T12:00:00.000Z',
   servers: Array.from({ length: 25 }, (_, serverIdx) => ({
-    serverName: `server_${serverIdx}`,
-    enabled: true,
-    connectionState: 'connected' as const,
+    name: `server_${serverIdx}`,
+    displayName: `Server ${serverIdx}`,
+    description: `Test server ${serverIdx}`,
     transportType: 'stdio' as const,
-    lastError: null,
+    status: 'connected' as const,
+    error: null,
+    uptime: 1000,
+    lastStarted: '2025-01-08T11:00:00.000Z',
+    authorizationUrl: null,
+    serverInfo: { name: `server_${serverIdx}`, version: '1.0.0' },
+    config_source: 'test',
     capabilities: {
       tools: Array.from({ length: 10 }, (_, toolIdx) => ({
         name: `server${serverIdx}_tool${toolIdx}`,
@@ -138,14 +168,14 @@ const LARGE_RESPONSE = {
         },
       })),
       resources: Array.from({ length: 10 }, (_, resIdx) => ({
-        uri: `resource://server${serverIdx}/resource${resIdx}`,
         name: `Resource ${resIdx}`,
+        uri: `resource://server${serverIdx}/resource${resIdx}`,
         mimeType: 'application/json',
         description: `Resource description ${resIdx}`,
       })),
       resourceTemplates: Array.from({ length: 5 }, (_, templateIdx) => ({
-        uriTemplate: `resource://server${serverIdx}/template${templateIdx}/{path}`,
         name: `Template ${templateIdx}`,
+        uriTemplate: `resource://server${serverIdx}/template${templateIdx}/{path}`,
         mimeType: 'application/json',
       })),
       prompts: Array.from({ length: 5 }, (_, promptIdx) => ({

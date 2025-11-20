@@ -115,7 +115,7 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
         choices: [
           {
             message: {
-              content: 'filesystem'
+              content: JSON.stringify({ category: 'filesystem', confidence: 0.95 })
             }
           }
         ],
@@ -135,14 +135,15 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
           expect.objectContaining({ role: 'user' })
         ]),
         temperature: 0,
-        max_tokens: 20
+        max_tokens: 150,
+        response_format: { type: 'json_object' }
       });
     });
 
     it('should use specified model or default to gpt-4o-mini', async () => {
       // ARRANGE: Mock API response
       mockCreate.mockResolvedValueOnce({
-        choices: [{ message: { content: 'web' } }],
+        choices: [{ message: { content: JSON.stringify({ category: 'web', confidence: 0.9 }) } }],
         id: 'chatcmpl-test',
         object: 'chat.completion'
       });
@@ -166,7 +167,7 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
       });
 
       mockCreate.mockResolvedValueOnce({
-        choices: [{ message: { content: 'web' } }],
+        choices: [{ message: { content: JSON.stringify({ category: 'web', confidence: 0.9 }) } }],
         id: 'chatcmpl-test',
         object: 'chat.completion'
       });
@@ -188,7 +189,7 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
         choices: [
           {
             message: {
-              content: 'invalid_category'
+              content: JSON.stringify({ category: 'invalid_category', confidence: 0.5 })
             }
           }
         ],
@@ -234,15 +235,15 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
       expect(prompt).toContain('filesystem__read');
       expect(prompt).toContain('Test tool for categorization');
       expect(prompt).toContain('filesystem, web, database, search, other');
-      expect(prompt).toContain('Respond with ONLY the category name');
+      expect(prompt).toContain('Respond with ONLY a JSON object');
     });
 
     it('should handle missing tool description', () => {
       // ACT: Build prompt with empty tool definition
       const prompt = provider._buildPrompt('test_tool', {}, validCategories);
 
-      // ASSERT: Verify N/A placeholder for missing description
-      expect(prompt).toContain('Description: N/A');
+      // ASSERT: Verify placeholder for missing description
+      expect(prompt).toContain('No description provided');
     });
   });
 
@@ -281,7 +282,7 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
     });
 
     it('should successfully categorize tool with valid response', async () => {
-      // ARRANGE: Mock valid Anthropic API response
+      // ARRANGE: Mock valid Anthropic API response (plain text, not JSON)
       mockCreate.mockResolvedValueOnce({
         content: [
           {
@@ -312,7 +313,7 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
     });
 
     it('should use specified model or default to claude-3-haiku', async () => {
-      // ARRANGE: Mock API response
+      // ARRANGE: Mock API response (plain text, not JSON)
       mockCreate.mockResolvedValueOnce({
         content: [{ text: 'web' }],
         id: 'msg-test',
@@ -332,7 +333,7 @@ describe('LLMProvider - Sprint 3.1.1: Provider Abstraction', () => {
     });
 
     it('should default to other for invalid category response', async () => {
-      // ARRANGE: Mock API response with invalid category
+      // ARRANGE: Mock API response with invalid category (plain text, not JSON)
       mockCreate.mockResolvedValueOnce({
         content: [{ text: 'random_category' }],
         id: 'msg-test',

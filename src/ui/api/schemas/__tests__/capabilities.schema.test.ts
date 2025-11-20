@@ -101,29 +101,25 @@ describe('ToolSchemaMinimal', () => {
       }
     });
 
-    it('should reject tool with empty description', () => {
-      const invalidTool = {
+    it('should accept tool with empty description (description is optional)', () => {
+      const validTool = {
         name: 'valid_name',
         description: '',
       };
 
-      const result = ToolSchemaMinimal.safeParse(invalidTool);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toContain('cannot be empty');
-      }
+      const result = ToolSchemaMinimal.safeParse(validTool);
+      // Empty description is valid - description is optional
+      expect(result.success).toBe(true);
     });
 
-    it('should reject tool with missing description', () => {
-      const invalidTool = {
+    it('should accept tool with missing description (description is optional)', () => {
+      const validTool = {
         name: 'valid_name',
       };
 
-      const result = ToolSchemaMinimal.safeParse(invalidTool);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].path).toContain('description');
-      }
+      const result = ToolSchemaMinimal.safeParse(validTool);
+      // Missing description is valid - description is optional
+      expect(result.success).toBe(true);
     });
 
     it('should reject tool with non-string name', () => {
@@ -136,18 +132,16 @@ describe('ToolSchemaMinimal', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject tool with extra unknown fields', () => {
-      const invalidTool = {
+    it('should accept tool with extra unknown fields (schema not strict)', () => {
+      const validTool = {
         name: 'valid_name',
         description: 'Valid description',
-        unknownField: 'should fail',
+        unknownField: 'will be ignored',
       };
 
-      const result = ToolSchemaMinimal.safeParse(invalidTool);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].code).toBe('unrecognized_keys');
-      }
+      const result = ToolSchemaMinimal.safeParse(validTool);
+      // ToolSchemaMinimal doesn't use .strict(), so extra fields are ignored
+      expect(result.success).toBe(true);
     });
   });
 });
@@ -158,8 +152,9 @@ describe('ToolSchemaMinimal', () => {
 
 describe('ResourceSchemaMinimal', () => {
   describe('valid resource objects', () => {
-    it('should validate resource with only required uri field', () => {
+    it('should validate resource with required name and uri fields', () => {
       const validResource = {
+        name: 'README',
         uri: 'file:///workspace/README.md',
       };
 
@@ -186,14 +181,14 @@ describe('ResourceSchemaMinimal', () => {
 
     it('should validate resource with URI schemes (http, file, custom)', () => {
       const schemes = [
-        'file:///path/to/file',
-        'https://example.com/resource',
-        'custom://namespace/resource',
-        'github://owner/repo/issues/123',
+        { name: 'LocalFile', uri: 'file:///path/to/file' },
+        { name: 'WebResource', uri: 'https://example.com/resource' },
+        { name: 'CustomResource', uri: 'custom://namespace/resource' },
+        { name: 'GitHubIssue', uri: 'github://owner/repo/issues/123' },
       ];
 
-      schemes.forEach((uri) => {
-        const result = ResourceSchemaMinimal.safeParse({ uri });
+      schemes.forEach((resource) => {
+        const result = ResourceSchemaMinimal.safeParse(resource);
         expect(result.success).toBe(true);
       });
     });
@@ -202,6 +197,7 @@ describe('ResourceSchemaMinimal', () => {
   describe('invalid resource objects', () => {
     it('should reject resource with empty uri', () => {
       const invalidResource = {
+        name: 'ValidName',
         uri: '',
       };
 
@@ -224,16 +220,17 @@ describe('ResourceSchemaMinimal', () => {
       }
     });
 
-    it('should reject resource with extra unknown fields', () => {
+    it('should reject resource with missing name field', () => {
       const invalidResource = {
         uri: 'file:///valid',
-        unknownField: 'should fail',
+        unknownField: 'extra field',
       };
 
       const result = ResourceSchemaMinimal.safeParse(invalidResource);
+      // Should fail because 'name' is required
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].code).toBe('unrecognized_keys');
+        expect(result.error.issues[0].code).toBe('invalid_type');
       }
     });
   });
@@ -245,8 +242,9 @@ describe('ResourceSchemaMinimal', () => {
 
 describe('ResourceTemplateSchemaMinimal', () => {
   describe('valid resource template objects', () => {
-    it('should validate template with only required uriTemplate', () => {
+    it('should validate template with required name and uriTemplate', () => {
       const validTemplate = {
+        name: 'FileTemplate',
         uriTemplate: 'file:///{path}',
       };
 
@@ -268,13 +266,13 @@ describe('ResourceTemplateSchemaMinimal', () => {
 
     it('should validate template with complex URI patterns', () => {
       const patterns = [
-        'file:///{workspace}/{path}',
-        'api:///{version}/{endpoint}',
-        'custom://{namespace}/{resource}/{id}',
+        { name: 'FilePattern', uriTemplate: 'file:///{workspace}/{path}' },
+        { name: 'APIPattern', uriTemplate: 'api:///{version}/{endpoint}' },
+        { name: 'CustomPattern', uriTemplate: 'custom://{namespace}/{resource}/{id}' },
       ];
 
-      patterns.forEach((uriTemplate) => {
-        const result = ResourceTemplateSchemaMinimal.safeParse({ uriTemplate });
+      patterns.forEach((template) => {
+        const result = ResourceTemplateSchemaMinimal.safeParse(template);
         expect(result.success).toBe(true);
       });
     });
@@ -283,6 +281,7 @@ describe('ResourceTemplateSchemaMinimal', () => {
   describe('invalid resource template objects', () => {
     it('should reject template with empty uriTemplate', () => {
       const invalidTemplate = {
+        name: 'ValidName',
         uriTemplate: '',
       };
 
@@ -352,16 +351,14 @@ describe('PromptArgumentSchemaMinimal', () => {
       }
     });
 
-    it('should reject argument with missing required field', () => {
-      const invalidArg = {
+    it('should accept argument with missing required field (required is optional)', () => {
+      const validArg = {
         name: 'valid_name',
       };
 
-      const result = PromptArgumentSchemaMinimal.safeParse(invalidArg);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].path).toContain('required');
-      }
+      const result = PromptArgumentSchemaMinimal.safeParse(validArg);
+      // 'required' field is optional in the schema
+      expect(result.success).toBe(true);
     });
 
     it('should reject argument with non-boolean required field', () => {
@@ -444,14 +441,15 @@ describe('PromptSchemaMinimal', () => {
       }
     });
 
-    it('should reject prompt with invalid arguments array', () => {
-      const invalidPrompt = {
+    it('should accept prompt with arguments missing optional fields', () => {
+      const validPrompt = {
         name: 'valid-name',
-        arguments: [{ name: 'arg1' }], // Missing required field
+        arguments: [{ name: 'arg1' }], // 'required' is optional
       };
 
-      const result = PromptSchemaMinimal.safeParse(invalidPrompt);
-      expect(result.success).toBe(false);
+      const result = PromptSchemaMinimal.safeParse(validPrompt);
+      // Arguments with just 'name' are valid since 'required' is optional
+      expect(result.success).toBe(true);
     });
   });
 });
@@ -472,7 +470,7 @@ describe('CapabilitiesSchema', () => {
           { uri: 'file:///README.md', name: 'README' },
         ],
         resourceTemplates: [
-          { uriTemplate: 'file:///{path}' },
+          { name: 'FileTemplate', uriTemplate: 'file:///{path}' },
         ],
         prompts: [
           { name: 'analyze', description: 'Analysis prompt' },

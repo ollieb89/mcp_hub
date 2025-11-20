@@ -32,34 +32,32 @@ vi.mock('../src/utils/logger.js', () => ({
 
 // Mock LLM provider for predictable testing
 vi.mock('../src/utils/llm-provider.js', () => ({
-  LLMProviderFactory: {
-    create: vi.fn((config) => ({
-      analyzePromptWithFallback: vi.fn(async (prompt, context, validCategories) => {
-        // Predictable category detection based on prompt keywords
-        const lowerPrompt = prompt.toLowerCase();
-        const detectedCategories = [];
+  createLLMProvider: vi.fn((config) => ({
+    analyzePromptWithFallback: vi.fn(async (prompt, context, validCategories) => {
+      // Predictable category detection based on prompt keywords
+      const lowerPrompt = prompt.toLowerCase();
+      const detectedCategories = [];
 
-        if (lowerPrompt.includes('github') || lowerPrompt.includes('pr') || lowerPrompt.includes('repo')) {
-          detectedCategories.push('github');
-        }
-        if (lowerPrompt.includes('file') || lowerPrompt.includes('read') || lowerPrompt.includes('write') || lowerPrompt.includes('config')) {
-          detectedCategories.push('filesystem');
-        }
-        if (lowerPrompt.includes('web') || lowerPrompt.includes('search') || lowerPrompt.includes('fetch') || lowerPrompt.includes('docs') || lowerPrompt.includes('documentation')) {
-          detectedCategories.push('web');
-        }
-        if (lowerPrompt.includes('docker') || lowerPrompt.includes('container')) {
-          detectedCategories.push('docker');
-        }
+      if (lowerPrompt.includes('github') || lowerPrompt.includes('pr') || lowerPrompt.includes('repo')) {
+        detectedCategories.push('github');
+      }
+      if (lowerPrompt.includes('file') || lowerPrompt.includes('read') || lowerPrompt.includes('write') || lowerPrompt.includes('config')) {
+        detectedCategories.push('filesystem');
+      }
+      if (lowerPrompt.includes('web') || lowerPrompt.includes('search') || lowerPrompt.includes('fetch') || lowerPrompt.includes('docs') || lowerPrompt.includes('documentation')) {
+        detectedCategories.push('web');
+      }
+      if (lowerPrompt.includes('docker') || lowerPrompt.includes('container')) {
+        detectedCategories.push('docker');
+      }
 
-        return {
-          categories: detectedCategories,
-          confidence: 0.95,
-          reasoning: `Detected categories: ${detectedCategories.join(', ')}`,
-        };
-      }),
-    })),
-  },
+      return {
+        categories: detectedCategories,
+        confidence: 0.95,
+        reasoning: `Detected categories: ${detectedCategories.join(', ')}`,
+      };
+    }),
+  })),
 }));
 
 describe('Prompt-Based Filtering Integration Tests', () => {
@@ -222,7 +220,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
   });
 
   describe('analyze_prompt Workflow', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       // Configure prompt-based filtering for workflow tests
       mcpHub.configManager = {
         getConfig: () => ({
@@ -244,11 +242,17 @@ describe('Prompt-Based Filtering Integration Tests', () => {
           },
         }),
       };
+
+      // Create endpoint and wait for LLM initialization
+      endpoint = new MCPServerEndpoint(mcpHub);
+      if (endpoint.filteringService) {
+        await endpoint.filteringService.waitForInitialization();
+      }
     });
 
     it('should detect github category from GitHub-related prompt', async () => {
       // ARRANGE: Create endpoint and initialize session
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-session-github';
       initializeSession(endpoint, sessionId);
 
@@ -266,7 +270,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
 
     it('should detect filesystem category from file operation prompt', async () => {
       // ARRANGE: Create endpoint and initialize session
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-session-files';
       initializeSession(endpoint, sessionId);
 
@@ -283,7 +287,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
 
     it('should detect multiple categories from complex prompt', async () => {
       // ARRANGE: Create endpoint and initialize session
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-session-multi';
       initializeSession(endpoint, sessionId);
 
@@ -303,7 +307,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
 
     it('should handle meta category for analyze_prompt itself', async () => {
       // ARRANGE: Create endpoint and initialize session
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-session-meta';
       const session = initializeSession(endpoint, sessionId);
 
@@ -314,7 +318,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
   });
 
   describe('Session Isolation', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       mcpHub.configManager = {
         getConfig: () => ({
           toolFiltering: {
@@ -333,11 +337,17 @@ describe('Prompt-Based Filtering Integration Tests', () => {
           },
         }),
       };
+
+      // Create endpoint and wait for LLM initialization
+      endpoint = new MCPServerEndpoint(mcpHub);
+      if (endpoint.filteringService) {
+        await endpoint.filteringService.waitForInitialization();
+      }
     });
 
     it('should maintain separate tool exposure for different sessions', async () => {
       // ARRANGE: Create endpoint and two sessions
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const session1 = 'client-1';
       const session2 = 'client-2';
       initializeSession(endpoint, session1);
@@ -360,7 +370,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
 
     it('should allow concurrent analyze_prompt calls from multiple clients', async () => {
       // ARRANGE: Create endpoint and initialize sessions
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       ['session-1', 'session-2', 'session-3'].forEach(sid => initializeSession(endpoint, sid));
 
       // ACT: Simulate concurrent analyze_prompt calls
@@ -383,7 +393,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
   });
 
   describe('Additive Mode', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       mcpHub.configManager = {
         getConfig: () => ({
           toolFiltering: {
@@ -402,11 +412,17 @@ describe('Prompt-Based Filtering Integration Tests', () => {
           },
         }),
       };
+
+      // Create endpoint and wait for LLM initialization
+      endpoint = new MCPServerEndpoint(mcpHub);
+      if (endpoint.filteringService) {
+        await endpoint.filteringService.waitForInitialization();
+      }
     });
 
     it('should accumulate categories across multiple analyze_prompt calls', async () => {
       // ARRANGE: Create endpoint and initialize session
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-additive';
       initializeSession(endpoint, sessionId);
 
@@ -425,7 +441,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
 
     it('should not remove categories once exposed', async () => {
       // ARRANGE: Create endpoint and initialize session
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-persistent';
       initializeSession(endpoint, sessionId);
 
@@ -445,7 +461,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
   });
 
   describe('tools/list Filtering', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       mcpHub.configManager = {
         getConfig: () => ({
           toolFiltering: {
@@ -464,11 +480,17 @@ describe('Prompt-Based Filtering Integration Tests', () => {
           },
         }),
       };
+
+      // Create endpoint and wait for LLM initialization
+      endpoint = new MCPServerEndpoint(mcpHub);
+      if (endpoint.filteringService) {
+        await endpoint.filteringService.waitForInitialization();
+      }
     });
 
     it('should return empty tool list before analyze_prompt', () => {
       // ARRANGE: Create endpoint and initialize session
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-empty';
       const session = initializeSession(endpoint, sessionId);
 
@@ -481,7 +503,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
 
     it('should return only github tools after github category exposed', async () => {
       // ARRANGE: Create endpoint, initialize session, expose github
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-github-only';
       initializeSession(endpoint, sessionId);
       await callAnalyzePrompt(endpoint, sessionId, 'List GitHub repos');
@@ -491,7 +513,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
       const exposedTools = endpoint.filterToolsBySessionCategories(session);
 
       // ASSERT: Only github tools exposed
-      const toolNames = exposedTools.map(t => t.namespacedName);
+      const toolNames = exposedTools.map(t => t.definition.name);
       expect(toolNames).toEqual(expect.arrayContaining([
         'github__create_pr',
         'github__list_repos',
@@ -503,7 +525,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
 
     it('should return tools from multiple categories after multi-category prompt', async () => {
       // ARRANGE: Create endpoint, initialize session, expose multiple categories
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-multi-category';
       initializeSession(endpoint, sessionId);
       await callAnalyzePrompt(endpoint, sessionId, 'Check GitHub repos and read config files');
@@ -513,7 +535,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
       const exposedTools = endpoint.filterToolsBySessionCategories(session);
 
       // ASSERT: Tools from both categories
-      const toolNames = exposedTools.map(t => t.namespacedName);
+      const toolNames = exposedTools.map(t => t.definition.name);
 
       // Should have github tools
       expect(toolNames.some(name => name.startsWith('github__'))).toBe(true);
@@ -528,7 +550,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       mcpHub.configManager = {
         getConfig: () => ({
           toolFiltering: {
@@ -547,11 +569,17 @@ describe('Prompt-Based Filtering Integration Tests', () => {
           },
         }),
       };
+
+      // Create endpoint and wait for LLM initialization
+      endpoint = new MCPServerEndpoint(mcpHub);
+      if (endpoint.filteringService) {
+        await endpoint.filteringService.waitForInitialization();
+      }
     });
 
     it('should handle empty prompt gracefully', async () => {
       // ARRANGE: Create endpoint and initialize session
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-empty-prompt';
       initializeSession(endpoint, sessionId);
 
@@ -566,7 +594,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
   });
 
   describe('Performance', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       mcpHub.configManager = {
         getConfig: () => ({
           toolFiltering: {
@@ -585,11 +613,17 @@ describe('Prompt-Based Filtering Integration Tests', () => {
           },
         }),
       };
+
+      // Create endpoint and wait for LLM initialization
+      endpoint = new MCPServerEndpoint(mcpHub);
+      if (endpoint.filteringService) {
+        await endpoint.filteringService.waitForInitialization();
+      }
     });
 
     it('should complete analyze_prompt within 500ms', async () => {
       // ARRANGE: Create endpoint and initialize session
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-perf';
       initializeSession(endpoint, sessionId);
 
@@ -604,7 +638,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
 
     it('should handle 10 concurrent sessions efficiently', async () => {
       // ARRANGE: Create endpoint and initialize 10 sessions
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionIds = Array.from({ length: 10 }, (_, i) => `session-${i}`);
       sessionIds.forEach(sid => initializeSession(endpoint, sid));
 
@@ -631,7 +665,7 @@ describe('Prompt-Based Filtering Integration Tests', () => {
         });
       }
 
-      endpoint = new MCPServerEndpoint(mcpHub);
+      // endpoint = new MCPServerEndpoint(mcpHub); // Already created in beforeEach
       const sessionId = 'test-many-tools';
       initializeSession(endpoint, sessionId);
       await callAnalyzePrompt(endpoint, sessionId, 'File operations');

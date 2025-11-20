@@ -40,6 +40,9 @@ if pgrep -f "bun.*mcp-hub" > /dev/null || pgrep -f "node.*mcp-hub" > /dev/null; 
   exit 1
 fi
 
+# Create logs directory if it doesn't exist
+mkdir -p logs
+
 # Start MCP Hub in background
 echo -n "Starting MCP Hub service... "
 nohup bun start > logs/mcp-hub-output.log 2>&1 &

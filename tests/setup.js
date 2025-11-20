@@ -3,9 +3,11 @@
  *
  * This file is executed before all tests via Vitest setupFiles config.
  * It imports helpers globally (if desired) and performs global test setup.
+ * 
+ * NOTE: UI tests with DOM requirements run separately via Node.js vitest (see test:ui script).
+ * This setup is for backend tests only (Bun vitest, no DOM).
  */
 
-import '@testing-library/jest-dom/vitest';
 import { afterEach } from 'vitest';
 import { vi } from 'vitest';
 
@@ -25,9 +27,10 @@ vi.mock('openai', () => {
   // Minimal mock of the OpenAI SDK surface used by providers
   const createChatCompletion = vi.fn(async (opts) => {
     // Default behavior returns a minimal shape; tests override this mock
+    // Return JSON format expected by the implementation
     return {
       id: 'mock-openai-1',
-      choices: [{ message: { content: 'other' } }],
+      choices: [{ message: { content: JSON.stringify({ category: 'other', confidence: 0.8 }) } }],
     };
   });
 
@@ -48,7 +51,11 @@ vi.mock('openai', () => {
 vi.mock('@anthropic-ai/sdk', () => {
   // Minimal mock of the Anthropic SDK surface used by providers
   const createMessage = vi.fn(async (opts) => {
-    return { id: 'mock-anthropic-1', completion: 'other' };
+    // Anthropic provider expects plain text, not JSON
+    return {
+      id: 'mock-anthropic-1',
+      content: [{ text: 'other' }]
+    };
   });
 
   class Anthropic {

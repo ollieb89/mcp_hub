@@ -1,0 +1,452 @@
+name: Enhanced CI Pipeline with Quality Gates
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  BUN_VERSION: '1.3.1'
+
+jobs:
+  # ==========================================
+  # Quality Gate 1: Lint & Format
+  # ==========================================
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run ESLint
+        run: bun run lint
+        continue-on-error: false
+
+  # ==========================================
+  # Quality Gate 2: Baseline Tests (CRITICAL)
+  # ==========================================
+  baseline-tests:
+    name: Baseline Tests (273 tests - MUST PASS)
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run baseline tests
+        id: baseline
+        run: |
+          bun run test:baseline > baseline-results.txt 2>&1
+          RESULT=$?
+          cat baseline-results.txt
+          exit $RESULT
+
+      - name: Upload baseline test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-test-results
+          path: baseline-results.txt
+          retention-days: 7
+
+      - name: ❌ FAIL - Baseline Tests Failed
+        if: failure()
+        run: |
+          echo "::error::🚨 CRITICAL: Baseline tests failed! These are core functionality tests that MUST pass."
+          echo "::error::Review baseline-results.txt artifact for details."
+          exit 1
+
+  # ==========================================
+  # Quality Gate 3: Feature Tests (80%+ target)
+  # ==========================================
+  feature-tests:
+    name: Feature Tests (498 tests - 80%+ target)
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run feature tests
+        id: features
+        run: |
+          bun run test:features --reporter=json > feature-results.json 2>&1
+          bun run test:features --reporter=verbose > feature-results.txt 2>&1
+          RESULT=$?
+          cat feature-results.txt
+
+          # Calculate pass rate
+          PASSED=$(jq '[.testResults[].assertionResults[] | select(.status=="passed")] | length' feature-results.json || echo "0")
+          TOTAL=$(jq '[.testResults[].assertionResults[]] | length' feature-results.json || echo "1")
+          PASS_RATE=$(echo "scale=2; ($PASSED / $TOTAL) * 100" | bc)
+
+          echo "PASS_RATE=$PASS_RATE" >> $GITHUB_OUTPUT
+          echo "PASSED=$PASSED" >> $GITHUB_OUTPUT
+          echo "TOTAL=$TOTAL" >> $GITHUB_OUTPUT
+
+          # Allow failure but record results
+          exit 0
+
+      - name: Upload feature test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feature-test-results
+          path: |
+            feature-results.txt
+            feature-results.json
+          retention-days: 7
+
+      - name: ⚠️ WARNING - Feature Tests Below 80%
+        if: steps.features.outputs.PASS_RATE < 80
+        run: |
+          echo "::warning::Feature test pass rate: ${{ steps.features.outputs.PASS_RATE }}% (target: 80%+)"
+          echo "::warning::Passed: ${{ steps.features.outputs.PASSED }}/${{ steps.features.outputs.TOTAL }} tests"
+          echo "This is a warning, not a failure. Review feature-results.txt for details."
+
+      - name: ✅ SUCCESS - Feature Tests Meet Target
+        if: steps.features.outputs.PASS_RATE >= 80
+        run: |
+          echo "✅ Feature test pass rate: ${{ steps.features.outputs.PASS_RATE }}% (target: 80%+)"
+          echo "✅ Passed: ${{ steps.features.outputs.PASSED }}/${{ steps.features.outputs.TOTAL }} tests"
+
+  # ==========================================
+  # Quality Gate 4: Test Coverage
+  # ==========================================
+  coverage:
+    name: Code Coverage (80%+ branches)
+    runs-on: ubuntu-latest
+    needs: [baseline-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run tests with coverage
+        run: bun run test:coverage
+
+      - name: Check coverage thresholds
+        run: |
+          BRANCHES=$(jq '.total.branches.pct' coverage/coverage-summary.json)
+          echo "Branch coverage: ${BRANCHES}%"
+
+          if (( $(echo "$BRANCHES < 80" | bc -l) )); then
+            echo "::error::Branch coverage ${BRANCHES}% is below 80% threshold"
+            exit 1
+          else
+            echo "✅ Branch coverage ${BRANCHES}% meets 80% threshold"
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+      - name: Upload coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # ==========================================
+  # Quality Gate 5: Security Scanning
+  # ==========================================
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ==========================================
+  # Quality Gate 6: Build Validation
+  # ==========================================
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: [baseline-tests, coverage, security]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build package
+        run: bun run build
+
+      - name: Verify build output
+        run: |
+          if [ ! -f "dist/cli.js" ]; then
+            echo "::error::Build failed - dist/cli.js not found"
+            exit 1
+          fi
+          echo "✅ Build output verified: dist/cli.js exists"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ==========================================
+  # Quality Gate 7: ML Tool Filtering Validation
+  # ==========================================
+  ml-filtering-validation:
+    name: ML Tool Filtering Validation
+    runs-on: ubuntu-latest
+    needs: [baseline-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run tool filtering tests
+        run: |
+          bun test tests/tool-filtering*.test.js --reporter=verbose
+          bun test tests/task-3-*.test.js --reporter=verbose
+          bun test tests/prompt-based*.test.js --reporter=verbose
+
+      - name: Validate tool discovery script
+        run: |
+          node scripts/tool-discovery.js --mode validate || exit 1
+          echo "✅ Tool discovery script validated"
+
+  # ==========================================
+  # Quality Gate 8: Monitoring System Validation
+  # ==========================================
+  monitoring-validation:
+    name: Monitoring System Validation
+    runs-on: ubuntu-latest
+    needs: [baseline-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Validate monitoring scripts
+        run: |
+          # Check monitoring scripts exist and are executable
+          test -x scripts/monitor-production.sh || exit 1
+          test -x scripts/check-alerts.sh || exit 1
+          test -x scripts/measure-performance.sh || exit 1
+          test -x scripts/monitoring/phase1-validation.sh || exit 1
+          test -x scripts/monitoring/detect-anomalies.sh || exit 1
+          test -x scripts/monitoring/daily-summary.sh || exit 1
+          echo "✅ All monitoring scripts validated"
+
+      - name: Validate alert configuration
+        run: |
+          # Validate config/alerts.json exists and is valid JSON
+          test -f config/alerts.json || exit 1
+          jq empty config/alerts.json || exit 1
+          echo "✅ Alert configuration validated"
+
+      - name: Run monitoring tests
+        run: |
+          bun test tests/event-batcher.test.js --reporter=verbose
+          bun test tests/background-queue.test.js --reporter=verbose
+
+  # ==========================================
+  # Quality Gate 9: Performance Regression
+  # ==========================================
+  performance-regression:
+    name: Performance Regression Check
+    runs-on: ubuntu-latest
+    needs: [baseline-tests]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run benchmark tests
+        run: |
+          bun test tests/tool-filtering.benchmark.test.js --reporter=verbose
+          echo "✅ Benchmark tests passed"
+
+      - name: Performance regression check
+        run: |
+          # Check if performance regression check script exists
+          if [ -f "scripts/performance-regression-check.sh" ]; then
+            bash scripts/performance-regression-check.sh || echo "::warning::Performance regression detected"
+          else
+            echo "::notice::Performance regression check script not found, skipping"
+          fi
+
+  # ==========================================
+  # Quality Gate 10: Integration Summary
+  # ==========================================
+  ci-summary:
+    name: CI Quality Gates Summary
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - baseline-tests
+      - feature-tests
+      - coverage
+      - security
+      - build
+      - ml-filtering-validation
+      - monitoring-validation
+    if: always()
+    steps:
+      - name: Quality Gates Summary
+        run: |
+          echo "========================================="
+          echo "CI Quality Gates Summary"
+          echo "========================================="
+          echo ""
+          echo "✅ Quality Gate 1: Lint & Format - ${{ needs.lint.result }}"
+          echo "✅ Quality Gate 2: Baseline Tests - ${{ needs.baseline-tests.result }}"
+          echo "✅ Quality Gate 3: Feature Tests - ${{ needs.feature-tests.result }}"
+          echo "✅ Quality Gate 4: Coverage - ${{ needs.coverage.result }}"
+          echo "✅ Quality Gate 5: Security - ${{ needs.security.result }}"
+          echo "✅ Quality Gate 6: Build - ${{ needs.build.result }}"
+          echo "✅ Quality Gate 7: ML Filtering - ${{ needs.ml-filtering-validation.result }}"
+          echo "✅ Quality Gate 8: Monitoring - ${{ needs.monitoring-validation.result }}"
+          echo ""
+          echo "========================================="
+
+      - name: Check Critical Gates
+        run: |
+          if [ "${{ needs.baseline-tests.result }}" != "success" ]; then
+            echo "::error::🚨 CRITICAL: Baseline tests failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.coverage.result }}" != "success" ]; then
+            echo "::error::🚨 CRITICAL: Coverage below threshold"
+            exit 1
+          fi
+
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "::error::🚨 CRITICAL: Build failed"
+            exit 1
+          fi
+
+          echo "✅ All critical quality gates passed"
+
+  # ==========================================
+  # Release (Only on main branch)
+  # ==========================================
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [ci-summary]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "dist/*"
+          generateReleaseNotes: true
+          makeLatest: true

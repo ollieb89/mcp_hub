@@ -4,8 +4,18 @@ import path from "path";
 export default defineConfig({
   test: {
     globals: true,
+    // Backend tests use node environment (no DOM needed)
+    // UI tests run separately via Node.js vitest (see test:ui script)
     environment: "node",
     include: ["tests/**/*.test.js"],
+    exclude: [
+      "src/ui/**",
+      "tests/ui/**",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/cypress/**",
+      "**/.{idea,git,cache,output,temp}/**"
+    ],
     setupFiles: ["./tests/setup.js"],
     // Resource-efficient defaults: sequential execution to minimize system load
     // Override with --no-file-parallelism=false for faster parallel execution

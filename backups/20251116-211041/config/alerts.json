@@ -1,0 +1,12 @@
+{
+  "critical": {
+    "llm_success_rate": 0.90,
+    "circuit_breaker_state": "open"
+  },
+  "warning": {
+    "llm_success_rate": 0.95,
+    "p95_latency": 2000,
+    "queue_depth": 50,
+    "cache_hit_rate": 0.80
+  }
+}
