@@ -6,6 +6,7 @@
  */
 
 import '@testing-library/jest-dom/vitest';
+import './setup-msw.js';
 import { afterEach } from 'vitest';
 import { vi } from 'vitest';
 

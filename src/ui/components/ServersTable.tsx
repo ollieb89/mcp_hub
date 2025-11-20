@@ -155,12 +155,14 @@ const ServersTable = ({
                       checked={enabled}
                       onChange={(event) => onToggle(server, event.target.checked)}
                       inputProps={{ "aria-label": `Toggle ${server.name}` }}
+                      data-testid={`toggle-${server.name}`}
                     />
                   </TableCell>
                   <TableCell align="right">
                     <Tooltip title="Restart server">
                       <span>
                         <IconButton
+                          aria-label="Restart server"
                           size="small"
                           onClick={() => onRestart(server)}
                           disabled={server.status !== "connected"}

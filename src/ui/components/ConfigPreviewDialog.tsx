@@ -112,10 +112,10 @@ const ConfigPreviewDialog = ({
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="lg" fullWidth>
       <DialogTitle>
-        <Typography variant="h6" fontWeight={600}>
+        <Typography variant="h6" component="div" fontWeight={600}>
           Review Configuration Changes
         </Typography>
-        <Typography variant="body2" color="text.secondary" mt={0.5}>
+        <Typography variant="body2" component="div" color="text.secondary" mt={0.5}>
           Review the changes below before applying them to your configuration.
         </Typography>
       </DialogTitle>

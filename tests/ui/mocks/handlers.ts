@@ -9,10 +9,52 @@ import { http, HttpResponse } from 'msw';
  * Can be overridden in individual tests using server.use()
  */
 export const mockHealthData = {
+  status: 'ok' as const,
   state: 'ready' as const,
+  server_id: 'test-hub-id',
+  version: '1.0.0',
   activeClients: 2,
-  servers: ['filesystem', 'github'],
   timestamp: new Date().toISOString(),
+  servers: [
+    {
+      name: 'filesystem',
+      displayName: 'File System',
+      description: 'File System Server',
+      transportType: 'stdio',
+      status: 'connected',
+      error: null,
+      capabilities: {
+        tools: [],
+        resources: [],
+        resourceTemplates: [],
+        prompts: []
+      },
+      uptime: 100,
+      lastStarted: new Date().toISOString(),
+      authorizationUrl: null,
+      serverInfo: { name: 'filesystem', version: '1.0.0' },
+      config_source: 'config.json'
+    },
+    {
+      name: 'github',
+      displayName: 'GitHub',
+      description: 'GitHub Server',
+      transportType: 'stdio',
+      status: 'connected',
+      error: null,
+      capabilities: {
+        tools: [],
+        resources: [],
+        resourceTemplates: [],
+        prompts: []
+      },
+      uptime: 200,
+      lastStarted: new Date().toISOString(),
+      authorizationUrl: null,
+      serverInfo: { name: 'github', version: '1.0.0' },
+      config_source: 'config.json'
+    }
+  ],
 };
 
 export const mockServersData = [
@@ -157,19 +199,23 @@ export const handlers = [
     return HttpResponse.json(mockServersData);
   }),
 
-  http.post('/api/servers/:name/start', async ({ params }) => {
+  http.post('/api/servers/start', async ({ request }) => {
+    const body = (await request.json()) as { server_name: string };
     return HttpResponse.json({
+      success: true,
       status: 'ok',
-      server: params.name,
-      message: `Server ${params.name} started successfully`,
+      server: body.server_name,
+      message: `Server ${body.server_name} started successfully`,
     });
   }),
 
-  http.post('/api/servers/:name/stop', async ({ params }) => {
+  http.post('/api/servers/stop', async ({ request }) => {
+    const body = (await request.json()) as { server_name: string };
     return HttpResponse.json({
+      success: true,
       status: 'ok',
-      server: params.name,
-      message: `Server ${params.name} stopped successfully`,
+      server: body.server_name,
+      message: `Server ${body.server_name} stopped successfully`,
     });
   }),
 
@@ -200,6 +246,7 @@ export const handlers = [
 
     // Success response with new version
     return HttpResponse.json({
+      status: 'ok',
       config: body.config,
       version: 'v1-xyz789', // New version after save
       timestamp: new Date().toISOString(),
@@ -211,7 +258,7 @@ export const handlers = [
     return HttpResponse.json(mockFilteringStatsData);
   }),
 
-  http.post('/api/filtering/enabled', async ({ request }) => {
+  http.post('/api/filtering/status', async ({ request }) => {
     const body = (await request.json()) as { enabled: boolean };
     return HttpResponse.json({
       status: 'ok',

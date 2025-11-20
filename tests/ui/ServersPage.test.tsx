@@ -1,9 +1,12 @@
-import { MemoryRouter } from "react-router-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi } from "vitest";
+import { renderWithProviders } from "./utils/test-utils";
 
 const mockRefresh = vi.fn();
+const mockStartMutate = vi.fn().mockImplementation((name, callbacks) => {
+  callbacks?.onSuccess?.();
+});
 
 // Mock React Query hook instead of deprecated usePolling
 vi.mock("@api/hooks", () => ({
@@ -28,9 +31,7 @@ vi.mock("@api/hooks", () => ({
 
 vi.mock("@api/mutations", () => ({
   useStartServer: () => ({
-    mutate: vi.fn().mockImplementation((name, callbacks) => {
-      callbacks?.onSuccess?.();
-    }),
+    mutate: mockStartMutate,
     mutateAsync: vi.fn().mockResolvedValue(undefined),
   }),
   useStopServer: () => ({
@@ -59,21 +60,16 @@ vi.mock("@api/servers", () => ({
 }));
 
 import ServersPage from "@pages/ServersPage";
-import { startServer } from "@api/servers";
 
 describe("ServersPage", () => {
   it("starts a server when toggled on", async () => {
-    render(
-      <MemoryRouter>
-        <ServersPage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<ServersPage />);
 
     const toggle = (await screen.findAllByRole("switch"))[0];
     await userEvent.click(toggle);
 
     await waitFor(() => {
-      expect(startServer).toHaveBeenCalledWith("example");
+      expect(mockStartMutate).toHaveBeenCalledWith("example", expect.anything());
     });
   });
 });

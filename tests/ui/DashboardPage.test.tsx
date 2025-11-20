@@ -1,7 +1,7 @@
-import { MemoryRouter } from "react-router-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { renderWithProviders } from "./utils/test-utils";
 
 vi.mock("@api/filtering", () => ({
   getFilteringStats: vi.fn(),
@@ -11,6 +11,21 @@ vi.mock("@api/filtering", () => ({
 
 vi.mock("@hooks/useLogsStream", () => ({
   useLogsStream: () => ({ logs: [], connected: true }),
+}));
+
+vi.mock("@hooks/useSSESubscription", () => ({
+  useSSESubscription: vi.fn(),
+}));
+
+// Mock lazy loaded chart components to avoid suspense/canvas issues
+vi.mock("@components/ToolPieChart", () => ({
+  default: ({ stats }: { stats: any }) => (
+    <div>{stats ? `${stats.totalTools} tools` : "Loading..."}</div>
+  ),
+}));
+
+vi.mock("@components/CacheLineChart", () => ({
+  default: () => <div>Cache Chart</div>,
 }));
 
 import DashboardPage from "@pages/DashboardPage";
@@ -51,22 +66,14 @@ describe("DashboardPage", () => {
   });
 
   it("renders filtering statistics", async () => {
-    render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<DashboardPage />);
 
     expect(await screen.findByText(/12 tools/i)).toBeInTheDocument();
     expect(screen.getByText(/active filters/i)).toBeInTheDocument();
   });
 
   it("toggles filtering via API", async () => {
-    render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<DashboardPage />);
 
     const toggle = await screen.findByRole("switch");
     await userEvent.click(toggle);
@@ -77,11 +84,7 @@ describe("DashboardPage", () => {
   });
 
   it("updates mode using select", async () => {
-    render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<DashboardPage />);
 
     const select = await screen.findByLabelText(/mode/i);
     await userEvent.click(select);

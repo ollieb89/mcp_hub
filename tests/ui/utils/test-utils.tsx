@@ -51,7 +51,7 @@ interface WrapperProps {
  * Create test wrapper with QueryClient + Router providers
  * @param queryClient - Optional custom QueryClient instance
  */
-function createWrapper(queryClient: QueryClient) {
+export function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: WrapperProps) {
     return (
       <QueryClientProvider client={queryClient}>

@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","error":{"code":-32000,"message":"Session not found: test. The hub may have restarted. Please reconnect."},"id":null}
